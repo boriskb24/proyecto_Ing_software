@@ -31,8 +31,8 @@ router
 router
   .group(() => {
     // Panel principal (accesible al iniciar sesión)
-    router.on('/dashboard', {}).renderInertia('home', {}).as('dashboard')
-    router.on('/home', {}).renderInertia('home', {}).as('home')
+    router.on('/dashboard').renderInertia('home', {}).as('dashboard')
+    router.on('/home').renderInertia('home', {}).as('home')
 
     // Cerrar sesión
     router.post('/logout', [SessionController, 'destroy']).as('logout')

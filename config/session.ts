@@ -1,5 +1,4 @@
 import env from '#start/env'
-import app from '@adonisjs/core/services/app'
 import { defineConfig, stores } from '@adonisjs/session'
 
 const sessionConfig = defineConfig({
@@ -41,9 +40,9 @@ const sessionConfig = defineConfig({
     httpOnly: true,
 
     /**
-     * Send cookies only over HTTPS in production.
+     * Send cookies only over HTTPS in production (disabled for local HTTP container testing).
      */
-    secure: app.inProduction,
+    secure: false,
 
     /**
      * Cross-site policy for cookie sending.

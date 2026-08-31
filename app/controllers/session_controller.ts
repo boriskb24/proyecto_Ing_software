@@ -6,7 +6,7 @@ export default class SessionController {
    * Renderiza el formulario de login con Inertia
    */
   async create({ inertia }: HttpContext) {
-    return inertia.render('auth/login')
+    return inertia.render('auth/login', {})
   }
 
   /**

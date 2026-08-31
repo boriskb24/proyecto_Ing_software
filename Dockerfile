@@ -3,13 +3,13 @@
 # ============================================================
 FROM node:24-alpine AS base
 
-# Install build tools required by better-sqlite3 (native addon)
+# Instalar herramientas requeridas para compilar better-sqlite3 (addon nativo)
 RUN apk add --no-cache python3 make g++ gcc
 
 WORKDIR /app
 
 # ============================================================
-# Stage 2: Install ALL dependencies
+# Stage 2: Instalar todas las dependencias
 # ============================================================
 FROM base AS dependencies
 
@@ -17,47 +17,47 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # ============================================================
-# Stage 3: Build the application
+# Stage 3: Compilar la aplicación (TypeScript + Vite)
 # ============================================================
 FROM dependencies AS build
 
-# Copy source code
+# Copiar el código fuente completo
 COPY . .
 
-# Build AdonisJS (compiles TS + Vite assets)
+# Compilar proyecto AdonisJS
 RUN node ace build
 
 # ============================================================
-# Stage 4: Production image
+# Stage 4: Imagen final de producción
 # ============================================================
 FROM node:24-alpine AS production
 
-# Install runtime dependency for better-sqlite3
+# Herramientas para dependencias nativas
 RUN apk add --no-cache python3 make g++ gcc
 
 WORKDIR /app
 
-# Create non-root user for security
+# Crear usuario seguro no-root
 RUN addgroup -S adonis && adduser -S adonis -G adonis
 
-# Copy the compiled build output
+# Copiar el build compilado
 COPY --from=build /app/build ./
 
-# Install only production dependencies
+# Instalar únicamente dependencias de producción
 RUN npm ci --omit=dev
 
-# Create tmp directory for SQLite database and set ownership
+# Crear directorio de datos SQLite y ajustar permisos
 RUN mkdir -p tmp && chown -R adonis:adonis /app
 
-# Switch to non-root user
+# Cambiar al usuario no-root
 USER adonis
 
-# Expose the application port
-EXPOSE 3333
+# Exponer el puerto de la aplicación
+EXPOSE 3000
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3333/ || exit 1
+# Monitoreo de salud del contenedor
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1
 
-# Start the server
-CMD ["node", "bin/server.js"]
+# Ejecutar migraciones automáticas, seeders iniciales y arrancar el servidor
+CMD ["sh", "-c", "node ace migration:run --force && node ace db:seed && node bin/server.js"]

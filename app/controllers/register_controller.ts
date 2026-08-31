@@ -7,7 +7,7 @@ export default class RegisterController {
    * Renderiza el formulario de registro con Inertia
    */
   async create({ inertia }: HttpContext) {
-    return inertia.render('auth/register')
+    return inertia.render('auth/register', {})
   }
 
   /**

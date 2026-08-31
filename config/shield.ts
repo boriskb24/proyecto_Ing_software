@@ -72,7 +72,7 @@ const shieldConfig = defineConfig({
     /**
      * Enable the Strict-Transport-Security header.
      */
-    enabled: true,
+    enabled: false,
 
     /**
      * HSTS policy duration remembered by browsers.

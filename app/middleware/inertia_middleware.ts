@@ -7,14 +7,9 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
   share(ctx: HttpContext) {
     const { auth } = ctx as Partial<HttpContext>
 
-    const transformedUser = auth?.user ? UserTransformer.transform(auth.user) : null
-
     return {
       errors: ctx.inertia.always(this.getValidationErrors(ctx)),
-      user: ctx.inertia.always(transformedUser),
-      auth: ctx.inertia.always({
-        user: transformedUser,
-      }),
+      user: ctx.inertia.always(auth?.user ? UserTransformer.transform(auth.user) : undefined),
     }
   }
 
