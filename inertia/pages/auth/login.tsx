@@ -1,7 +1,30 @@
+import { useState } from 'react'
 import { useForm, Link } from '@inertiajs/react'
 import type { FormEvent } from 'react'
 
+/* ─── Iconos de Visibilidad de Contraseña ─── */
+function IconEye() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+function IconEyeOff() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  )
+}
+
 export default function Login() {
+  const [showPassword, setShowPassword] = useState(false)
   const { data, setData, post, processing, errors } = useForm({
     email: '',
     password: '',
@@ -47,24 +70,37 @@ export default function Login() {
             )}
           </div>
 
-          {/* Campo Password */}
+          {/* Campo Password con botón para alternar visibilidad */}
           <div style={styles.formGroup}>
             <label htmlFor="password" style={styles.label}>
               Contraseña
             </label>
-            <input
-              id="password"
-              type="password"
-              value={data.password}
-              onChange={(e) => setData('password', e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              required
-              style={{
-                ...styles.input,
-                ...(errors.password ? styles.inputError : {}),
-              }}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={data.password}
+                onChange={(e) => setData('password', e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                required
+                style={{
+                  ...styles.input,
+                  paddingRight: '42px',
+                  width: '100%',
+                  ...(errors.password ? styles.inputError : {}),
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.toggleVisibilityBtn}
+                title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              >
+                {showPassword ? <IconEyeOff /> : <IconEye />}
+              </button>
+            </div>
             {errors.password && (
               <span style={styles.errorMessage}>{errors.password}</span>
             )}
@@ -168,6 +204,22 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#f8fafc',
     fontSize: '14px',
     outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.2s ease',
+  },
+  toggleVisibilityBtn: {
+    position: 'absolute',
+    right: '10px',
+    background: 'none',
+    border: 'none',
+    color: '#94a3b8',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '6px',
+    borderRadius: '6px',
+    transition: 'color 0.2s ease',
   },
   inputError: {
     borderColor: '#ef4444',
@@ -186,6 +238,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     border: 'none',
     boxShadow: '0 4px 14px rgba(29, 78, 216, 0.4)',
+    cursor: 'pointer',
   },
   footer: {
     marginTop: '24px',
