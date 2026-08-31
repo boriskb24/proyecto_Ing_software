@@ -1,15 +1,19 @@
 import { useForm, Link } from '@inertiajs/react'
 import type { FormEvent } from 'react'
 
-export default function Login() {
-  const { data, setData, post, processing, errors } = useForm({
+export default function Register() {
+  const { data, setData, post, processing, errors, reset } = useForm({
+    fullName: '',
     email: '',
     password: '',
+    password_confirmation: '',
   })
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    post('/login')
+    post('/register', {
+      onFinish: () => reset('password', 'password_confirmation'),
+    })
   }
 
   return (
@@ -17,13 +21,36 @@ export default function Login() {
       <div style={styles.card}>
         <div style={styles.header}>
           <div style={styles.logoBadge}>UBB</div>
-          <h1 style={styles.title}>Iniciar Sesión</h1>
+          <h1 style={styles.title}>Crear Cuenta</h1>
           <p style={styles.subtitle}>
-            Sistema de Centralización de Documentos
+            Regístrate en el Sistema de Documentos Académicos
           </p>
         </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>
+          {/* Campo Nombre Completo */}
+          <div style={styles.formGroup}>
+            <label htmlFor="fullName" style={styles.label}>
+              Nombre Completo
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              value={data.fullName}
+              onChange={(e) => setData('fullName', e.target.value)}
+              placeholder="Ej. Sandra Muñoz"
+              autoComplete="name"
+              required
+              style={{
+                ...styles.input,
+                ...(errors.fullName ? styles.inputError : {}),
+              }}
+            />
+            {errors.fullName && (
+              <span style={styles.errorMessage}>{errors.fullName}</span>
+            )}
+          </div>
+
           {/* Campo Email */}
           <div style={styles.formGroup}>
             <label htmlFor="email" style={styles.label}>
@@ -34,8 +61,8 @@ export default function Login() {
               type="email"
               value={data.email}
               onChange={(e) => setData('email', e.target.value)}
-              placeholder="nombre@ubiobio.cl"
-              autoComplete="username"
+              placeholder="usuario@ubiobio.cl"
+              autoComplete="email"
               required
               style={{
                 ...styles.input,
@@ -47,7 +74,7 @@ export default function Login() {
             )}
           </div>
 
-          {/* Campo Password */}
+          {/* Campo Contraseña */}
           <div style={styles.formGroup}>
             <label htmlFor="password" style={styles.label}>
               Contraseña
@@ -57,8 +84,8 @@ export default function Login() {
               type="password"
               value={data.password}
               onChange={(e) => setData('password', e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
+              placeholder="Mínimo 8 caracteres"
+              autoComplete="new-password"
               required
               style={{
                 ...styles.input,
@@ -70,7 +97,30 @@ export default function Login() {
             )}
           </div>
 
-          {/* Botón de Enviar */}
+          {/* Campo Confirmar Contraseña */}
+          <div style={styles.formGroup}>
+            <label htmlFor="password_confirmation" style={styles.label}>
+              Confirmar Contraseña
+            </label>
+            <input
+              id="password_confirmation"
+              type="password"
+              value={data.password_confirmation}
+              onChange={(e) => setData('password_confirmation', e.target.value)}
+              placeholder="Repite tu contraseña"
+              autoComplete="new-password"
+              required
+              style={{
+                ...styles.input,
+                ...(errors.password_confirmation ? styles.inputError : {}),
+              }}
+            />
+            {errors.password_confirmation && (
+              <span style={styles.errorMessage}>{errors.password_confirmation}</span>
+            )}
+          </div>
+
+          {/* Botón Submit */}
           <button
             type="submit"
             disabled={processing}
@@ -80,14 +130,14 @@ export default function Login() {
               cursor: processing ? 'not-allowed' : 'pointer',
             }}
           >
-            {processing ? 'Iniciando sesión...' : 'Ingresar al Sistema'}
+            {processing ? 'Creando cuenta...' : 'Registrarse'}
           </button>
         </form>
 
         <div style={styles.footer}>
-          <span>¿No tienes una cuenta? </span>
-          <Link href="/register" style={styles.link}>
-            Regístrate aquí
+          <span>¿Ya tienes una cuenta? </span>
+          <Link href="/login" style={styles.link}>
+            Inicia sesión
           </Link>
         </div>
       </div>
@@ -95,7 +145,7 @@ export default function Login() {
   )
 }
 
-/* ─── Estilos visuales limpios ─── */
+/* ─── Estilos visuales ─── */
 const styles: Record<string, React.CSSProperties> = {
   container: {
     minHeight: '100vh',
@@ -108,16 +158,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
   card: {
     width: '100%',
-    maxWidth: '440px',
+    maxWidth: '460px',
     backgroundColor: '#131e3a',
     borderRadius: '16px',
-    padding: '40px 32px',
+    padding: '36px 32px',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
     border: '1px solid rgba(255, 255, 255, 0.08)',
   },
   header: {
     textAlign: 'center',
-    marginBottom: '28px',
+    marginBottom: '24px',
   },
   logoBadge: {
     display: 'inline-flex',
@@ -148,7 +198,7 @@ const styles: Record<string, React.CSSProperties> = {
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '16px',
   },
   formGroup: {
     display: 'flex',
@@ -188,7 +238,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: '0 4px 14px rgba(29, 78, 216, 0.4)',
   },
   footer: {
-    marginTop: '24px',
+    marginTop: '20px',
     textAlign: 'center',
     fontSize: '13px',
     color: '#94a3b8',

@@ -7,7 +7,7 @@ import type { InferInput, SimpleError } from '@vinejs/vine/types'
 export type ParamValue = string | number | bigint | boolean
 
 export interface Registry {
-  'home': {
+  'root.login': {
     methods: ["GET","HEAD"]
     pattern: '/'
     types: {
@@ -15,35 +15,11 @@ export interface Registry {
       paramsTuple: []
       params: {}
       query: {}
-      response: unknown
-      errorResponse: unknown
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/session_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/session_controller').default['create']>>>
     }
   }
-  'new_account.create': {
-    methods: ["GET","HEAD"]
-    pattern: '/signup'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/new_account_controller').default['create']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/new_account_controller').default['create']>>>
-    }
-  }
-  'new_account.store': {
-    methods: ["POST"]
-    pattern: '/signup'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/user').signupValidator)>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/user').signupValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/new_account_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/new_account_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
-  'session.create': {
+  'login.create': {
     methods: ["GET","HEAD"]
     pattern: '/login'
     types: {
@@ -55,19 +31,67 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/session_controller').default['create']>>>
     }
   }
-  'session.store': {
+  'login.store': {
     methods: ["POST"]
     pattern: '/login'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/user').loginValidator)>>
+      body: {}
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/user').loginValidator)>>
+      query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/session_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/session_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/session_controller').default['store']>>>
     }
   }
-  'session.destroy': {
+  'register.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/register'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/register_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/register_controller').default['create']>>>
+    }
+  }
+  'register.store': {
+    methods: ["POST"]
+    pattern: '/register'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/register').registerValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/register').registerValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/register_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/register_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'dashboard': {
+    methods: ["GET","HEAD"]
+    pattern: '/dashboard'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: unknown
+      errorResponse: unknown
+    }
+  }
+  'home': {
+    methods: ["GET","HEAD"]
+    pattern: '/home'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: unknown
+      errorResponse: unknown
+    }
+  }
+  'logout': {
     methods: ["POST"]
     pattern: '/logout'
     types: {

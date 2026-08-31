@@ -179,40 +179,16 @@ const facultyMembers = [
   { name: 'Prof. Carlos Henríquez', area: 'Álgebra y Geometría', email: 'chenriquez@ubiobio.cl', initials: 'CH', avatarClass: 'avatar-teal' },
 ]
 
+import Navbar from '~/components/navbar'
+
 /* ─── Main Component ─── */
 export default function Home() {
   const [chatOpen, setChatOpen] = useState(true)
 
   return (
     <>
-      {/* ────── Navbar ────── */}
-      <nav className="navbar">
-        <div className="navbar-inner">
-          <a href="#" className="navbar-brand">
-            <div className="navbar-logo">UBB</div>
-            <div className="navbar-brand-text">
-              <span className="navbar-brand-title">Depto. Matemáticas</span>
-              <span className="navbar-brand-subtitle">Universidad del Bío-Bío</span>
-            </div>
-          </a>
-
-          <ul className="navbar-nav">
-            <li><a href="#" className="active"><IconHome /> Inicio</a></li>
-            <li><a href="#"><IconDocs /> Documentos</a></li>
-            <li><a href="#"><IconBriefcase /> Prácticas</a></li>
-            <li><a href="#"><IconUsers /> Profesores</a></li>
-            <li><a href="#"><IconHelp /> Ayuda</a></li>
-          </ul>
-
-          <div className="navbar-actions">
-            <div className="navbar-notification">
-              <IconBell />
-              <div className="notification-badge" />
-            </div>
-            <div className="navbar-avatar" title="Prof. Muñoz">SM</div>
-          </div>
-        </div>
-      </nav>
+      {/* ────── Navbar Dinámico con Auth ────── */}
+      <Navbar />
 
       {/* ────── Page Content ────── */}
       <div className="page-container">

@@ -4,27 +4,33 @@ type ParamValue = string | number | bigint | boolean
 
 export type ScannedRoutes = {
   ALL: {
+    'root.login': { paramsTuple?: []; params?: {} }
+    'login.create': { paramsTuple?: []; params?: {} }
+    'login.store': { paramsTuple?: []; params?: {} }
+    'register.create': { paramsTuple?: []; params?: {} }
+    'register.store': { paramsTuple?: []; params?: {} }
+    'dashboard': { paramsTuple?: []; params?: {} }
     'home': { paramsTuple?: []; params?: {} }
-    'new_account.create': { paramsTuple?: []; params?: {} }
-    'new_account.store': { paramsTuple?: []; params?: {} }
-    'session.create': { paramsTuple?: []; params?: {} }
-    'session.store': { paramsTuple?: []; params?: {} }
-    'session.destroy': { paramsTuple?: []; params?: {} }
+    'logout': { paramsTuple?: []; params?: {} }
   }
   GET: {
+    'root.login': { paramsTuple?: []; params?: {} }
+    'login.create': { paramsTuple?: []; params?: {} }
+    'register.create': { paramsTuple?: []; params?: {} }
+    'dashboard': { paramsTuple?: []; params?: {} }
     'home': { paramsTuple?: []; params?: {} }
-    'new_account.create': { paramsTuple?: []; params?: {} }
-    'session.create': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
+    'root.login': { paramsTuple?: []; params?: {} }
+    'login.create': { paramsTuple?: []; params?: {} }
+    'register.create': { paramsTuple?: []; params?: {} }
+    'dashboard': { paramsTuple?: []; params?: {} }
     'home': { paramsTuple?: []; params?: {} }
-    'new_account.create': { paramsTuple?: []; params?: {} }
-    'session.create': { paramsTuple?: []; params?: {} }
   }
   POST: {
-    'new_account.store': { paramsTuple?: []; params?: {} }
-    'session.store': { paramsTuple?: []; params?: {} }
-    'session.destroy': { paramsTuple?: []; params?: {} }
+    'login.store': { paramsTuple?: []; params?: {} }
+    'register.store': { paramsTuple?: []; params?: {} }
+    'logout': { paramsTuple?: []; params?: {} }
   }
 }
 declare module '@adonisjs/core/types/http' {

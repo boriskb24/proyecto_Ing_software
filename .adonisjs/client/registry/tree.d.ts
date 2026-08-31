@@ -2,14 +2,18 @@
 import type { routes } from './index.ts'
 
 export interface ApiDefinition {
+  root: {
+    login: typeof routes['root.login']
+  }
+  login: {
+    create: typeof routes['login.create']
+    store: typeof routes['login.store']
+  }
+  register: {
+    create: typeof routes['register.create']
+    store: typeof routes['register.store']
+  }
+  dashboard: typeof routes['dashboard']
   home: typeof routes['home']
-  newAccount: {
-    create: typeof routes['new_account.create']
-    store: typeof routes['new_account.store']
-  }
-  session: {
-    create: typeof routes['session.create']
-    store: typeof routes['session.store']
-    destroy: typeof routes['session.destroy']
-  }
+  logout: typeof routes['logout']
 }

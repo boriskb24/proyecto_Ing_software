@@ -9,8 +9,13 @@ tmp/*
 .env.local
 .env.production.local
 .env.development.local
+.env.test
 
-# Frontend assets compiled code
+# Git
+.git
+.gitignore
+
+# Frontend compiled assets
 public/assets
 
 # Build tools specific
@@ -26,4 +31,10 @@ yarn-error.log
 .DS_Store
 
 # Docker
-docker-data/
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md

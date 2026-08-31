@@ -8,23 +8,33 @@
 */
 
 import { middleware } from '#start/kernel'
-import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
 
-router.on('/').renderInertia('home', {}).as('home')
+const SessionController = () => import('#controllers/session_controller')
+const RegisterController = () => import('#controllers/register_controller')
 
+// ─── Rutas para usuarios NO autenticados (Página Inicial: Login) ───
 router
   .group(() => {
-    router.get('signup', [controllers.NewAccount, 'create'])
-    router.post('signup', [controllers.NewAccount, 'store'])
+    // La raíz "/" abre directamente el formulario de Login
+    router.get('/', [SessionController, 'create']).as('root.login')
+    router.get('/login', [SessionController, 'create']).as('login.create')
+    router.post('/login', [SessionController, 'store']).as('login.store')
 
-    router.get('login', [controllers.Session, 'create'])
-    router.post('login', [controllers.Session, 'store'])
+    // Registro
+    router.get('/register', [RegisterController, 'create']).as('register.create')
+    router.post('/register', [RegisterController, 'store']).as('register.store')
   })
   .use(middleware.guest())
 
+// ─── Rutas para usuarios autenticados (Dashboard / Home) ───
 router
   .group(() => {
-    router.post('logout', [controllers.Session, 'destroy'])
+    // Panel principal (accesible al iniciar sesión)
+    router.on('/dashboard', {}).renderInertia('home', {}).as('dashboard')
+    router.on('/home', {}).renderInertia('home', {}).as('home')
+
+    // Cerrar sesión
+    router.post('/logout', [SessionController, 'destroy']).as('logout')
   })
   .use(middleware.auth())
