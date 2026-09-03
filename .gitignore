@@ -4,6 +4,18 @@ build
 tmp/*
 !tmp/.gitkeep
 
+# Spring Boot & Java build artifacts
+target/
+*.jar
+*.war
+*.class
+.mvn/wrapper/maven-wrapper.jar
+
+# Frontend (Vite & React)
+dist/
+dist-ssr/
+*.local
+
 # Secrets
 .env
 .env.local
@@ -21,6 +33,11 @@ yarn-error.log
 .fleet
 .idea
 .vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Platform specific
 .DS_Store

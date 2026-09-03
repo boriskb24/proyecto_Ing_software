@@ -1,99 +1,74 @@
 # 🎓 Centro de Centralización de Documentos (UBB)
 Sistema de gestión de syllabus, convenios de prácticas y documentación académica para el Departamento de Matemáticas de la Universidad del Bío-Bío.
 
-**Stack Tecnológico:** AdonisJS 7 + Inertia.js + React 19 + TypeScript + SQLite
+**Pila Tecnológica Objetivo (Migración Completada):**
+- **Backend:** Java 17 + Spring Boot 3 (REST API, Spring Security, Spring Data JPA, Lombok)
+- **Frontend:** React 19 + Vite SPA (Axios, React Router DOM, TypeScript)
+- **Base de Datos:** MySQL 8 / H2 Database
 
 ---
 
-## 🚀 Guía de Inicio Rápido para Nuevos Integrantes
+## 🚀 Estructura del Proyecto Migrado
 
-Cualquier compañero que clone este repositorio puede levantarlo siguiendo estos sencillos pasos:
-
-### 📋 Requisitos Previos
-- **Node.js** versión `>= 24.0.0`
-- **npm** (incluido con Node.js)
-- *(Opcional)* **Docker Desktop** si prefieres correr con contenedores
-
----
-
-### Opción A: Ejecución Local con Node.js (Recomendada)
-
-1. **Clonar el repositorio:**
-   ```bash
-   git clone <URL_DEL_REPOSITORIO>
-   cd mi-proyecto
-   ```
-
-2. **Instalar dependencias:**
-   ```bash
-   npm install
-   ```
-
-3. **Configurar variables de entorno:**
-   Copia el archivo de ejemplo `.env.example` y crea tu `.env`:
-   ```bash
-   # En Windows PowerShell:
-   Copy-Item .env.example .env
-
-   # En Linux/Mac:
-   cp .env.example .env
-   ```
-
-4. **Generar la clave de seguridad de la aplicación (`APP_KEY`):**
-   ```bash
-   node ace generate:key
-   ```
-
-5. **Preparar la Base de Datos SQLite y Datos de Prueba:**
-   ```bash
-   # Ejecutar migraciones
-   node ace migration:run
-
-   # Insertar usuario administrador de prueba
-   node ace db:seed
-   ```
-
-6. **Iniciar el Servidor de Desarrollo:**
-   ```bash
-   npm run dev
-   ```
-
-7. **Abrir en el navegador:**
-   👉 **http://localhost:3000** o **http://127.0.0.1:3000**
-
----
-
-### Opción B: Ejecución con Docker
-
-Si tu compañero tiene **Docker Desktop**, no necesita instalar Node.js:
-
-```bash
-# 1. Iniciar contenedor de desarrollo con hot-reload:
-docker compose --profile dev up
-
-# 2. Abrir en el navegador:
-http://localhost:3000
+```
+.
+├── backend/                  # REST API Spring Boot (Java 17)
+│   ├── pom.xml               # Dependencias Maven (Spring Web, Data JPA, Security, MySQL, H2)
+│   └── src/main/java/com/ubb/dochub/
+│       ├── DochubApplication.java
+│       ├── config/SecurityConfig.java
+│       ├── controller/AuthController.java
+│       ├── dto/ (LoginRequest, RegisterRequest, UserDto, AuthResponse)
+│       ├── entity/User.java
+│       ├── repository/UserRepository.java
+│       └── service/ (AuthService, AuthServiceImpl)
+│
+├── frontend/                 # Application SPA React (Vite)
+│   ├── package.json          # Vite, React 19, React Router, Axios, Lucide
+│   ├── vite.config.ts        # Configuración Vite con Proxy al Backend (:8080)
+│   └── src/
+│       ├── context/AuthContext.tsx
+│       ├── services/api.ts
+│       ├── pages/ (LoginPage, RegisterPage, HomePage)
+│       └── components/ (Navbar, ProtectedRoute)
+│
+└── MIGRATION_PLAN.md         # Documento guía de arquitectura
 ```
 
 ---
 
-## 🔑 Cuentas de Acceso de Prueba
+## 📋 Guía de Inicio Rápido
 
-Al ejecutar `node ace db:seed`, se crea automáticamente una cuenta de administrador:
+### 1. Iniciar el Backend (Spring Boot REST API)
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+*El backend se ejecutará en **http://localhost:8080**.*
+
+#### 🔑 Endpoint REST API Disponibles:
+- `POST http://localhost:8080/api/auth/register`
+- `POST http://localhost:8080/api/auth/login`
+- `GET http://localhost:8080/api/auth/me?email=admin@ubiobio.cl`
+- `POST http://localhost:8080/api/auth/logout`
+
+---
+
+### 2. Iniciar el Frontend (React Vite SPA)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*La aplicación SPA se abrirá en **http://localhost:5173**.*
+
+---
+
+## 🔑 Credenciales de Prueba
 
 | Rol | Correo Electrónico | Contraseña |
 |---|---|---|
 | **Administrador** | `admin@ubiobio.cl` | `password123` |
-| **Estudiante** | *Cualquier cuenta nueva creada desde `/register`* | *La elegida al registrarse* |
-
----
-
-## 🛠️ Comandos Útiles
-
-```bash
-npm run dev           # Iniciar servidor con HMR (Hot Module Replacement)
-npm run build         # Compilar proyecto para producción
-npm run typecheck     # Verificar errores de TypeScript
-node ace migration:run # Ejecutar migraciones de base de datos
-node ace db:seed       # Ejecutar seeders de datos
-```
+| **Estudiante** | *Crear desde formulario `/register`* | *Mínimo 8 caracteres* |
