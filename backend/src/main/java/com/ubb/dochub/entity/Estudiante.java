@@ -9,12 +9,12 @@ public class Estudiante {
     public Estudiante() {
     }
     
-    public Estudiante(String rut, String primerNombre, String segundoNombre, String apelidoPaterno,
+    public Estudiante(String rut, String primerNombre, String segundoNombre, String apellidoPaterno,
             String apellidoMaterno, String correo) {
         this.rut = rut;
         this.primerNombre = primerNombre;
         this.segundoNombre = segundoNombre;
-        this.apelidoPaterno = apelidoPaterno;
+        this.apellidoPaterno = apellidoPaterno;
         this.apellidoMaterno = apellidoMaterno;
         this.correo = correo;
     }
@@ -30,7 +30,7 @@ public class Estudiante {
     private String segundoNombre;
 
     @Column(name = "apellido_paterno", nullable = false)
-    private String apelidoPaterno;
+    private String apellidoPaterno;
 
     @Column(name = "apellido_materno", nullable = false)
     private String apellidoMaterno;
@@ -55,16 +55,16 @@ public class Estudiante {
         return segundoNombre;
     }
 
-    public String getApelidoPaterno() {
-        return apelidoPaterno;
+    public String getApellidoPaterno() {
+        return apellidoPaterno;
     }
 
     public String getApellidoMaterno() {
         return apellidoMaterno;
     }
 
-    public void setApelidoPaterno(String apelidoPaterno) {
-        this.apelidoPaterno = apelidoPaterno;
+    public void setApellidoPaterno(String apelidoPaterno) {
+        this.apellidoPaterno = apelidoPaterno;
     }
 
     public void setApellidoMaterno(String apellidoMaterno) {

@@ -14,12 +14,12 @@ public class Evaluador {
     public Evaluador() {
     }
 
-    public Evaluador(String rut, String primerNombre, String segundoNombre, String apelidoPaterno,
+    public Evaluador(String rut, String primerNombre, String segundoNombre, String apellidoPaterno,
             String apellidoMaterno, String correo, TipoEvaluador tipo) {
         this.rut = rut;
         this.primerNombre = primerNombre;
         this.segundoNombre = segundoNombre;
-        this.apelidoPaterno = apelidoPaterno;
+        this.apellidoPaterno = apellidoPaterno;
         this.apellidoMaterno = apellidoMaterno;
         this.correo = correo;
         this.tipo = tipo;
@@ -52,14 +52,14 @@ public class Evaluador {
     }
 
     @Column(name = "apellido_paterno", nullable = false)
-    private String apelidoPaterno;
+    private String apellidoPaterno;
     
-    public String getApelidoPaterno() {
-        return apelidoPaterno;
+    public String getApellidoPaterno() {
+        return apellidoPaterno;
     }
 
-    public void setApelidoPaterno(String apelidoPaterno) {
-        this.apelidoPaterno = apelidoPaterno;
+    public void setApellidoPaterno(String apellidoPaterno) {
+        this.apellidoPaterno = apellidoPaterno;
     }
 
     @Column(name = "apellido_materno", nullable = false)
