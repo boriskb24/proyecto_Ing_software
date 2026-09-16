@@ -6,6 +6,22 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "profesor")
 public class Profesor {
+    public Profesor() {
+    }
+
+
+    public Profesor(String rut, String primerNombre, String segundoNombre, String apelidoPaterno,
+            String apellidoMaterno, String correo, String titulo) {
+        this.rut = rut;
+        this.primerNombre = primerNombre;
+        this.segundoNombre = segundoNombre;
+        this.apelidoPaterno = apelidoPaterno;
+        this.apellidoMaterno = apellidoMaterno;
+        this.correo = correo;
+        this.titulo = titulo;
+    }
+
+
     @Id
     @Column(name = "rut", length = 20)
     private String rut;

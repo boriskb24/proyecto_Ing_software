@@ -10,6 +10,21 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "evaluador")
 public class Evaluador {
+
+    public Evaluador() {
+    }
+
+    public Evaluador(String rut, String primerNombre, String segundoNombre, String apelidoPaterno,
+            String apellidoMaterno, String correo, TipoEvaluador tipo) {
+        this.rut = rut;
+        this.primerNombre = primerNombre;
+        this.segundoNombre = segundoNombre;
+        this.apelidoPaterno = apelidoPaterno;
+        this.apellidoMaterno = apellidoMaterno;
+        this.correo = correo;
+        this.tipo = tipo;
+    }
+
     @Id
     @Column(name = "rut", length = 20)
     private String rut;

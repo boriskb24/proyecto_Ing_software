@@ -5,7 +5,20 @@ import java.util.List;
 @Entity
 @Table(name = "estudiante")
 public class Estudiante {
+
+    public Estudiante() {
+    }
     
+    public Estudiante(String rut, String primerNombre, String segundoNombre, String apelidoPaterno,
+            String apellidoMaterno, String correo) {
+        this.rut = rut;
+        this.primerNombre = primerNombre;
+        this.segundoNombre = segundoNombre;
+        this.apelidoPaterno = apelidoPaterno;
+        this.apellidoMaterno = apellidoMaterno;
+        this.correo = correo;
+    }
+
     @Id
     @Column(name = "rut", length = 20)
     private String rut;

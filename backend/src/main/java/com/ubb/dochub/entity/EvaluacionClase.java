@@ -5,6 +5,16 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "evaluacion_clase")
 public class EvaluacionClase {
+    public EvaluacionClase() {
+    }
+
+
+    public EvaluacionClase(String archivo, Clase clase, Evaluador evaluador) {
+        this.archivo = archivo;
+        this.clase = clase;
+        this.evaluador = evaluador;
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

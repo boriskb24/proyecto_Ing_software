@@ -12,6 +12,15 @@ import jakarta.persistence.*;
 })
 public class EvaluacionSemestral {
 
+    public EvaluacionSemestral() {
+    }
+
+    public EvaluacionSemestral(String archivo, Asignacion asignacion, String asignatura) {
+        this.archivo = archivo;
+        this.asignacion = asignacion;
+        this.asignatura = asignatura;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

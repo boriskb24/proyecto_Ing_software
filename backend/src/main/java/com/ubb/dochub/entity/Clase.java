@@ -14,6 +14,18 @@ import jakarta.persistence.*;
 })
 public class Clase {
 
+    public Clase() {
+    }
+
+    public Clase(String asignatura, String tema, Planificacion planificacion, Inscripcion inscripcion,
+            LocalTime horaInicio) {
+        this.asignatura = asignatura;
+        this.tema = tema;
+        this.planificacion = planificacion;
+        this.inscripcion = inscripcion;
+        this.horaInicio = horaInicio;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

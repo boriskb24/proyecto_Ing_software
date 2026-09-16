@@ -8,6 +8,13 @@ import jakarta.persistence.*;
 @Table(name = "planificacion")
 public class Planificacion {
 
+    public Planificacion() {
+    }
+
+    public Planificacion(String archivo) {
+        this.archivo = archivo;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -78,6 +85,14 @@ public class Planificacion {
         // Establecer la fecha de carga como el momento justo de creación del registro
         // No se puede cambiar
         this.fecha = LocalDate.now();
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setFecha(LocalDate fecha) {
+        this.fecha = fecha;
     }
     
 }

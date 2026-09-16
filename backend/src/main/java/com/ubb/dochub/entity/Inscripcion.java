@@ -9,7 +9,15 @@ import jakarta.persistence.*;
     })
 })
 public class Inscripcion {
+
+    public Inscripcion() {
+    }
     
+    public Inscripcion(Oferta oferta, Estudiante estudiante) {
+        this.oferta = oferta;
+        this.estudiante = estudiante;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

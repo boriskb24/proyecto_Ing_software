@@ -6,6 +6,14 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "informe")
 public class Informe {
+    public Informe() {
+    }
+
+    public Informe(TipoEmisor emisor, String archivo, Inscripcion inscripcion) {
+        this.emisor = emisor;
+        this.archivo = archivo;
+        this.inscripcion = inscripcion;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,5 +63,13 @@ public class Informe {
 
     public void setArchivo(String archivo) {
         this.archivo = archivo;
+    }
+
+    public Inscripcion getInscripcion() {
+        return inscripcion;
+    }
+
+    public void setInscripcion(Inscripcion inscripcion) {
+        this.inscripcion = inscripcion;
     }
 }

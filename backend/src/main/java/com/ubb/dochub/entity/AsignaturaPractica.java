@@ -5,6 +5,15 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "asignatura_practica")
 public class AsignaturaPractica {
+
+    public AsignaturaPractica() {
+    }
+
+    public AsignaturaPractica(String codigo, String nombre) {
+        this.codigo = codigo;
+        this.nombre = nombre;
+    }
+
     @Id
     @Column(name = "codigo", length = 20)
     private String codigo;

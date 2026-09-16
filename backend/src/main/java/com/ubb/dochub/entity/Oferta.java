@@ -10,7 +10,16 @@ import jakarta.persistence.*;
     })
 })
 public class Oferta {
+
+    public Oferta() {
+    }
     
+    public Oferta(int anio, int periodo, AsignaturaPractica asignaturaPractica) {
+        this.anio = anio;
+        this.periodo = periodo;
+        this.asignaturaPractica = asignaturaPractica;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

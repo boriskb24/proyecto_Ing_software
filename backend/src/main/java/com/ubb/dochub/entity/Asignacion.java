@@ -10,6 +10,13 @@ import jakarta.persistence.*;
 })
 public class Asignacion {
 
+    public Asignacion() {}
+
+    public Asignacion(Inscripcion inscripcion, Evaluador evaluador) {
+        this.inscripcion = inscripcion;
+        this.evaluador = evaluador;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
