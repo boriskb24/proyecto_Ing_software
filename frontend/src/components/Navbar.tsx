@@ -23,7 +23,17 @@ export const Navbar: React.FC = () => {
   const displayName = user?.fullName || (user?.email ? user.email.split('@')[0] : 'Usuario')
   const userEmail = user?.email || ''
   const userRole = user?.role || 'Estudiante'
-  const initials = user?.initials || 'U'
+  const computedInitials = (() => {
+    if (user?.initials && user.initials !== 'PB') return user.initials
+    if (user?.fullName) {
+      const clean = user.fullName.replace(/^(prof\.?|dr\.?|ing\.?)\s+/i, '').trim()
+      const parts = clean.split(/\s+/).filter(Boolean)
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
+    }
+    return user?.initials || 'U'
+  })()
+  const initials = computedInitials
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

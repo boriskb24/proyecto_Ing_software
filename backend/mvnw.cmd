@@ -74,7 +74,7 @@ if not "%JAVA_HOME%" == "" (
     set "JAVA_EXE=%JAVA_HOME%\bin\java.exe"
 )
 
-"%JAVA_EXE%" -cp "%WRAPPER_JAR%" org.apache.maven.wrapper.MavenWrapperMain %*
+"%JAVA_EXE%" -cp "%WRAPPER_JAR%" "-Dmaven.multiModuleProjectDirectory=%PROJECT_ROOT%" org.apache.maven.wrapper.MavenWrapperMain %*
 set ERROR_CODE=%ERROR_LEVEL%
 
 exit /b %ERROR_CODE%

@@ -106,11 +106,14 @@ public class User {
 
     public String getInitials() {
         if (this.fullName != null && !this.fullName.trim().isEmpty()) {
-            String[] parts = this.fullName.trim().split("\\s+");
+            String cleanName = this.fullName.replaceAll("^(?i)(prof\\.?|dr\\.?|dra\\.?|lic\\.?|ing\\.?|sr\\.?|sra\\.?)\\s+", "").trim();
+            String[] parts = cleanName.split("\\s+");
             if (parts.length >= 2) {
-                return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+                return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
             }
-            return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+            if (parts.length == 1 && !parts[0].isEmpty()) {
+                return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+            }
         }
         if (this.email != null && !this.email.isEmpty()) {
             String username = this.email.split("@")[0];

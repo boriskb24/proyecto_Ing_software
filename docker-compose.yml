@@ -1,58 +1,73 @@
 services:
   # ============================================================
-  # Servicio Principal de la Aplicación en Contenedor (Producción)
-  # Ejecutar: docker compose up --build
+  # 1. Base de Datos: MySQL 8.0
   # ============================================================
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    container_name: mi-proyecto-app
-    ports:
-      - "3000:3000"
-    volumes:
-      # Persistencia de la base de datos SQLite entre reinicios
-      - sqlite_data:/app/tmp
+  db:
+    image: mysql:8.0
+    container_name: ubb-dochub-db
+    restart: always
     environment:
-      - TZ=UTC
-      - PORT=3000
-      - HOST=0.0.0.0
-      - NODE_ENV=production
-      - LOG_LEVEL=info
-      - APP_KEY=${APP_KEY:-75XWfpmYtAYMH3VnMklC6sB26ABlGEj5}
-      - APP_URL=http://localhost:3000
-      - SESSION_DRIVER=cookie
-    restart: unless-stopped
+      MYSQL_ROOT_PASSWORD: password123
+      MYSQL_DATABASE: ubb_doc_hub
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - dochub-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # ============================================================
-  # Servicio de Desarrollo con Hot-Reload
-  # Ejecutar: docker compose --profile dev up
+  # 2. Backend: Spring Boot 3 REST API (Java 17)
   # ============================================================
-  dev:
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-      target: dependencies
-    profiles:
-      - dev
-    container_name: mi-proyecto-dev
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
+    container_name: ubb-dochub-backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - TZ=UTC
-      - PORT=3000
-      - HOST=0.0.0.0
-      - NODE_ENV=development
-      - LOG_LEVEL=info
-      - APP_KEY=${APP_KEY:-75XWfpmYtAYMH3VnMklC6sB26ABlGEj5}
-      - APP_URL=http://localhost:3000
-      - SESSION_DRIVER=cookie
-    command: sh -c "node ace migration:run --force && node ace db:seed && node ace serve --hmr"
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=ubb_doc_hub
+      - DB_USER=root
+      - DB_PASSWORD=password123
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost
+    ports:
+      - "8080:8080"
+    networks:
+      - dochub-network
+
+  # ============================================================
+  # 3. Frontend: React 18/19 SPA + Vite + Nginx
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ubb-dochub-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "5173:80"
+    networks:
+      - dochub-network
+
+networks:
+  dochub-network:
+    driver: bridge
 
 volumes:
-  sqlite_data:
+  mysql_data:
     driver: local

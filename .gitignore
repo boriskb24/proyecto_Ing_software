@@ -42,5 +42,11 @@ yarn-error.log
 # Platform specific
 .DS_Store
 
+# Database files
+backend/data/
+*.mv.db
+*.trace.db
+
 # Docker
 docker-data/
+
