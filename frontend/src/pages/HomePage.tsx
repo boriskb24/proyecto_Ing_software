@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Navbar } from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -42,6 +43,7 @@ const facultyMembers = [
 
 export const HomePage: React.FC = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [chatOpen, setChatOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -79,10 +81,13 @@ export const HomePage: React.FC = () => {
 
         {/* Quick Actions */}
         <div style={styles.quickAccess}>
-          <button style={{ ...styles.quickCard, ...styles.quickCardBlue }}>
+          <button 
+            onClick={() => navigate('/entrega-informe')}
+            style={{ ...styles.quickCard, ...styles.quickCardBlue }}
+          >
             <Upload size={22} />
-            <div style={styles.quickCardTitle}>Subir Syllabus</div>
-            <div style={styles.quickCardDesc}>Semestre 2024-2</div>
+            <div style={styles.quickCardTitle}>Entregar Informe Final</div>
+            <div style={styles.quickCardDesc}>Subir PDF de Práctica</div>
           </button>
           <button style={{ ...styles.quickCard, ...styles.quickCardGold }}>
             <FileText size={22} />

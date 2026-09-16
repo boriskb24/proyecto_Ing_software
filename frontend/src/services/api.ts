@@ -32,4 +32,26 @@ export interface AuthResponse {
   user: UserDto;
 }
 
+export interface InformeEntregaResponse {
+  mensaje: string;
+  nombreArchivo: string;
+  tamanoBytes: number;
+  contentType: string;
+  fechaEntrega: string;
+}
+
+export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaResponse> => {
+  const formData = new FormData();
+  formData.append('archivo', archivo);
+
+  const response = await API.post<InformeEntregaResponse>('/practicas/informe-final', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data;
+};
+
 export default API
+

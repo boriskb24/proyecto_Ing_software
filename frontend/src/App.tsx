@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
+import { EntregaInformePage } from './pages/EntregaInformePage'
 
 export const App: React.FC = () => {
   return (
@@ -18,6 +19,7 @@ export const App: React.FC = () => {
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<HomePage />} />
+            <Route path="/entrega-informe" element={<EntregaInformePage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
 
