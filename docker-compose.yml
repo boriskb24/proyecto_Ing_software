@@ -64,6 +64,26 @@ services:
     networks:
       - dochub-network
 
+  # ============================================================
+  # 4. Administrador Web de Base de Datos: phpMyAdmin
+  # ============================================================
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: ubb-dochub-phpmyadmin
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: password123
+    ports:
+      - "8081:80"
+    networks:
+      - dochub-network
+
 networks:
   dochub-network:
     driver: bridge
@@ -71,3 +91,4 @@ networks:
 volumes:
   mysql_data:
     driver: local
+
