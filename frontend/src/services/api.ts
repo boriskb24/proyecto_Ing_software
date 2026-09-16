@@ -42,10 +42,14 @@ export interface InformeEntregaResponse {
 
 export interface Planificacion {
   id: number;
-  nombreArchivo: string;
-  tipoArchivo: string;
+  nombreArchivo?: string;
+  tipoArchivo?: string;
+  archivo?: string;
   rutaAlmacenamiento?: string;
-  fechaCreacion: string;
+  estado?: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | string;
+  fecha?: string;
+  fechaCreacion?: string;
+  retroalimentacion?: string | null;
 }
 
 export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaResponse> => {

@@ -1,41 +1,115 @@
 package com.ubb.dochub.entity;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
 
 @Entity
-@Table(name = "planificaciones")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "planificacion")
 public class Planificacion {
+
+    public Planificacion() {
+    }
+
+    public Planificacion(String archivo) {
+        this.archivo = archivo;
+    }
+
+    public Planificacion(String archivo, EstadoPlanificacion estado, LocalDate fecha, String retroalimentacion) {
+        this.archivo = archivo;
+        this.estado = estado;
+        this.fecha = fecha;
+        this.retroalimentacion = retroalimentacion;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "nombre_archivo", nullable = false)
-    private String nombreArchivo;
+    public Long getId() {
+        return id;
+    }
 
-    @Column(name = "tipo_archivo")
-    private String tipoArchivo;
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    @Column(name = "ruta_almacenamiento", nullable = false)
-    private String rutaAlmacenamiento;
+    // Estado de la planificación: APROBADA, RECHAZADA o PENDIENTE
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false)
+    private EstadoPlanificacion estado;
 
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
-    private LocalDateTime fechaCreacion;
+    public EstadoPlanificacion getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoPlanificacion estado) {
+        this.estado = estado;
+    }
+
+    // El estándar de la industria es que la tabla no guarda el archivo como tal sino su ruta
+    // Ejemplo: Planificacion.archivo = "/ruta/a/la/planificacion.pdf"
+    @Column(name = "archivo", nullable = false)
+    private String archivo;
+
+    public String getArchivo() {
+        return archivo;
+    }
+
+    public void setArchivo(String archivo) {
+        this.archivo = archivo;
+    }
+
+    @Column(name = "fecha", nullable = false, updatable = false)
+    private LocalDate fecha;
+
+    public LocalDate getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(LocalDate fecha) {
+        this.fecha = fecha;
+    }
+
+    @Column(name = "retroalimentacion", nullable = true)
+    private String retroalimentacion;
+
+    public String getRetroalimentacion() {
+        return retroalimentacion;
+    }
+
+    public void setRetroalimentacion(String retroalimentacion) {
+        this.retroalimentacion = retroalimentacion;
+    }
+
+    @Transient
+    public String getNombreArchivo() {
+        if (this.archivo == null) return "";
+        try {
+            return Paths.get(this.archivo).getFileName().toString();
+        } catch (Exception e) {
+            return this.archivo;
+        }
+    }
+
+    @Transient
+    public String getTipoArchivo() {
+        return "application/pdf";
+    }
+
+    @Transient
+    public String getFechaCreacion() {
+        return this.fecha != null ? this.fecha.toString() : "";
+    }
 
     @PrePersist
     protected void onCreate() {
-        if (this.fechaCreacion == null) {
-            this.fechaCreacion = LocalDateTime.now();
+        if (this.estado == null) {
+            this.estado = EstadoPlanificacion.PENDIENTE;
+        }
+        if (this.fecha == null) {
+            this.fecha = LocalDate.now();
         }
     }
 }

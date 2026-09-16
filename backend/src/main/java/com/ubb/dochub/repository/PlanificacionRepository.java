@@ -9,5 +9,7 @@ import java.util.List;
 @Repository
 public interface PlanificacionRepository extends JpaRepository<Planificacion, Long> {
 
-    List<Planificacion> findAllByOrderByFechaCreacionDesc();
+    List<Planificacion> findAllByOrderByFechaDesc();
+
+    List<Planificacion> findAllByOrderByIdDesc();
 }

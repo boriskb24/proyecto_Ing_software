@@ -1,5 +1,6 @@
 package com.ubb.dochub.service.impl;
 
+import com.ubb.dochub.entity.EstadoPlanificacion;
 import com.ubb.dochub.entity.Planificacion;
 import com.ubb.dochub.repository.PlanificacionRepository;
 import com.ubb.dochub.service.PlanificacionService;
@@ -14,7 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,46 +32,44 @@ public class PlanificacionServiceImpl implements PlanificacionService {
     @Override
     @Transactional
     public Planificacion guardarPlanificacion(MultipartFile archivo) {
-        // 1. Validar que el archivo exista y no esté vacío
+        // 1. Validar que el archivo exista y no este vacio
         if (archivo == null || archivo.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar un archivo válido para subir.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar un archivo valido para subir.");
         }
 
         String originalFilename = archivo.getOriginalFilename();
         String contentType = archivo.getContentType();
 
-        // 2. Validación estricta de formato PDF
+        // 2. Validacion estricta de formato PDF
         boolean isPdfMime = "application/pdf".equalsIgnoreCase(contentType);
         boolean hasPdfExtension = originalFilename != null && originalFilename.toLowerCase().endsWith(".pdf");
 
         if (!isPdfMime || !hasPdfExtension) {
             throw new ResponseStatusException(
                     HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-                    "Formato no válido. Solo se admiten archivos en formato PDF (.pdf).");
+                    "Formato no valido. Solo se admiten archivos en formato PDF (.pdf).");
         }
 
         try {
-            // 2. Crear el directorio físico si no existe
+            // 3. Crear el directorio fisico si no existe
             Path uploadPath = Paths.get(UPLOAD_DIR);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
 
-            // 3. Generar un nombre único para evitar sobreescritura accidental
-            String cleanName = (originalFilename != null) ? originalFilename.replaceAll("\\s+", "_") : "archivo";
+            // 4. Generar un nombre unico para evitar sobreescritura accidental
+            String cleanName = (originalFilename != null) ? originalFilename.replaceAll("\\s+", "_") : "archivo.pdf";
             String uniqueFileName = UUID.randomUUID() + "_" + cleanName;
             Path targetLocation = uploadPath.resolve(uniqueFileName);
 
-            // 4. Guardar archivo físico en disco
+            // 5. Guardar archivo fisico en disco
             Files.copy(archivo.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            // 5. Crear y persistir el registro en Base de Datos
-            Planificacion planificacion = Planificacion.builder()
-                    .nombreArchivo(originalFilename != null ? originalFilename : uniqueFileName)
-                    .tipoArchivo(contentType != null ? contentType : "application/octet-stream")
-                    .rutaAlmacenamiento(targetLocation.toString())
-                    .fechaCreacion(LocalDateTime.now())
-                    .build();
+            // 6. Crear y persistir el registro segun el modelo MER
+            Planificacion planificacion = new Planificacion();
+            planificacion.setArchivo(targetLocation.toString());
+            planificacion.setEstado(EstadoPlanificacion.PENDIENTE);
+            planificacion.setFecha(LocalDate.now());
 
             return planificacionRepository.save(planificacion);
 
@@ -84,6 +83,6 @@ public class PlanificacionServiceImpl implements PlanificacionService {
     @Override
     @Transactional(readOnly = true)
     public List<Planificacion> obtenerTodas() {
-        return planificacionRepository.findAllByOrderByFechaCreacionDesc();
+        return planificacionRepository.findAllByOrderByFechaDesc();
     }
 }

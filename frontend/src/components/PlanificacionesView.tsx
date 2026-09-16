@@ -184,8 +184,9 @@ export const PlanificacionesView: React.FC = () => {
               <thead>
                 <tr>
                   <th style={styles.th}>Nombre del Archivo</th>
+                  <th style={styles.th}>Estado</th>
                   <th style={styles.th}>Tipo / Formato</th>
-                  <th style={styles.th}>Fecha de Subida</th>
+                  <th style={styles.th}>Fecha</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,12 +194,21 @@ export const PlanificacionesView: React.FC = () => {
                   <tr key={item.id} style={styles.tr}>
                     <td style={styles.tdPrimary}>
                       <span style={{ marginRight: '8px' }}>📄</span>
-                      <strong>{item.nombreArchivo}</strong>
+                      <strong>{item.nombreArchivo || item.archivo || `Planificación #${item.id}`}</strong>
                     </td>
                     <td style={styles.td}>
-                      <span style={styles.typeBadge}>{item.tipoArchivo || 'Documento'}</span>
+                      <span style={{
+                        ...styles.statusBadge,
+                        backgroundColor: item.estado === 'APROBADA' ? '#dcfce7' : item.estado === 'RECHAZADA' ? '#fee2e2' : '#fef3c7',
+                        color: item.estado === 'APROBADA' ? '#166534' : item.estado === 'RECHAZADA' ? '#991b1b' : '#92400e',
+                      }}>
+                        {item.estado || 'PENDIENTE'}
+                      </span>
                     </td>
-                    <td style={styles.td}>{formatearFecha(item.fechaCreacion)}</td>
+                    <td style={styles.td}>
+                      <span style={styles.typeBadge}>{item.tipoArchivo || 'PDF'}</span>
+                    </td>
+                    <td style={styles.td}>{formatearFecha(item.fecha || item.fechaCreacion || '')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -370,11 +380,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#0f172a',
   },
   typeBadge: {
+    display: 'inline-block',
     backgroundColor: '#f1f5f9',
     color: '#334155',
-    padding: '3px 8px',
+    padding: '4px 8px',
     borderRadius: '6px',
-    fontSize: '0.75rem',
+    fontSize: '0.8rem',
     fontWeight: 500,
+  },
+  statusBadge: {
+    display: 'inline-block',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    fontSize: '0.78rem',
+    fontWeight: 600,
   },
 };
