@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
 import { EntregaInformePage } from './pages/EntregaInformePage'
+import { PlanificacionesPage } from './pages/PlanificacionesPage'
 
 export const App: React.FC = () => {
   return (
@@ -20,6 +21,7 @@ export const App: React.FC = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<HomePage />} />
             <Route path="/entrega-informe" element={<EntregaInformePage />} />
+            <Route path="/planificaciones" element={<PlanificacionesPage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
 

@@ -40,6 +40,14 @@ export interface InformeEntregaResponse {
   fechaEntrega: string;
 }
 
+export interface Planificacion {
+  id: number;
+  nombreArchivo: string;
+  tipoArchivo: string;
+  rutaAlmacenamiento?: string;
+  fechaCreacion: string;
+}
+
 export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaResponse> => {
   const formData = new FormData();
   formData.append('archivo', archivo);
@@ -50,6 +58,24 @@ export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaR
     },
   });
 
+  return response.data;
+};
+
+export const uploadPlanificacion = async (file: File): Promise<Planificacion> => {
+  const formData = new FormData();
+  formData.append('archivo', file);
+
+  const response = await API.post<Planificacion>('/planificaciones', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data;
+};
+
+export const getPlanificaciones = async (): Promise<Planificacion[]> => {
+  const response = await API.get<Planificacion[]>('/planificaciones');
   return response.data;
 };
 

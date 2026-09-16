@@ -70,6 +70,11 @@ export const Navbar: React.FC = () => {
             </Link>
           </li>
           <li>
+            <Link to="/planificaciones" style={styles.navLink}>
+              <FileText size={16} /> Planificaciones
+            </Link>
+          </li>
+          <li>
             <a href="#documentos" style={styles.navLink}>
               <FileText size={16} /> Documentos
             </a>

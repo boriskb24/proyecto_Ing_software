@@ -31,7 +31,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/practicas/**", "/h2-console/**", "/error").permitAll()
+                .requestMatchers("/api/auth/**", "/api/practicas/**", "/api/planificaciones/**", "/h2-console/**", "/error").permitAll()
                 .anyRequest().authenticated()
             );
 

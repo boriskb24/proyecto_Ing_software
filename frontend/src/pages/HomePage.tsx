@@ -89,10 +89,13 @@ export const HomePage: React.FC = () => {
             <div style={styles.quickCardTitle}>Entregar Informe Final</div>
             <div style={styles.quickCardDesc}>Subir PDF de Práctica</div>
           </button>
-          <button style={{ ...styles.quickCard, ...styles.quickCardGold }}>
+          <button 
+            onClick={() => navigate('/planificaciones')}
+            style={{ ...styles.quickCard, ...styles.quickCardGold }}
+          >
             <FileText size={22} />
-            <div style={styles.quickCardTitle}>Nuevo Convenio</div>
-            <div style={styles.quickCardDesc}>Convenio de Prácticas</div>
+            <div style={styles.quickCardTitle}>Planificaciones de Clase</div>
+            <div style={styles.quickCardDesc}>Subir y gestionar archivos</div>
           </button>
           <button style={{ ...styles.quickCard, ...styles.quickCardTeal }}>
             <Clock size={22} />
