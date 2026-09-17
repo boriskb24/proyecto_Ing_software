@@ -112,6 +112,11 @@ public class PracticaServiceImpl implements PracticaService {
 
             String safeFileName = UUID.randomUUID() + "_" + (originalFilename != null ? originalFilename.replaceAll("\\s+", "_") : "informe.pdf");
             Path targetLocation = uploadPath.resolve(safeFileName);
+            // Asegurar el directorio padre del archivo antes de copiar (extra seguridad en entornos con volúmenes)
+            Path parent = targetLocation.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
             Files.copy(archivo.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
             // Persistir registro de Informe
