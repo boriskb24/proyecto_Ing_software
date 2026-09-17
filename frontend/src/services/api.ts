@@ -23,7 +23,7 @@ export interface UserDto {
   email: string;
   role: string;
   initials: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface AuthResponse {
@@ -50,6 +50,7 @@ export interface Planificacion {
   fecha?: string;
   fechaCreacion?: string;
   retroalimentacion?: string | null;
+  usuario?: UserDto | null;
 }
 
 export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaResponse> => {
@@ -65,9 +66,13 @@ export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaR
   return response.data;
 };
 
-export const uploadPlanificacion = async (file: File): Promise<Planificacion> => {
+// Subir planificación asociando el userId para RBAC
+export const uploadPlanificacion = async (file: File, userId?: number): Promise<Planificacion> => {
   const formData = new FormData();
   formData.append('archivo', file);
+  if (userId) {
+    formData.append('userId', userId.toString());
+  }
 
   const response = await API.post<Planificacion>('/planificaciones', formData, {
     headers: {
@@ -78,10 +83,28 @@ export const uploadPlanificacion = async (file: File): Promise<Planificacion> =>
   return response.data;
 };
 
-export const getPlanificaciones = async (): Promise<Planificacion[]> => {
-  const response = await API.get<Planificacion[]>('/planificaciones');
+// Obtener historial con parámetros RBAC (userId y role)
+export const getPlanificaciones = async (userId?: number, role?: string): Promise<Planificacion[]> => {
+  const response = await API.get<Planificacion[]>('/planificaciones', {
+    params: {
+      userId,
+      role,
+    },
+  });
+  return response.data;
+};
+
+// Evaluar planificación (Aprobar o Rechazar con comentarios) - Solo Docentes / Evaluadores
+export const evaluarPlanificacion = async (
+  id: number,
+  estado: 'APROBADA' | 'RECHAZADA',
+  retroalimentacion?: string
+): Promise<Planificacion> => {
+  const response = await API.patch<Planificacion>(`/planificaciones/${id}/evaluar`, {
+    estado,
+    retroalimentacion: retroalimentacion || '',
+  });
   return response.data;
 };
 
 export default API
-

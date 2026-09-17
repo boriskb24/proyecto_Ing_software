@@ -1,13 +1,38 @@
 package com.ubb.dochub.entity;
 
 import java.nio.file.Paths;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "planificacion")
 public class Planificacion {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // Estado de la planificación: APROBADA, RECHAZADA o PENDIENTE
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false)
+    private EstadoPlanificacion estado;
+
+    // Ruta de almacenamiento en disco del PDF
+    @Column(name = "archivo", nullable = false)
+    private String archivo;
+
+    @Column(name = "fecha", nullable = false, updatable = false)
+    private LocalDateTime fecha;
+
+    @Column(name = "retroalimentacion")
+    private String retroalimentacion;
+
+    // Relación RBAC con el usuario que subió la planificación
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    private User usuario;
 
     public Planificacion() {
     }
@@ -16,16 +41,23 @@ public class Planificacion {
         this.archivo = archivo;
     }
 
-    public Planificacion(String archivo, EstadoPlanificacion estado, LocalDate fecha, String retroalimentacion) {
+    public Planificacion(String archivo, EstadoPlanificacion estado, LocalDateTime fecha, String retroalimentacion, User usuario) {
         this.archivo = archivo;
         this.estado = estado;
         this.fecha = fecha;
         this.retroalimentacion = retroalimentacion;
+        this.usuario = usuario;
     }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @PrePersist
+    protected void onCreate() {
+        if (this.estado == null) {
+            this.estado = EstadoPlanificacion.PENDIENTE;
+        }
+        if (this.fecha == null) {
+            this.fecha = LocalDateTime.now();
+        }
+    }
 
     public Long getId() {
         return id;
@@ -35,11 +67,6 @@ public class Planificacion {
         this.id = id;
     }
 
-    // Estado de la planificación: APROBADA, RECHAZADA o PENDIENTE
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado", nullable = false)
-    private EstadoPlanificacion estado;
-
     public EstadoPlanificacion getEstado() {
         return estado;
     }
@@ -47,11 +74,6 @@ public class Planificacion {
     public void setEstado(EstadoPlanificacion estado) {
         this.estado = estado;
     }
-
-    // El estándar de la industria es que la tabla no guarda el archivo como tal sino su ruta
-    // Ejemplo: Planificacion.archivo = "/ruta/a/la/planificacion.pdf"
-    @Column(name = "archivo", nullable = false)
-    private String archivo;
 
     public String getArchivo() {
         return archivo;
@@ -61,19 +83,13 @@ public class Planificacion {
         this.archivo = archivo;
     }
 
-    @Column(name = "fecha", nullable = false, updatable = false)
-    private LocalDate fecha;
-
-    public LocalDate getFecha() {
+    public LocalDateTime getFecha() {
         return fecha;
     }
 
-    public void setFecha(LocalDate fecha) {
+    public void setFecha(LocalDateTime fecha) {
         this.fecha = fecha;
     }
-
-    @Column(name = "retroalimentacion", nullable = true)
-    private String retroalimentacion;
 
     public String getRetroalimentacion() {
         return retroalimentacion;
@@ -81,6 +97,14 @@ public class Planificacion {
 
     public void setRetroalimentacion(String retroalimentacion) {
         this.retroalimentacion = retroalimentacion;
+    }
+
+    public User getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(User usuario) {
+        this.usuario = usuario;
     }
 
     @Transient
@@ -100,16 +124,7 @@ public class Planificacion {
 
     @Transient
     public String getFechaCreacion() {
-        return this.fecha != null ? this.fecha.toString() : "";
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        if (this.estado == null) {
-            this.estado = EstadoPlanificacion.PENDIENTE;
-        }
-        if (this.fecha == null) {
-            this.fecha = LocalDate.now();
-        }
+        if (this.fecha == null) return "";
+        return this.fecha.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
 }
