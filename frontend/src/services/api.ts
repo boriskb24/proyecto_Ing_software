@@ -53,5 +53,28 @@ export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaR
   return response.data;
 };
 
+export interface InscripcionDto {
+  inscripcionId: number;
+  estudianteRut: string;
+  nombreCompleto: string;
+  correo: string;
+}
+
+export const getInscripcionesForProfesor = async (profesorEmail: string): Promise<InscripcionDto[]> => {
+  const response = await API.get<InscripcionDto[]>(`/practicas/inscripciones?profesorEmail=${encodeURIComponent(profesorEmail)}`)
+  return response.data
+}
+
+export const uploadInformeForInscripcion = async (inscripcionId: number, archivo: File): Promise<InformeEntregaResponse> => {
+  const formData = new FormData();
+  formData.append('archivo', archivo);
+
+  const response = await API.post<InformeEntregaResponse>(`/practicas/${inscripcionId}/informe-final`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+
+  return response.data;
+}
+
 export default API
 
