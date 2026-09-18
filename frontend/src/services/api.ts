@@ -65,6 +65,30 @@ export const getInscripcionesForProfesor = async (profesorEmail: string): Promis
   return response.data
 }
 
+export interface OfertaDto {
+  id: number;
+  anio: number;
+  periodo: number;
+  asignaturaCodigo: string;
+  asignaturaNombre: string;
+  inscritosCount?: number;
+}
+
+export const getOfertasForProfesor = async (profesorEmail: string): Promise<OfertaDto[]> => {
+  const response = await API.get<OfertaDto[]>(`/practicas/ofertas?profesorEmail=${encodeURIComponent(profesorEmail)}`)
+  return response.data
+}
+
+export const getOfertaById = async (ofertaId: number): Promise<OfertaDto & { inscritosCount: number }> => {
+  const response = await API.get<OfertaDto & { inscritosCount: number }>(`/practicas/ofertas/${ofertaId}`)
+  return response.data
+}
+
+export const getInscripcionesForOferta = async (ofertaId: number): Promise<InscripcionDto[]> => {
+  const response = await API.get<InscripcionDto[]>(`/practicas/ofertas/${ofertaId}/inscripciones`)
+  return response.data
+}
+
 export const uploadInformeForInscripcion = async (inscripcionId: number, archivo: File): Promise<InformeEntregaResponse> => {
   const formData = new FormData();
   formData.append('archivo', archivo);

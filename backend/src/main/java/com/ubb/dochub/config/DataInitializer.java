@@ -78,6 +78,24 @@ public class DataInitializer implements CommandLineRunner {
                 "sebastian.fuentes@ubiobio.cl"
         );
 
+        Estudiante estudiante4 = crearEstudiante(
+        "20888888-8",
+        "Camila",
+        "Fernanda",
+        "Navarro",
+        "Silva",
+        "camila.navarro@ubiobio.cl"
+        );
+
+        Estudiante estudiante5 = crearEstudiante(
+        "20999999-9",
+                "Matías",
+                "Sebastián",
+                "Vargas",
+                "Paredes",
+                "matias.vargas@ubiobio.cl"
+        );
+
         Evaluador evaluador1 = crearEvaluador(
                 "44444444-4",
                 "Carlos",
@@ -109,6 +127,11 @@ public class DataInitializer implements CommandLineRunner {
                 "Práctica Profesional"
         );
 
+        AsignaturaPractica asignatura2 = crearAsignatura(
+                "INF-404",
+                "Práctica Profesional II"
+        );
+
         /*
          * ==========================================================
          * 3. OFERTA
@@ -119,6 +142,13 @@ public class DataInitializer implements CommandLineRunner {
                 2026,
                 1,
                 asignatura,
+                profesor
+        );
+
+        Oferta oferta2 = crearOferta(
+                2026,
+                1,
+                asignatura2,
                 profesor
         );
 
@@ -141,6 +171,16 @@ public class DataInitializer implements CommandLineRunner {
         Inscripcion inscripcion3 = crearInscripcion(
                 oferta,
                 estudiante3
+        );
+
+        Inscripcion inscripcion4 = crearInscripcion(
+                oferta2,
+                estudiante4
+        );
+
+        Inscripcion inscripcion5 = crearInscripcion(
+                oferta2,
+                estudiante5
         );
 
         /*
@@ -363,6 +403,26 @@ public class DataInitializer implements CommandLineRunner {
                         estudiante3.getApellidoMaterno()
                 ),
                 estudiante3.getCorreo()
+        );
+
+        crearUsuario(
+                nombreCompleto(
+                        estudiante4.getPrimerNombre(),
+                        estudiante4.getSegundoNombre(),
+                        estudiante4.getApellidoPaterno(),
+                        estudiante4.getApellidoMaterno()
+                ),
+                estudiante4.getCorreo()
+        );
+
+        crearUsuario(
+                nombreCompleto(
+                        estudiante5.getPrimerNombre(),
+                        estudiante5.getSegundoNombre(),
+                        estudiante5.getApellidoPaterno(),
+                        estudiante5.getApellidoMaterno()
+                ),
+                estudiante5.getCorreo()
         );
 
         // ----------------------------------------------------------

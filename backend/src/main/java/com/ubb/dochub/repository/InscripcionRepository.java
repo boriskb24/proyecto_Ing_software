@@ -10,4 +10,7 @@ import java.util.List;
 public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> {
     // Busca inscripciones cuyos offers pertenezcan a un profesor identificado por correo
     List<Inscripcion> findByOfertaProfesorCorreo(String correo);
+    // Busca inscripciones que pertenezcan a una oferta específica
+    List<Inscripcion> findByOfertaId(Long ofertaId);
+    Long countByOfertaId(Long ofertaId);
 }
