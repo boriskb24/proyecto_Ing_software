@@ -1,5 +1,7 @@
 package com.ubb.dochub.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -21,6 +23,15 @@ public class EvaluacionClase {
     @JoinColumn(name = "rut_evaluador")
     private Evaluador evaluador;
 
+    @Column(name = "nota")
+    private Double nota;
+
+    @Column(name = "observaciones")
+    private String observaciones;
+
+    @Column(name = "fecha")
+    private LocalDateTime fecha;
+
     public Long getId() {
         return id;
     }
@@ -31,6 +42,30 @@ public class EvaluacionClase {
 
     public void setArchivo(String archivo) {
         this.archivo = archivo;
+    }
+
+    public void setNota(Double nota) {
+        this.nota = nota;
+    }
+    
+    public Double getNota() {
+        return nota;
+    }
+
+    public String getObservaciones() {
+        return observaciones;
+    }
+
+    public void setObservaciones(String observaciones) {
+        this.observaciones = observaciones;
+    }
+
+    public LocalDateTime getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
     }
 
     public Clase getClase() {

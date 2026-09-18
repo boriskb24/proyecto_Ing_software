@@ -26,9 +26,15 @@ public class EvaluacionSemestral {
     @Column(name = "asignatura")
     private String asignatura;
 
-    @Column(name = "fecha", nullable = false, updatable = false) // la fecha de carga del archivo a la base de datos no se puede cambiar
-    private LocalDate fecha;
+    @Column(name = "nota", nullable = false, updatable = true) // La nota puede ser modificada por el docente
+    private Double nota;
 
+    @Column(name = "observaciones", nullable = false, updatable = true) 
+    private String observaciones;
+
+
+    @Column(name = "fecha", nullable = false, updatable = false) // la fecha de carga del archivo a la base de datos no se puede cambiar
+    private LocalDate fecha;    
 
     @PrePersist
     protected void onCreate() {
@@ -67,6 +73,21 @@ public class EvaluacionSemestral {
 
     public void setAsignatura(String asignatura) {
         this.asignatura = asignatura;
+    }
+
+    public void setNota(Double nota){
+        this.nota = nota;
+    }
+
+    public Double getNota(){
+        return nota;
+    }
+
+    public void setObservaciones(String observaciones){
+        this.observaciones = observaciones;
+    }
+    public String getObservaciones(){
+        return observaciones;
     }
 
 
