@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { getInscripcionesForProfesor, getInscripcionesForOferta, InscripcionDto, uploadInformeForInscripcion } from '../services/api'
 import { getOfertaById } from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import { UploadCloud } from 'lucide-react'
 
 export const ProfesorInformesPage: React.FC = () => {
   const { user } = useAuth()
@@ -94,7 +95,26 @@ export const ProfesorInformesPage: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button onClick={() => navigate(`/profesor/inscripciones/${i.inscripcionId}/subir`)} style={{ padding: '8px 12px', borderRadius: 6 }}>Subir Informe</button>
+                  <button
+                    onClick={() => navigate(`/profesor/inscripciones/${i.inscripcionId}/subir`)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 16px',
+                      borderRadius: 12,
+                      background: 'linear-gradient(90deg,#2563eb,#60a5fa)',
+                      color: '#fff',
+                      border: 'none',
+                      boxShadow: '0 8px 20px rgba(37,99,235,0.16)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      fontSize: 14,
+                    }}
+                  >
+                    <UploadCloud size={16} />
+                    <span>Subir Informe</span>
+                  </button>
                 </div>
               </div>
             ))}

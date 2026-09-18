@@ -20,6 +20,8 @@ export const Navbar: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const isProfesor = !!user?.role && user.role.toLowerCase().includes('profesor')
+
   const displayName = user?.fullName || (user?.email ? user.email.split('@')[0] : 'Usuario')
   const userEmail = user?.email || ''
   const userRole = user?.role || 'Estudiante'
@@ -54,10 +56,10 @@ export const Navbar: React.FC = () => {
     <nav style={styles.navbar}>
       <div style={styles.inner}>
         {/* Logo and Brand */}
-        <Link to="/dashboard" style={styles.brand}>
+        <Link to={isProfesor ? '/profesor/ofertas' : '/dashboard'} style={styles.brand}>
           <div style={styles.logo}>UBB</div>
           <div style={styles.brandText}>
-            <span style={styles.brandTitle}>Depto. Matemáticas</span>
+            <span style={styles.brandTitle}>Facultad de Educacion y Humanidades</span>
             <span style={styles.brandSubtitle}>Universidad del Bío-Bío</span>
           </div>
         </Link>
@@ -65,7 +67,7 @@ export const Navbar: React.FC = () => {
         {/* Navigation links */}
         <ul style={styles.navList}>
           <li>
-            <Link to="/dashboard" style={{ ...styles.navLink, ...styles.navLinkActive }}>
+            <Link to={isProfesor ? '/profesor/ofertas' : '/dashboard'} style={{ ...styles.navLink, ...styles.navLinkActive }}>
               <Home size={16} /> Inicio
             </Link>
           </li>
@@ -75,20 +77,34 @@ export const Navbar: React.FC = () => {
             </a>
           </li>
           <li>
-            <a href="#practicas" style={styles.navLink}>
-              <Briefcase size={16} /> Prácticas
-            </a>
+            {isProfesor ? (
+              <Link to="/profesor/ofertas" style={styles.navLink}>
+                <Briefcase size={16} /> Prácticas
+              </Link>
+            ) : (
+              <a href="#practicas" style={styles.navLink}>
+                <Briefcase size={16} /> Prácticas
+              </a>
+            )}
           </li>
           <li>
-            <Link to="/profesor/informes" style={styles.navLink}>
-              <FileText size={16} /> Informes
-            </Link>
+            {isProfesor ? (
+              <span style={{ ...styles.navLink, cursor: 'default', opacity: 0.8 }}>
+                <FileText size={16} /> Informes
+              </span>
+            ) : (
+              <Link to="/profesor/informes" style={styles.navLink}>
+                <FileText size={16} /> Informes
+              </Link>
+            )}
           </li>
-          <li>
-            <a href="#profesores" style={styles.navLink}>
-              <Users size={16} /> Profesores
-            </a>
-          </li>
+          {!isProfesor && (
+            <li>
+              <a href="#profesores" style={styles.navLink}>
+                <Users size={16} /> Profesores
+              </a>
+            </li>
+          )}
         </ul>
 
         {/* Actions & Profile Dropdown */}
