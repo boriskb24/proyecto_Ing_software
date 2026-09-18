@@ -23,7 +23,7 @@ export interface UserDto {
   email: string;
   role: string;
   initials: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface AuthResponse {
@@ -40,6 +40,19 @@ export interface InformeEntregaResponse {
   fechaEntrega: string;
 }
 
+export interface Planificacion {
+  id: number;
+  nombreArchivo?: string;
+  tipoArchivo?: string;
+  archivo?: string;
+  rutaAlmacenamiento?: string;
+  estado?: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | string;
+  fecha?: string;
+  fechaCreacion?: string;
+  retroalimentacion?: string | null;
+  usuario?: UserDto | null;
+}
+
 export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaResponse> => {
   const formData = new FormData();
   formData.append('archivo', archivo);
@@ -52,7 +65,6 @@ export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaR
 
   return response.data;
 };
-
 export interface InscripcionDto {
   inscripcionId: number;
   estudianteRut: string;
@@ -100,5 +112,45 @@ export const uploadInformeForInscripcion = async (inscripcionId: number, archivo
   return response.data;
 }
 
-export default API
+// Subir planificación asociando el userId para RBAC
+export const uploadPlanificacion = async (file: File, userId?: number): Promise<Planificacion> => {
+  const formData = new FormData();
+  formData.append('archivo', file);
+  if (userId) {
+    formData.append('userId', userId.toString());
+  }
 
+  const response = await API.post<Planificacion>('/planificaciones', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data;
+};
+
+// Obtener historial con parámetros RBAC (userId y role)
+export const getPlanificaciones = async (userId?: number, role?: string): Promise<Planificacion[]> => {
+  const response = await API.get<Planificacion[]>('/planificaciones', {
+    params: {
+      userId,
+      role,
+    },
+  });
+  return response.data;
+};
+
+// Evaluar planificación (Aprobar o Rechazar con comentarios) - Solo Docentes / Evaluadores
+export const evaluarPlanificacion = async (
+  id: number,
+  estado: 'APROBADA' | 'RECHAZADA',
+  retroalimentacion?: string
+): Promise<Planificacion> => {
+  const response = await API.patch<Planificacion>(`/planificaciones/${id}/evaluar`, {
+    estado,
+    retroalimentacion: retroalimentacion || '',
+  });
+  return response.data;
+};
+
+export default API

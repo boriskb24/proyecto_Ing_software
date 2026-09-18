@@ -30,7 +30,6 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-
         System.out.println("==========================================");
         System.out.println("INICIALIZANDO BASE DE DATOS DOCHUB");
         System.out.println("==========================================");
@@ -79,16 +78,16 @@ public class DataInitializer implements CommandLineRunner {
         );
 
         Estudiante estudiante4 = crearEstudiante(
-        "20888888-8",
-        "Camila",
-        "Fernanda",
-        "Navarro",
-        "Silva",
-        "camila.navarro@ubiobio.cl"
+                "20888888-8",
+                "Camila",
+                "Fernanda",
+                "Navarro",
+                "Silva",
+                "camila.navarro@ubiobio.cl"
         );
 
         Estudiante estudiante5 = crearEstudiante(
-        "20999999-9",
+                "20999999-9",
                 "Matías",
                 "Sebastián",
                 "Vargas",
@@ -452,6 +451,7 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("==========================================");
         System.out.println("BASE DE DATOS INICIALIZADA CORRECTAMENTE");
         System.out.println("==========================================");
+    }
     }
 
 

@@ -79,7 +79,6 @@ public class Evaluador {
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false)
     private TipoEvaluador tipo;
-
     public String getCorreo() {
         return correo;
     }

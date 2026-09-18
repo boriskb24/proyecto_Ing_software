@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react'
 import { uploadInformeFinal, InformeEntregaResponse } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 export const EntregaInformeForm: React.FC = () => {
+  const { user } = useAuth()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState<boolean>(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -42,6 +44,9 @@ export const EntregaInformeForm: React.FC = () => {
     try {
       const response = await uploadInformeFinal(selectedFile)
       setSuccessData(response)
+      if (user?.id) {
+        localStorage.setItem(`ubb_informe_entrega_${user.id}`, JSON.stringify(response))
+      }
       setSelectedFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (err: any) {

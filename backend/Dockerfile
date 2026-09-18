@@ -25,7 +25,7 @@ RUN apk add --no-cache su-exec
 RUN addgroup -S spring && adduser -S spring -G spring
 
 # Copy built JAR from builder stage
-COPY --from=builder /build/target/*.jar app.jar
+COPY --chown=spring:spring --from=builder /build/target/*.jar app.jar
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
