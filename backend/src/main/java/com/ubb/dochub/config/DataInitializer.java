@@ -47,7 +47,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Alejandro",
                 "Arenas",
                 "Quezada",
-                "admin@ubiobio.cl",
+                "boris.profe@ubiobio.cl",
                 "Ingeniero Civil Informático"
         );
 
@@ -252,35 +252,40 @@ public class DataInitializer implements CommandLineRunner {
          * ==========================================================
          * 9. EVALUACIONES SEMESTRALES
          * ==========================================================
+         *
+         * Deshabilitadas porque la entidad genera automáticamente
+         * la fecha mediante @PrePersist.
          */
 
-        // crearEvaluacionSemestral(
-        //         "/uploads/evaluaciones-semestrales/diego-matematica-1.pdf",
-        //         asignacion1,
-        //         "Matemática",
-        //         LocalDate.of(2026, 9, 5)
-        // );
+        /*
+        crearEvaluacionSemestral(
+                "/uploads/evaluaciones-semestrales/diego-matematica-1.pdf",
+                asignacion1,
+                "Matemática",
+                LocalDate.of(2026, 9, 5)
+        );
 
-        // crearEvaluacionSemestral(
-        //         "/uploads/evaluaciones-semestrales/diego-orientacion-1.pdf",
-        //         asignacion1,
-        //         "Orientación",
-        //         LocalDate.of(2026, 9, 6)
-        // );
+        crearEvaluacionSemestral(
+                "/uploads/evaluaciones-semestrales/diego-orientacion-1.pdf",
+                asignacion1,
+                "Orientación",
+                LocalDate.of(2026, 9, 6)
+        );
 
-        // crearEvaluacionSemestral(
-        //         "/uploads/evaluaciones-semestrales/valentina-matematica-1.pdf",
-        //         asignacion2,
-        //         "Matemática",
-        //         LocalDate.of(2026, 9, 7)
-        // );
+        crearEvaluacionSemestral(
+                "/uploads/evaluaciones-semestrales/valentina-matematica-1.pdf",
+                asignacion2,
+                "Matemática",
+                LocalDate.of(2026, 9, 7)
+        );
 
-        // crearEvaluacionSemestral(
-        //         "/uploads/evaluaciones-semestrales/valentina-orientacion-1.pdf",
-        //         asignacion2,
-        //         "Orientación",
-        //         LocalDate.of(2026, 9, 8)
-        // );
+        crearEvaluacionSemestral(
+                "/uploads/evaluaciones-semestrales/valentina-orientacion-1.pdf",
+                asignacion2,
+                "Orientación",
+                LocalDate.of(2026, 9, 8)
+        );
+        */
 
         /*
          * ==========================================================
@@ -305,13 +310,30 @@ public class DataInitializer implements CommandLineRunner {
          * 11. USUARIOS
          *
          * User utiliza EMAIL como identificador de login.
+         *
+         * No se crean administradores.
+         * Las cuentas corresponden únicamente a personas que
+         * existen en las tablas Profesor, Estudiante y Evaluador.
          * ==========================================================
          */
 
+        // ----------------------------------------------------------
+        // PROFESOR
+        // ----------------------------------------------------------
+
         crearUsuario(
-                "Administrador",
-                "admin@ubiobio.cl"
+                nombreCompleto(
+                        profesor.getPrimerNombre(),
+                        profesor.getSegundoNombre(),
+                        profesor.getApellidoPaterno(),
+                        profesor.getApellidoMaterno()
+                ),
+                profesor.getCorreo()
         );
+
+        // ----------------------------------------------------------
+        // ESTUDIANTES
+        // ----------------------------------------------------------
 
         crearUsuario(
                 nombreCompleto(
@@ -343,24 +365,28 @@ public class DataInitializer implements CommandLineRunner {
                 estudiante3.getCorreo()
         );
 
+        // ----------------------------------------------------------
+        // EVALUADORES
+        // ----------------------------------------------------------
+
         crearUsuario(
                 nombreCompleto(
-                        profesor.getPrimerNombre(),
-                        profesor.getSegundoNombre(),
-                        profesor.getApellidoPaterno(),
-                        profesor.getApellidoMaterno()
+                        evaluador1.getPrimerNombre(),
+                        evaluador1.getSegundoNombre(),
+                        evaluador1.getApellidoPaterno(),
+                        evaluador1.getApellidoMaterno()
                 ),
-                profesor.getCorreo()
+                evaluador1.getCorreo()
         );
 
         crearUsuario(
-                "Carlos Andrés Muñoz Vega",
-                "carlos.munoz@ubiobio.cl"
-        );
-
-        crearUsuario(
-                "María José Contreras Rivas",
-                "maria.contreras@ubiobio.cl"
+                nombreCompleto(
+                        evaluador2.getPrimerNombre(),
+                        evaluador2.getSegundoNombre(),
+                        evaluador2.getApellidoPaterno(),
+                        evaluador2.getApellidoMaterno()
+                ),
+                evaluador2.getCorreo()
         );
 
         System.out.println("==========================================");
@@ -798,17 +824,7 @@ public class DataInitializer implements CommandLineRunner {
                         asignatura
                 );
 
-        /*
-         * La entidad tiene @PrePersist que establece la fecha
-         * automáticamente. Sin embargo, para datos de prueba
-         * históricos necesitamos conservar la fecha indicada.
-         *
-         * Se fuerza después de persistir.
-         */
         entityManager.persist(evaluacion);
-        entityManager.flush();
-
-        // evaluacion.setFecha(fecha);
 
         return evaluacion;
     }

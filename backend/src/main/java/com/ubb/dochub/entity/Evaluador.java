@@ -80,5 +80,11 @@ public class Evaluador {
     @Column(name = "tipo", nullable = false)
     private TipoEvaluador tipo;
 
+    public String getCorreo() {
+        return correo;
+    }
 
+    public void setCorreo(String correo) {
+        this.correo = correo;
+    }
 }
