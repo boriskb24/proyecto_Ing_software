@@ -134,15 +134,26 @@ export const Navbar: React.FC = () => {
                 <div style={styles.divider} />
 
                 <div style={{ padding: '6px' }}>
-                  <a href="#perfil" style={styles.menuItem}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate('/perfil')
+                    }}
+                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
                     <UserIcon size={16} /> Mi Perfil Académico
-                  </a>
-                  <a href="#documentos" style={styles.menuItem}>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate('/planificaciones')
+                    }}
+                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
                     <FileText size={16} /> Mis Documentos
-                  </a>
-                  <a href="#config" style={styles.menuItem}>
-                    <Settings size={16} /> Configuración
-                  </a>
+                  </button>
                 </div>
 
                 <div style={styles.divider} />
