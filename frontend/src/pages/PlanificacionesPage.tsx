@@ -11,7 +11,7 @@ export const PlanificacionesPage: React.FC = () => {
     <div style={{ backgroundColor: '#0b1329', minHeight: '100vh', color: '#f8fafc' }}>
       <Navbar />
       
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px 20px 0 20px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 24px 0 24px', boxSizing: 'border-box' }}>
         <button
           onClick={() => navigate('/dashboard')}
           style={{

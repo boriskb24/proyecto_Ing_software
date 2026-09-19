@@ -267,12 +267,12 @@ export const HomePage: React.FC = () => {
             </button>
           ) : (
             <button 
-              onClick={() => setIsNewStudentModalOpen(true)}
+              onClick={() => showFeedback('Función "Inscribir Alumno" no implementada.')}
               style={{ ...styles.quickCard, ...styles.quickCardBlue }}
             >
               <UserPlus size={22} />
               <div style={styles.quickCardTitle}>Inscribir Alumno</div>
-              <div style={styles.quickCardDesc}>Nueva práctica profesional</div>
+              <div style={styles.quickCardDesc}>No implementada</div>
             </button>
           )}
           <button 
@@ -296,252 +296,238 @@ export const HomePage: React.FC = () => {
           <div style={styles.dashboardMain}>
             {isDocenteOrAdmin ? (
               <div style={styles.card}>
-                {/* Header con botón de nuevo estudiante */}
-                <div style={styles.cardHeader}>
+                {/* Header con botón de ver todo */}
+                <div style={{ ...styles.cardHeader, padding: '12px 16px' }}>
                   <div>
-                    <h2 style={styles.cardTitle}>Gestión de Prácticas</h2>
-                    <p style={styles.cardSubtitle}>Panel de supervisión, convenios y asignación académica</p>
+                    <h2 style={{ ...styles.cardTitle, fontSize: '15px', margin: 0 }}>Vista Previa de Planificaciones de Clase</h2>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={styles.badgeBlue}>{filteredStudents.length} estudiantes</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ ...styles.badgeBlue, fontSize: '11px', padding: '3px 8px' }}>{userPlanificaciones.length} archivos</span>
                     <button
-                      onClick={() => setIsNewStudentModalOpen(true)}
+                      onClick={() => navigate('/planificaciones')}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '5px',
                         backgroundColor: '#2563eb',
                         color: '#ffffff',
                         border: 'none',
                         borderRadius: '6px',
-                        padding: '6px 12px',
-                        fontSize: '12.5px',
+                        padding: '5px 11px',
+                        fontSize: '11.5px',
                         fontWeight: '600',
                         cursor: 'pointer'
                       }}
                     >
-                      <UserPlus size={14} /> Inscribir Alumno
+                      <FileText size={13} /> Ver Todas y Evaluar →
                     </button>
                   </div>
                 </div>
 
-                {/* Feedback Toast Banner */}
-                {toastMessage && (
-                  <div style={{
-                    margin: '12px 20px',
-                    padding: '10px 16px',
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                    borderRadius: '8px',
-                    color: '#4ade80',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <CheckCircle size={16} /> {toastMessage}
+                {/* Resumen de KPIs / Métricas compactas */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', padding: '10px 16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '8px', padding: '8px 12px' }}>
+                    <div style={{ fontSize: '10px', color: '#93c5fd', fontWeight: '600', textTransform: 'uppercase' }}>Total Entregas</div>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff', marginTop: '2px' }}>{userPlanificaciones.length}</div>
                   </div>
-                )}
-
-                {/* Filtros por estado (Tabs) */}
-                <div style={{ display: 'flex', gap: '8px', padding: '12px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setActiveTab('TODOS')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      backgroundColor: activeTab === 'TODOS' ? '#1d4ed8' : 'rgba(255, 255, 255, 0.06)',
-                      color: activeTab === 'TODOS' ? '#ffffff' : '#94a3b8'
-                    }}
-                  >
-                    Todos ({studentsList.length})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('PENDIENTE')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      backgroundColor: activeTab === 'PENDIENTE' ? '#92400e' : 'rgba(255, 255, 255, 0.06)',
-                      color: activeTab === 'PENDIENTE' ? '#fef3c7' : '#94a3b8'
-                    }}
-                  >
-                    Pendientes de Firma ({studentsList.filter(s => s.statusClass === 'status-pending').length})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('APROBADO')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      backgroundColor: activeTab === 'APROBADO' ? '#166534' : 'rgba(255, 255, 255, 0.06)',
-                      color: activeTab === 'APROBADO' ? '#dcfce7' : '#94a3b8'
-                    }}
-                  >
-                    Aprobados ({studentsList.filter(s => s.statusClass === 'status-approved').length})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('REVISION')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      backgroundColor: activeTab === 'REVISION' ? '#1e3a8a' : 'rgba(255, 255, 255, 0.06)',
-                      color: activeTab === 'REVISION' ? '#dbeafe' : '#94a3b8'
-                    }}
-                  >
-                    En Revisión ({studentsList.filter(s => s.statusClass === 'status-review').length})
-                  </button>
+                  <div style={{ backgroundColor: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '8px', padding: '8px 12px' }}>
+                    <div style={{ fontSize: '10px', color: '#86efac', fontWeight: '600', textTransform: 'uppercase' }}>Aprobadas</div>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#4ade80', marginTop: '2px' }}>{planificacionesAprobadas}</div>
+                  </div>
+                  <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '8px', padding: '8px 12px' }}>
+                    <div style={{ fontSize: '10px', color: '#fde047', fontWeight: 600, textTransform: 'uppercase' }}>Pendientes</div>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>{planificacionesPendientes}</div>
+                  </div>
+                  <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', padding: '8px 12px' }}>
+                    <div style={{ fontSize: '10px', color: '#fca5a5', fontWeight: 600, textTransform: 'uppercase' }}>Rechazadas</div>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#f87171', marginTop: '2px' }}>{planificacionesRechazadas}</div>
+                  </div>
                 </div>
 
+                {/* Listado / Tabla Preview compacta */}
                 <div style={styles.cardBody}>
-                  {filteredStudents.length === 0 ? (
-                    <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
-                      No se encontraron estudiantes en práctica con los filtros seleccionados.
+                  {isLoadingData ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                      Cargando vista previa de planificaciones...
+                    </div>
+                  ) : userPlanificaciones.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                      <p style={{ margin: '0 0 10px 0' }}>No hay planificaciones subidas por estudiantes actualmente.</p>
+                      <button
+                        onClick={() => navigate('/planificaciones')}
+                        style={{
+                          backgroundColor: '#2563eb',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Ir a Planificaciones
+                      </button>
                     </div>
                   ) : (
-                    <table style={styles.table}>
-                      <thead>
-                        <tr style={styles.trHead}>
-                          <th style={styles.th}>Estudiante</th>
-                          <th style={styles.th}>Estado del Documento</th>
-                          <th style={styles.th}>Profesor Guía</th>
-                          <th style={{ ...styles.th, textAlign: 'right' }}>Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredStudents.map((s) => (
-                          <tr key={s.id} style={styles.trBody}>
-                            <td style={styles.td}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={styles.studentAvatar}>{s.avatar}</div>
-                                <div>
-                                  <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '13.5px' }}>{s.name}</div>
-                                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>ID: {s.id}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={styles.td}>
-                              <span style={s.statusClass === 'status-approved' ? styles.statusApproved : s.statusClass === 'status-review' ? styles.statusReview : styles.statusPending}>
-                                {s.status}
-                              </span>
-                            </td>
-                            <td style={{ ...styles.td, color: '#e2e8f0' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{s.professor}</span>
-                              </div>
-                            </td>
-                            <td style={{ ...styles.td, textAlign: 'right', position: 'relative' }}>
-                              <button
-                                onClick={() => setActiveMenuId(activeMenuId === s.id ? null : s.id)}
-                                style={styles.actionBtn}
-                                title="Opciones de gestión"
-                              >
-                                <MoreVertical size={16} />
-                              </button>
-
-                              {/* Menu Desplegable de Gestión */}
-                              {activeMenuId === s.id && (
-                                <div style={{
-                                  position: 'absolute',
-                                  right: '12px',
-                                  top: '40px',
-                                  backgroundColor: '#131e3a',
-                                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                                  borderRadius: '10px',
-                                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)',
-                                  zIndex: 50,
-                                  width: '230px',
-                                  textAlign: 'left',
-                                  padding: '6px',
-                                  overflow: 'hidden'
-                                }}>
-                                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', padding: '6px 10px', textTransform: 'uppercase' }}>
-                                    Cambiar Estado
-                                  </div>
-                                  <button
-                                    onClick={() => updateStudentStatus(s.id, 'Convenio Aprobado', 'status-approved')}
-                                    style={styles.dropdownItem}
-                                  >
-                                    <Check size={14} color="#22c55e" /> Aprobar Convenio
-                                  </button>
-                                  <button
-                                    onClick={() => updateStudentStatus(s.id, 'En Revisión Académica', 'status-review')}
-                                    style={styles.dropdownItem}
-                                  >
-                                    <Clock size={14} color="#60a5fa" /> Marcar en Revisión
-                                  </button>
-                                  <button
-                                    onClick={() => updateStudentStatus(s.id, 'Convenio Pendiente de Firma', 'status-pending')}
-                                    style={styles.dropdownItem}
-                                  >
-                                    <Edit3 size={14} color="#f59e0b" /> Pendiente de Firma
-                                  </button>
-
-                                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
-
-                                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', padding: '6px 10px', textTransform: 'uppercase' }}>
-                                    Reasignar Profesor
-                                  </div>
-                                  <button
-                                    onClick={() => updateStudentProfessor(s.id, 'Prof. Juan Pérez')}
-                                    style={styles.dropdownItem}
-                                  >
-                                    👨‍🏫 Prof. Juan Pérez
-                                  </button>
-                                  <button
-                                    onClick={() => updateStudentProfessor(s.id, 'Prof. Ricardo Tapia')}
-                                    style={styles.dropdownItem}
-                                  >
-                                    👨‍🏫 Prof. Ricardo Tapia
-                                  </button>
-                                  <button
-                                    onClick={() => updateStudentProfessor(s.id, 'Prof. Sandra Muñoz')}
-                                    style={styles.dropdownItem}
-                                  >
-                                    👩‍🏫 Prof. Sandra Muñoz
-                                  </button>
-
-                                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
-
-                                  <button
-                                    onClick={() => {
-                                      setSelectedStudentForExpediente(s)
-                                      setActiveMenuId(null)
-                                    }}
-                                    style={styles.dropdownItem}
-                                  >
-                                    <FolderOpen size={14} color="#38bdf8" /> Ver Expediente
-                                  </button>
-
-                                  {isAdmin && (
-                                    <button
-                                      onClick={() => handleDeleteStudent(s.id)}
-                                      style={{ ...styles.dropdownItem, color: '#f87171' }}
-                                    >
-                                      <Trash2 size={14} color="#f87171" /> Eliminar Registro
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </td>
+                    <>
+                      <table style={styles.table}>
+                        <thead>
+                          <tr style={styles.trHead}>
+                            <th style={{ ...styles.th, padding: '7px 12px', fontSize: '10.5px' }}>Estudiante</th>
+                            <th style={{ ...styles.th, padding: '7px 12px', fontSize: '10.5px' }}>Documento</th>
+                            <th style={{ ...styles.th, padding: '7px 12px', fontSize: '10.5px', textAlign: 'center' }}>Estado</th>
+                            <th style={{ ...styles.th, padding: '7px 12px', fontSize: '10.5px' }}>Fecha</th>
+                            <th style={{ ...styles.th, padding: '7px 12px', fontSize: '10.5px' }}>Retroalimentación</th>
+                            <th style={{ ...styles.th, padding: '7px 12px', fontSize: '10.5px', textAlign: 'right' }}>Acción</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {userPlanificaciones.slice(0, 6).map((item) => {
+                            const rawName = item.nombreArchivo || item.archivo?.split('/').pop() || `Planificación #${item.id}`;
+                            const cleanName = rawName.replace(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}_/i, '');
+                            const initials = (item.usuario?.fullName || 'Estudiante')
+                              .replace(/^(prof\.?|dr\.?|ing\.?)\s+/i, '')
+                              .split(/\s+/)
+                              .map((p: string) => p[0])
+                              .join('')
+                              .substring(0, 2)
+                              .toUpperCase() || 'ES';
+
+                            return (
+                              <tr key={item.id} style={styles.trBody}>
+                                <td style={{ ...styles.td, padding: '7px 12px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '50%',
+                                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                      color: '#60a5fa',
+                                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '10.5px',
+                                      fontWeight: '700',
+                                      flexShrink: 0
+                                    }}>
+                                      {initials}
+                                    </div>
+                                    <div>
+                                      <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '12px', lineHeight: 1.2 }}>
+                                        {item.usuario?.fullName || 'Estudiante UBB'}
+                                      </div>
+                                      <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                                        {item.usuario?.email || `ID: #${item.id}`}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td style={{ ...styles.td, padding: '7px 12px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', maxWidth: '180px' }} title={rawName}>
+                                    <FileText size={14} color="#60a5fa" style={{ flexShrink: 0 }} />
+                                    <span style={{
+                                      color: '#e2e8f0',
+                                      fontWeight: '500',
+                                      fontSize: '11.5px',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {cleanName}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td style={{ ...styles.td, padding: '7px 12px', textAlign: 'center' }}>
+                                  <span style={{
+                                    ...(item.estado === 'APROBADA'
+                                      ? styles.statusApproved
+                                      : item.estado === 'RECHAZADA'
+                                      ? { ...styles.statusPending, backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }
+                                      : styles.statusPending),
+                                    fontSize: '10px',
+                                    padding: '2px 7px',
+                                    borderRadius: '5px'
+                                  }}>
+                                    {item.estado || 'PENDIENTE'}
+                                  </span>
+                                </td>
+                                <td style={{ ...styles.td, padding: '7px 12px', color: '#94a3b8', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                                  {item.fecha || item.fechaCreacion
+                                    ? new Date(item.fecha || item.fechaCreacion || '').toLocaleDateString('es-CL', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })
+                                    : '-'}
+                                </td>
+                                <td style={{ ...styles.td, padding: '7px 12px' }}>
+                                  {item.retroalimentacion ? (
+                                    <div
+                                      style={{
+                                        maxWidth: '150px',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        fontSize: '11px',
+                                        color: '#cbd5e1',
+                                        fontStyle: 'italic'
+                                      }}
+                                      title={item.retroalimentacion}
+                                    >
+                                      💬 "{item.retroalimentacion}"
+                                    </div>
+                                  ) : (
+                                    <span style={{ color: '#64748b', fontSize: '11px' }}>Sin observaciones</span>
+                                  )}
+                                </td>
+                                <td style={{ ...styles.td, padding: '7px 12px', textAlign: 'right' }}>
+                                  <button
+                                    onClick={() => navigate('/planificaciones')}
+                                    style={{
+                                      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                                      color: '#60a5fa',
+                                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                                      borderRadius: '5px',
+                                      padding: '3px 8px',
+                                      fontSize: '10.5px',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    Revisar →
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+
+                      {userPlanificaciones.length > 6 && (
+                        <div style={{ padding: '10px 16px', textAlign: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                          <button
+                            onClick={() => navigate('/planificaciones')}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#60a5fa',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            Ver el historial completo ({userPlanificaciones.length} planificaciones) <ChevronRight size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1053,70 +1039,72 @@ const styles: Record<string, React.CSSProperties> = {
   pageContainer: {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '32px 24px',
+    padding: '24px 24px',
+    boxSizing: 'border-box',
   },
   heroSection: {
-    marginBottom: '28px',
+    marginBottom: '20px',
   },
   heroGreeting: {
-    fontSize: '13px',
+    fontSize: '12px',
     color: '#60a5fa',
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: '1px',
-    marginBottom: '6px',
+    marginBottom: '4px',
   },
   heroTitle: {
-    fontSize: '32px',
+    fontSize: '26px',
     fontWeight: '800',
     color: '#ffffff',
-    margin: '0 0 10px 0',
+    margin: '0 0 6px 0',
   },
   goldAccent: {
     color: '#d4af37',
   },
   heroSubtitle: {
-    fontSize: '15px',
+    fontSize: '13.5px',
     color: '#94a3b8',
     maxWidth: '650px',
   },
   searchWrapper: {
-    marginBottom: '28px',
+    marginBottom: '20px',
   },
   searchBar: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
     backgroundColor: '#131e3a',
     border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '12px',
-    padding: '12px 18px',
+    borderRadius: '10px',
+    padding: '11px 16px',
   },
   searchInput: {
     background: 'none',
     border: 'none',
     outline: 'none',
     color: '#ffffff',
-    fontSize: '14px',
+    fontSize: '13.5px',
     width: '100%',
   },
   quickAccess: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '16px',
-    marginBottom: '32px',
+    marginBottom: '24px',
   },
   quickCard: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
-    padding: '20px',
-    borderRadius: '12px',
+    padding: '16px 18px',
+    borderRadius: '10px',
     backgroundColor: '#131e3a',
     border: '1px solid rgba(255, 255, 255, 0.08)',
     color: '#ffffff',
     cursor: 'pointer',
     textAlign: 'left',
+    transition: 'all 0.2s ease',
   },
   quickCardBlue: {
     borderLeft: '4px solid #1d4ed8',
@@ -1128,20 +1116,20 @@ const styles: Record<string, React.CSSProperties> = {
     borderLeft: '4px solid #0d9488',
   },
   quickCardTitle: {
-    fontSize: '15px',
+    fontSize: '14px',
     fontWeight: '600',
-    marginTop: '10px',
+    marginTop: '6px',
   },
   quickCardDesc: {
-    fontSize: '12px',
+    fontSize: '11.5px',
     color: '#94a3b8',
-    marginTop: '4px',
+    marginTop: '2px',
   },
   dashboardGrid: {
     display: 'grid',
-    gridTemplateColumns: '2fr 1fr',
-    gap: '24px',
-    marginBottom: '36px',
+    gridTemplateColumns: 'minmax(0, 1fr) 340px',
+    gap: '20px',
+    marginBottom: '32px',
   },
   dashboardMain: {
     display: 'flex',
@@ -1150,19 +1138,19 @@ const styles: Record<string, React.CSSProperties> = {
   dashboardSidebar: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '18px',
   },
   card: {
     backgroundColor: '#131e3a',
-    borderRadius: '14px',
+    borderRadius: '12px',
     border: '1px solid rgba(255, 255, 255, 0.08)',
-    padding: '24px',
+    padding: '16px',
   },
   cardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '18px',
+    marginBottom: '14px',
   },
   cardTitle: {
     fontSize: '17px',

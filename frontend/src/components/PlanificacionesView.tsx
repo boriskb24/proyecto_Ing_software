@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { uploadPlanificacion, getPlanificaciones, evaluarPlanificacion, Planificacion } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { Search, Users, Filter, X } from 'lucide-react';
 
 export const PlanificacionesView: React.FC = () => {
   const { user } = useAuth();
@@ -17,6 +18,18 @@ export const PlanificacionesView: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados para filtros
+  const [filtroEstudiante, setFiltroEstudiante] = useState<string>('TODOS');
+  const [filtroEstado, setFiltroEstado] = useState<string>('TODOS');
+  const [busquedaTexto, setBusquedaTexto] = useState<string>('');
+
+  // Estados para modal de evaluación y observaciones
+  const [evalModalOpen, setEvalModalOpen] = useState<boolean>(false);
+  const [planificacionAEvaluar, setPlanificacionAEvaluar] = useState<Planificacion | null>(null);
+  const [nuevoEstado, setNuevoEstado] = useState<'APROBADA' | 'RECHAZADA'>('APROBADA');
+  const [observacionTexto, setObservacionTexto] = useState<string>('');
+  const [isSubmittingEval, setIsSubmittingEval] = useState<boolean>(false);
 
   // Cargar historial con filtro RBAC (userId y role)
   const cargarPlanificaciones = async () => {
@@ -90,21 +103,51 @@ export const PlanificacionesView: React.FC = () => {
     }
   };
 
-  // Acción para Profesores/Evaluadores: Aprobar o Rechazar
-  const handleEvaluar = async (id: number, estado: 'APROBADA' | 'RECHAZADA') => {
-    const retro = prompt(`Ingrese observaciones o retroalimentación para marcar como ${estado}:`) || '';
+  // Abrir ventana modal para dar observación y evaluar
+  const abrirModalEvaluar = (item: Planificacion, estadoInicial?: 'APROBADA' | 'RECHAZADA') => {
+    const estado = estadoInicial || (item.estado === 'RECHAZADA' ? 'RECHAZADA' : 'APROBADA');
+    setPlanificacionAEvaluar(item);
+    setNuevoEstado(estado);
+    setObservacionTexto(
+      item.retroalimentacion ||
+      (estado === 'APROBADA'
+        ? 'Planificación revisada y aprobada conforme a los objetivos de la asignatura.'
+        : 'Se solicitan correcciones en el cronograma y actividades antes de la aprobación.')
+    );
+    setEvalModalOpen(true);
+  };
+
+  const cerrarModalEvaluar = () => {
+    setEvalModalOpen(false);
+    setPlanificacionAEvaluar(null);
+    setObservacionTexto('');
+  };
+
+  const confirmarEvaluacion = async () => {
+    if (!planificacionAEvaluar) return;
+    setIsSubmittingEval(true);
     try {
-      setEvaluatingId(id);
-      const actualizada = await evaluarPlanificacion(id, estado, retro);
-      setPlanificaciones((prev) =>
-        prev.map((item) => (item.id === id ? actualizada : item))
+      const actualizada = await evaluarPlanificacion(
+        planificacionAEvaluar.id,
+        nuevoEstado,
+        observacionTexto.trim()
       );
-      setSuccessMessage(`Planificación #${id} marcada como ${estado}.`);
+      setPlanificaciones((prev) =>
+        prev.map((item) => (item.id === planificacionAEvaluar.id ? actualizada : item))
+      );
+      setSuccessMessage(`Planificación #${planificacionAEvaluar.id} marcada como ${nuevoEstado} con su retroalimentación.`);
+      cerrarModalEvaluar();
     } catch (err: any) {
-      setErrorMessage('Error al actualizar el estado de la planificación.');
+      setErrorMessage('Error al registrar la evaluación y observaciones.');
     } finally {
-      setEvaluatingId(null);
+      setIsSubmittingEval(false);
     }
+  };
+
+  // Limpiar el prefijo UUID para una presentación limpia del archivo
+  const limpiarNombreArchivo = (nombre?: string): string => {
+    if (!nombre) return '';
+    return nombre.replace(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}_/i, '');
   };
 
   // Formateador dinámico y preciso con Intl.DateTimeFormat
@@ -127,6 +170,49 @@ export const PlanificacionesView: React.FC = () => {
     }
   };
 
+  // Extraer lista única de estudiantes para el filtro
+  const listaEstudiantesUnicos = Array.from(
+    new Set(
+      planificaciones
+        .map((p) => p.usuario?.fullName)
+        .filter((name): name is string => Boolean(name && name.trim()))
+    )
+  ).sort();
+
+  // Filtrado reactivo en tiempo real
+  const planificacionesFiltradas = planificaciones.filter((item) => {
+    // 1. Filtro por selector de estudiante
+    if (filtroEstudiante !== 'TODOS') {
+      if (item.usuario?.fullName !== filtroEstudiante) {
+        return false;
+      }
+    }
+
+    // 2. Filtro por selector de estado
+    if (filtroEstado !== 'TODOS') {
+      const estadoActual = item.estado || 'PENDIENTE';
+      if (estadoActual !== filtroEstado) {
+        return false;
+      }
+    }
+
+    // 3. Filtro por texto de búsqueda (nombre, correo, nombre archivo, retroalimentación)
+    if (busquedaTexto.trim()) {
+      const q = busquedaTexto.toLowerCase();
+      const matchNombre = (item.usuario?.fullName || '').toLowerCase().includes(q);
+      const matchEmail = (item.usuario?.email || '').toLowerCase().includes(q);
+      const matchArchivo = (item.nombreArchivo || item.archivo || '').toLowerCase().includes(q);
+      const matchRetro = (item.retroalimentacion || '').toLowerCase().includes(q);
+      if (!matchNombre && !matchEmail && !matchArchivo && !matchRetro) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const hayFiltrosActivos = filtroEstudiante !== 'TODOS' || filtroEstado !== 'TODOS' || busquedaTexto.trim().length > 0;
+
   return (
     <div style={styles.container}>
       <header style={styles.header}>
@@ -135,9 +221,17 @@ export const PlanificacionesView: React.FC = () => {
           {esDocente ? 'Gestión y Revisión de Planificaciones' : 'Mis Planificaciones de Clase'}
         </h1>
         <p style={styles.subtitle}>
-          {esDocente
-            ? `Panel docente de supervisión. Conectado como: ${user?.fullName} (${user?.role})`
-            : `Sube tus archivos de planificación en PDF y revisa su estado de aprobación.`}
+          {esDocente ? (
+            <>
+              Panel docente de supervisión. Conectado como:{' '}
+              <strong style={{ color: '#fbbf24', fontWeight: 600 }}>{user?.fullName}</strong>{' '}
+              <span style={{ color: '#93c5fd', backgroundColor: 'rgba(59, 130, 246, 0.2)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.85rem' }}>
+                {user?.role}
+              </span>
+            </>
+          ) : (
+            'Sube tus archivos de planificación en PDF y revisa su estado de aprobación.'
+          )}
         </p>
       </header>
 
@@ -206,19 +300,93 @@ export const PlanificacionesView: React.FC = () => {
 
       {/* Sección de Historial RBAC */}
       <section style={styles.card}>
-        <div style={styles.historyHeader}>
-          <div>
-            <h2 style={styles.cardTitle}>
-              {esDocente ? 'Todas las Planificaciones de Estudiantes' : 'Historial de Planificaciones Subidas'}
-            </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-              {esDocente
-                ? 'Listado general con privilegios de evaluación y retroalimentación.'
-                : 'Mostrando únicamente los archivos subidos por tu cuenta.'}
-            </p>
+        {/* Barra de Filtros interactiva */}
+        {!isLoadingList && planificaciones.length > 0 && (
+          <div style={styles.filterToolbar}>
+            {/* Buscador de texto */}
+            <div style={styles.searchBox}>
+              <Search size={16} color="#64748b" style={{ flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Buscar por estudiante, archivo o nota..."
+                value={busquedaTexto}
+                onChange={(e) => setBusquedaTexto(e.target.value)}
+                style={styles.searchInput}
+              />
+              {busquedaTexto && (
+                <button
+                  type="button"
+                  onClick={() => setBusquedaTexto('')}
+                  style={styles.clearSearchBtn}
+                  title="Borrar búsqueda"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Filtro por Estudiante (Visible para roles docentes o cuando hay múltiples estudiantes) */}
+            {esDocente && listaEstudiantesUnicos.length > 0 && (
+              <div style={styles.filterGroup}>
+                <label style={styles.filterLabel}>
+                  <Users size={14} style={{ marginRight: '4px' }} /> Estudiante:
+                </label>
+                <select
+                  value={filtroEstudiante}
+                  onChange={(e) => setFiltroEstudiante(e.target.value)}
+                  style={styles.selectInput}
+                >
+                  <option value="TODOS">Todos los Estudiantes ({listaEstudiantesUnicos.length})</option>
+                  {listaEstudiantesUnicos.map((est) => (
+                    <option key={est} value={est}>
+                      {est}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Filtro por Estado */}
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>
+                <Filter size={14} style={{ marginRight: '4px' }} /> Estado:
+              </label>
+              <select
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value)}
+                style={styles.selectInput}
+              >
+                <option value="TODOS">Todos los Estados</option>
+                <option value="PENDIENTE">⏳ Pendientes</option>
+                <option value="APROBADA">✅ Aprobadas</option>
+                <option value="RECHAZADA">❌ Rechazadas</option>
+              </select>
+            </div>
+
+            {/* Botón para resetear filtros si hay alguno activo */}
+            {hayFiltrosActivos && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFiltroEstudiante('TODOS');
+                  setFiltroEstado('TODOS');
+                  setBusquedaTexto('');
+                }}
+                style={styles.resetFiltersBtn}
+                title="Restablecer todos los filtros"
+              >
+                Limpiar filtros
+              </button>
+            )}
+
+            {/* Contador de resultados */}
+            <div style={{ marginLeft: 'auto' }}>
+              <span style={styles.countBadge}>
+                {planificacionesFiltradas.length} de {planificaciones.length} archivos
+              </span>
+            </div>
           </div>
-          <span style={styles.countBadge}>{planificaciones.length} archivos</span>
-        </div>
+        )}
 
         {isLoadingList ? (
           <div style={styles.emptyState}>Cargando planificaciones...</div>
@@ -230,100 +398,312 @@ export const PlanificacionesView: React.FC = () => {
                 : 'No has subido ninguna planificación aún.'}
             </p>
           </div>
+        ) : planificacionesFiltradas.length === 0 ? (
+          <div style={styles.emptyState}>
+            <p style={{ margin: 0, fontSize: '1rem', color: '#64748b' }}>
+              No se encontraron planificaciones que coincidan con los filtros aplicados.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFiltroEstudiante('TODOS');
+                setFiltroEstado('TODOS');
+                setBusquedaTexto('');
+              }}
+              style={{ ...styles.submitBtn, marginTop: '12px', padding: '6px 14px', fontSize: '0.85rem' }}
+            >
+              Restablecer filtros
+            </button>
+          </div>
         ) : (
           <div style={styles.tableWrapper}>
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.th}>ID</th>
-                  <th style={styles.th}>Nombre del Archivo</th>
-                  {esDocente && <th style={styles.th}>Estudiante</th>}
-                  <th style={styles.th}>Estado</th>
-                  <th style={styles.th}>Fecha y Hora</th>
-                  <th style={styles.th}>Retroalimentación</th>
-                  {esDocente && <th style={styles.th}>Acciones Docente</th>}
+                  <th style={{ ...styles.th, width: '45px', textAlign: 'center' }}>ID</th>
+                  <th style={{ ...styles.th, minWidth: '150px' }}>Archivo</th>
+                  {esDocente && <th style={{ ...styles.th, minWidth: '150px' }}>Estudiante</th>}
+                  <th style={{ ...styles.th, width: '100px', textAlign: 'center' }}>Estado</th>
+                  <th style={{ ...styles.th, width: '120px' }}>Fecha</th>
+                  <th style={{ ...styles.th, minWidth: '140px' }}>Retroalimentación</th>
+                  {esDocente && <th style={{ ...styles.th, width: '100px', textAlign: 'center' }}>Acción</th>}
                 </tr>
               </thead>
               <tbody>
-                {planificaciones.map((item) => (
-                  <tr key={item.id} style={styles.tr}>
-                    <td style={styles.td}>#{item.id}</td>
-                    <td style={styles.tdPrimary}>
-                      <span style={{ marginRight: '8px' }}>📄</span>
-                      <strong>{item.nombreArchivo || item.archivo?.split('/').pop() || `Planificación #${item.id}`}</strong>
-                    </td>
-                    {esDocente && (
-                      <td style={styles.td}>
-                        {item.usuario ? (
-                          <div>
-                            <strong>{item.usuario.fullName}</strong>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{item.usuario.email}</div>
-                          </div>
-                        ) : (
-                          <span style={{ color: '#94a3b8' }}>Estudiante UBB</span>
-                        )}
-                      </td>
-                    )}
-                    <td style={styles.td}>
-                      <span style={{
-                        ...styles.statusBadge,
-                        backgroundColor: item.estado === 'APROBADA' ? '#dcfce7' : item.estado === 'RECHAZADA' ? '#fee2e2' : '#fef3c7',
-                        color: item.estado === 'APROBADA' ? '#166534' : item.estado === 'RECHAZADA' ? '#991b1b' : '#92400e',
-                      }}>
-                        {item.estado || 'PENDIENTE'}
-                      </span>
-                    </td>
-                    <td style={styles.td}>{formatearFecha(item.fecha || item.fechaCreacion || '')}</td>
-                    <td style={styles.td}>
-                      {item.retroalimentacion ? (
-                        <span style={{ color: '#334155', fontStyle: 'italic' }}>💬 "{item.retroalimentacion}"</span>
-                      ) : (
-                        <span style={{ color: '#94a3b8' }}>Sin observaciones</span>
-                      )}
-                    </td>
+                {planificacionesFiltradas.map((item) => {
+                  const rawName = item.nombreArchivo || item.archivo?.split('/').pop() || `Planificación #${item.id}`;
+                  const displayName = limpiarNombreArchivo(rawName);
 
-                    {/* Botones de acción exclusivos para Profesor / Evaluador */}
-                    {esDocente && (
-                      <td style={styles.td}>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            type="button"
-                            disabled={evaluatingId === item.id}
-                            onClick={() => handleEvaluar(item.id, 'APROBADA')}
-                            style={{ ...styles.actionBtn, backgroundColor: '#16a34a' }}
-                            title="Aprobar planificación"
-                          >
-                            ✓ Aprobar
-                          </button>
-                          <button
-                            type="button"
-                            disabled={evaluatingId === item.id}
-                            onClick={() => handleEvaluar(item.id, 'RECHAZADA')}
-                            style={{ ...styles.actionBtn, backgroundColor: '#dc2626' }}
-                            title="Rechazar planificación"
-                          >
-                            ✗ Rechazar
-                          </button>
+                  return (
+                    <tr key={item.id} style={styles.tr}>
+                      <td style={{ ...styles.td, textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.8rem' }}>
+                        #{item.id}
+                      </td>
+                      <td style={styles.tdPrimary}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={rawName}>
+                          <span style={{ flexShrink: 0, fontSize: '1rem' }}>📄</span>
+                          <span style={{
+                            fontWeight: 600,
+                            color: '#1e293b',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '220px',
+                            display: 'inline-block',
+                          }}>
+                            {displayName}
+                          </span>
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      {esDocente && (
+                        <td style={styles.td}>
+                          {item.usuario ? (
+                            <div style={{ maxWidth: '170px' }}>
+                              <div
+                                style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title={item.usuario.fullName}
+                              >
+                                {item.usuario.fullName}
+                              </div>
+                              <div
+                                style={{ fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title={item.usuario.email}
+                              >
+                                {item.usuario.email}
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Estudiante UBB</span>
+                          )}
+                        </td>
+                      )}
+                      <td style={{ ...styles.td, textAlign: 'center' }}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: item.estado === 'APROBADA' ? '#dcfce7' : item.estado === 'RECHAZADA' ? '#fee2e2' : '#fef3c7',
+                          color: item.estado === 'APROBADA' ? '#166534' : item.estado === 'RECHAZADA' ? '#991b1b' : '#92400e',
+                        }}>
+                          {item.estado || 'PENDIENTE'}
+                        </span>
+                      </td>
+                      <td style={{ ...styles.td, fontSize: '0.78rem', color: '#475569', whiteSpace: 'nowrap' }}>
+                        {formatearFecha(item.fecha || item.fechaCreacion || '')}
+                      </td>
+                      <td style={styles.td}>
+                        {item.retroalimentacion ? (
+                          <div
+                            style={{
+                              maxWidth: '180px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              color: '#334155',
+                              fontStyle: 'italic',
+                              fontSize: '0.8rem',
+                            }}
+                            title={item.retroalimentacion}
+                          >
+                            💬 "{item.retroalimentacion}"
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Sin observaciones</span>
+                        )}
+                      </td>
+
+                      {/* Botón de acción único para Profesor / Evaluador */}
+                      {esDocente && (
+                        <td style={{ ...styles.td, textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => abrirModalEvaluar(item)}
+                            style={{
+                              ...styles.actionBtn,
+                              backgroundColor: '#2563eb',
+                              padding: '6px 14px',
+                            }}
+                            title="Revisar, ingresar observaciones y evaluar planificación"
+                          >
+                            Evaluar
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
+
+      {/* Modal Ventana Emergente de Evaluación y Observaciones */}
+      {evalModalOpen && planificacionAEvaluar && (
+        <div style={styles.modalBackdrop} onClick={cerrarModalEvaluar}>
+          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+            {/* Header Modal */}
+            <div style={styles.modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.35rem' }}>📝</span>
+                <div>
+                  <h3 style={styles.modalTitle}>Revisión y Observaciones</h3>
+                  <p style={styles.modalSubtitle}>Planificación #{planificacionAEvaluar.id}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={cerrarModalEvaluar}
+                style={styles.modalCloseBtn}
+                title="Cerrar ventana"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body Modal */}
+            <div style={styles.modalBody}>
+              {/* Resumen del documento */}
+              <div style={styles.modalInfoBox}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Estudiante:</span>
+                  <span style={{ color: '#0f172a', fontSize: '0.85rem', fontWeight: 600 }}>
+                    {planificacionAEvaluar.usuario?.fullName || 'Estudiante UBB'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Correo:</span>
+                  <span style={{ color: '#2563eb', fontSize: '0.8rem' }}>
+                    {planificacionAEvaluar.usuario?.email || '-'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Documento:</span>
+                  <span
+                    style={{
+                      color: '#334155',
+                      fontSize: '0.82rem',
+                      fontWeight: 500,
+                      maxWidth: '260px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={planificacionAEvaluar.nombreArchivo || planificacionAEvaluar.archivo || ''}
+                  >
+                    📄 {limpiarNombreArchivo(planificacionAEvaluar.nombreArchivo || planificacionAEvaluar.archivo || '')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Selector de Estado */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={styles.modalInputLabel}>Decisión de Evaluación:</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setNuevoEstado('APROBADA')}
+                    style={{
+                      ...styles.modalStateOption,
+                      backgroundColor: nuevoEstado === 'APROBADA' ? '#dcfce7' : '#f8fafc',
+                      borderColor: nuevoEstado === 'APROBADA' ? '#16a34a' : '#cbd5e1',
+                      color: nuevoEstado === 'APROBADA' ? '#166534' : '#475569',
+                      fontWeight: nuevoEstado === 'APROBADA' ? 700 : 500,
+                    }}
+                  >
+                    <span>✓</span> Aprobar Planificación
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNuevoEstado('RECHAZADA')}
+                    style={{
+                      ...styles.modalStateOption,
+                      backgroundColor: nuevoEstado === 'RECHAZADA' ? '#fee2e2' : '#f8fafc',
+                      borderColor: nuevoEstado === 'RECHAZADA' ? '#dc2626' : '#cbd5e1',
+                      color: nuevoEstado === 'RECHAZADA' ? '#991b1b' : '#475569',
+                      fontWeight: nuevoEstado === 'RECHAZADA' ? 700 : 500,
+                    }}
+                  >
+                    <span>✗</span> Rechazar Planificación
+                  </button>
+                </div>
+              </div>
+
+              {/* Plantillas Rápidas */}
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ ...styles.modalInputLabel, fontSize: '0.78rem', color: '#64748b' }}>
+                  Plantillas rápidas de observaciones:
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {[
+                    'Planificación aprobada conforme a los objetivos.',
+                    'Excelente formulación y cronograma claro.',
+                    'Favor corregir fechas y objetivos específicos.',
+                    'Detallar la metodología de evaluación aplicada.',
+                  ].map((tpl) => (
+                    <button
+                      key={tpl}
+                      type="button"
+                      onClick={() => setObservacionTexto(tpl)}
+                      style={styles.templateChip}
+                    >
+                      + {tpl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Campo Textarea de Observaciones */}
+              <div>
+                <label style={styles.modalInputLabel}>
+                  Observaciones y Retroalimentación para el Estudiante:
+                </label>
+                <textarea
+                  rows={4}
+                  value={observacionTexto}
+                  onChange={(e) => setObservacionTexto(e.target.value)}
+                  placeholder="Escribe comentarios, recomendaciones o justificación del estado..."
+                  style={styles.modalTextarea}
+                />
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div style={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={cerrarModalEvaluar}
+                disabled={isSubmittingEval}
+                style={styles.modalCancelBtn}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarEvaluacion}
+                disabled={isSubmittingEval}
+                style={{
+                  ...styles.modalSaveBtn,
+                  backgroundColor: nuevoEstado === 'APROBADA' ? '#16a34a' : '#dc2626',
+                  opacity: isSubmittingEval ? 0.7 : 1,
+                }}
+              >
+                {isSubmittingEval ? 'Guardando...' : `Guardar como ${nuevoEstado}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    maxWidth: '1050px',
+    maxWidth: '1200px',
+    width: '100%',
     margin: '0 auto',
-    padding: '32px 20px',
+    padding: '24px 24px 48px 24px',
     fontFamily: 'system-ui, -apple-system, sans-serif',
+    boxSizing: 'border-box',
   },
   header: {
     textAlign: 'center',
@@ -331,36 +711,41 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   badge: {
     display: 'inline-block',
-    padding: '4px 12px',
+    padding: '5px 14px',
     borderRadius: '20px',
-    backgroundColor: '#dbeafe',
-    color: '#1e40af',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    color: '#60a5fa',
+    border: '1px solid rgba(96, 165, 250, 0.3)',
     fontSize: '0.8rem',
     fontWeight: 600,
-    marginBottom: '8px',
+    marginBottom: '10px',
     textTransform: 'uppercase',
+    letterSpacing: '0.05em',
   },
   title: {
-    fontSize: '1.85rem',
-    color: '#0f172a',
-    margin: '0 0 8px 0',
+    fontSize: '2rem',
+    color: '#ffffff',
+    margin: '0 0 10px 0',
     fontWeight: 700,
+    letterSpacing: '-0.02em',
   },
   subtitle: {
-    fontSize: '1rem',
-    color: '#64748b',
+    fontSize: '0.98rem',
+    color: '#cbd5e1',
     margin: 0,
+    lineHeight: 1.5,
   },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: '14px',
-    padding: '24px',
+    padding: '20px 24px',
     marginBottom: '28px',
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
     border: '1px solid #e2e8f0',
+    overflow: 'hidden',
   },
   cardTitle: {
-    fontSize: '1.25rem',
+    fontSize: '1.2rem',
     color: '#1e293b',
     margin: '0 0 16px 0',
     fontWeight: 600,
@@ -373,7 +758,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   dropzone: {
     border: '2px dashed #cbd5e1',
     borderRadius: '10px',
-    padding: '32px 20px',
+    padding: '28px 20px',
     textAlign: 'center',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -383,7 +768,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '8px',
   },
   dropzonePrompt: {
-    fontSize: '1rem',
+    fontSize: '0.95rem',
     color: '#334155',
     margin: '0 0 4px 0',
   },
@@ -393,7 +778,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: 0,
   },
   selectedFileName: {
-    fontSize: '1rem',
+    fontSize: '0.95rem',
     fontWeight: 600,
     color: '#1e293b',
     margin: '0 0 4px 0',
@@ -408,8 +793,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#ffffff',
     border: 'none',
     borderRadius: '8px',
-    padding: '12px 20px',
-    fontSize: '1rem',
+    padding: '10px 18px',
+    fontSize: '0.95rem',
     fontWeight: 600,
     transition: 'background-color 0.2s',
   },
@@ -417,8 +802,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#ffffff',
     border: 'none',
     borderRadius: '6px',
-    padding: '6px 10px',
-    fontSize: '0.78rem',
+    padding: '5px 9px',
+    fontSize: '0.74rem',
     fontWeight: 600,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
@@ -450,8 +835,82 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#475569',
     padding: '4px 10px',
     borderRadius: '12px',
-    fontSize: '0.85rem',
+    fontSize: '0.82rem',
     fontWeight: 600,
+  },
+  filterToolbar: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+    alignItems: 'center',
+    padding: '12px 14px',
+    backgroundColor: '#f8fafc',
+    borderRadius: '10px',
+    marginBottom: '16px',
+    border: '1px solid #e2e8f0',
+  },
+  searchBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    padding: '6px 12px',
+    flex: '1 1 220px',
+    minWidth: '200px',
+  },
+  searchInput: {
+    border: 'none',
+    outline: 'none',
+    fontSize: '0.84rem',
+    color: '#1e293b',
+    width: '100%',
+    backgroundColor: 'transparent',
+  },
+  clearSearchBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#94a3b8',
+    padding: '2px',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  filterGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  filterLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '0.82rem',
+    fontWeight: 600,
+    color: '#475569',
+    whiteSpace: 'nowrap',
+  },
+  selectInput: {
+    padding: '6px 10px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#ffffff',
+    fontSize: '0.84rem',
+    color: '#1e293b',
+    cursor: 'pointer',
+    outline: 'none',
+    fontWeight: 500,
+  },
+  resetFiltersBtn: {
+    padding: '6px 12px',
+    borderRadius: '8px',
+    border: '1px solid #fecaca',
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   },
   emptyState: {
     textAlign: 'center',
@@ -459,6 +918,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#94a3b8',
   },
   tableWrapper: {
+    width: '100%',
     overflowX: 'auto',
   },
   table: {
@@ -469,39 +929,177 @@ const styles: { [key: string]: React.CSSProperties } = {
   th: {
     backgroundColor: '#f8fafc',
     color: '#475569',
-    padding: '12px 16px',
-    fontSize: '0.85rem',
+    padding: '10px 10px',
+    fontSize: '0.78rem',
     fontWeight: 600,
     borderBottom: '1px solid #e2e8f0',
     textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+    whiteSpace: 'nowrap',
   },
   tr: {
     borderBottom: '1px solid #f1f5f9',
   },
   td: {
-    padding: '14px 16px',
-    fontSize: '0.9rem',
+    padding: '10px 10px',
+    fontSize: '0.84rem',
     color: '#475569',
+    verticalAlign: 'middle',
   },
   tdPrimary: {
-    padding: '14px 16px',
-    fontSize: '0.9rem',
+    padding: '10px 10px',
+    fontSize: '0.84rem',
     color: '#0f172a',
+    verticalAlign: 'middle',
   },
   typeBadge: {
     display: 'inline-block',
     backgroundColor: '#f1f5f9',
     color: '#334155',
-    padding: '4px 8px',
+    padding: '3px 8px',
     borderRadius: '6px',
-    fontSize: '0.8rem',
+    fontSize: '0.78rem',
     fontWeight: 500,
   },
   statusBadge: {
     display: 'inline-block',
-    padding: '4px 8px',
+    padding: '3px 8px',
     borderRadius: '6px',
-    fontSize: '0.78rem',
+    fontSize: '0.75rem',
     fontWeight: 600,
+    whiteSpace: 'nowrap',
+  },
+  modalBackdrop: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(11, 19, 41, 0.75)',
+    backdropFilter: 'blur(5px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    padding: '16px',
+  },
+  modalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    maxWidth: '540px',
+    width: '100%',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+    border: '1px solid #e2e8f0',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '18px 22px',
+    borderBottom: '1px solid #f1f5f9',
+    backgroundColor: '#ffffff',
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: '1.15rem',
+    fontWeight: 700,
+    color: '#0f172a',
+  },
+  modalSubtitle: {
+    margin: 0,
+    fontSize: '0.8rem',
+    color: '#64748b',
+  },
+  modalCloseBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#94a3b8',
+    cursor: 'pointer',
+    padding: '4px',
+    borderRadius: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBody: {
+    padding: '20px 22px',
+  },
+  modalInfoBox: {
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: '10px',
+    padding: '12px 14px',
+    marginBottom: '16px',
+  },
+  modalInputLabel: {
+    display: 'block',
+    fontSize: '0.82rem',
+    fontWeight: 600,
+    color: '#334155',
+    marginBottom: '6px',
+  },
+  modalStateOption: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '2px solid',
+    fontSize: '0.85rem',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  templateChip: {
+    backgroundColor: '#f1f5f9',
+    border: '1px solid #cbd5e1',
+    borderRadius: '14px',
+    padding: '4px 10px',
+    fontSize: '0.74rem',
+    color: '#334155',
+    cursor: 'pointer',
+    fontWeight: 500,
+    transition: 'background-color 0.15s',
+  },
+  modalTextarea: {
+    width: '100%',
+    boxSizing: 'border-box',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    padding: '10px 12px',
+    fontSize: '0.88rem',
+    color: '#1e293b',
+    fontFamily: 'inherit',
+    resize: 'vertical',
+    outline: 'none',
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '10px',
+    padding: '14px 22px',
+    backgroundColor: '#f8fafc',
+    borderTop: '1px solid #f1f5f9',
+  },
+  modalCancelBtn: {
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#ffffff',
+    color: '#475569',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  modalSaveBtn: {
+    padding: '8px 18px',
+    borderRadius: '8px',
+    border: 'none',
+    color: '#ffffff',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
   },
 };
