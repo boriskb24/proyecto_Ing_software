@@ -76,35 +76,44 @@ export const Navbar: React.FC = () => {
           </li>
           <li>
             <span 
-              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '7px', padding: '4px 10px' }}
               title="Opción no implementada"
             >
-              <FileText size={15} /> Documentos
-              <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1', padding: '1px 5px', borderRadius: '4px', marginLeft: '2px' }}>
-                No implementada
-              </span>
+              <FileText size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+                <span style={{ fontSize: '13px', fontWeight: '500', color: '#94a3b8' }}>Documentos</span>
+                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '400', letterSpacing: '0.2px' }}>
+                  No implementada
+                </span>
+              </div>
             </span>
           </li>
           <li>
             <span 
-              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '7px', padding: '4px 10px' }}
               title="Opción no implementada"
             >
-              <Briefcase size={15} /> Prácticas
-              <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1', padding: '1px 5px', borderRadius: '4px', marginLeft: '2px' }}>
-                No implementada
-              </span>
+              <Briefcase size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+                <span style={{ fontSize: '13px', fontWeight: '500', color: '#94a3b8' }}>Prácticas</span>
+                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '400', letterSpacing: '0.2px' }}>
+                  No implementada
+                </span>
+              </div>
             </span>
           </li>
           <li>
             <span 
-              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '7px', padding: '4px 10px' }}
               title="Opción no implementada"
             >
-              <Users size={15} /> Profesores
-              <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1', padding: '1px 5px', borderRadius: '4px', marginLeft: '2px' }}>
-                No implementada
-              </span>
+              <Users size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+                <span style={{ fontSize: '13px', fontWeight: '500', color: '#94a3b8' }}>Profesores</span>
+                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '400', letterSpacing: '0.2px' }}>
+                  No implementada
+                </span>
+              </div>
             </span>
           </li>
         </ul>
