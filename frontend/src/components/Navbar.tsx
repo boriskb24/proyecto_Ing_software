@@ -75,19 +75,37 @@ export const Navbar: React.FC = () => {
             </Link>
           </li>
           <li>
-            <a href="#documentos" style={styles.navLink}>
-              <FileText size={16} /> Documentos
-            </a>
+            <span 
+              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Opción no implementada"
+            >
+              <FileText size={15} /> Documentos
+              <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1', padding: '1px 5px', borderRadius: '4px', marginLeft: '2px' }}>
+                No implementada
+              </span>
+            </span>
           </li>
           <li>
-            <a href="#practicas" style={styles.navLink}>
-              <Briefcase size={16} /> Prácticas
-            </a>
+            <span 
+              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Opción no implementada"
+            >
+              <Briefcase size={15} /> Prácticas
+              <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1', padding: '1px 5px', borderRadius: '4px', marginLeft: '2px' }}>
+                No implementada
+              </span>
+            </span>
           </li>
           <li>
-            <a href="#profesores" style={styles.navLink}>
-              <Users size={16} /> Profesores
-            </a>
+            <span 
+              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Opción no implementada"
+            >
+              <Users size={15} /> Profesores
+              <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1', padding: '1px 5px', borderRadius: '4px', marginLeft: '2px' }}>
+                No implementada
+              </span>
+            </span>
           </li>
         </ul>
 
@@ -224,7 +242,7 @@ const styles: Record<string, React.CSSProperties> = {
   navList: {
     display: 'flex',
     alignItems: 'center',
-    gap: '24px',
+    gap: '14px',
     listStyle: 'none',
   },
   navLink: {

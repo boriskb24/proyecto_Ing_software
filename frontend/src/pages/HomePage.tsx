@@ -283,10 +283,13 @@ export const HomePage: React.FC = () => {
             <div style={styles.quickCardTitle}>Planificaciones de Clase</div>
             <div style={styles.quickCardDesc}>{isDocenteOrAdmin ? 'Revisión y supervisión' : 'Subir y gestionar archivos'}</div>
           </button>
-          <button style={{ ...styles.quickCard, ...styles.quickCardTeal }}>
+          <button 
+            onClick={() => showFeedback('Función "Documentos Recientes" no implementada.')}
+            style={{ ...styles.quickCard, ...styles.quickCardTeal }}
+          >
             <Clock size={22} />
             <div style={styles.quickCardTitle}>Documentos Recientes</div>
-            <div style={styles.quickCardDesc}>Última actividad</div>
+            <div style={styles.quickCardDesc}>No implementada</div>
           </button>
         </div>
 
