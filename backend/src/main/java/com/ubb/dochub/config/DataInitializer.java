@@ -213,18 +213,37 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Oferta crearOferta(int anio, int periodo, AsignaturaPractica asignatura, Profesor profesor) {
+        var existentes = entityManager.createQuery("SELECT o FROM Oferta o WHERE o.asignaturaPractica.codigo = :cod AND o.anio = :anio AND o.periodo = :per", Oferta.class)
+                .setParameter("cod", asignatura.getCodigo())
+                .setParameter("anio", anio)
+                .setParameter("per", periodo)
+                .getResultList();
+        if (!existentes.isEmpty()) return existentes.get(0);
+
         Oferta oferta = new Oferta(anio, periodo, asignatura, profesor);
         entityManager.persist(oferta);
         return oferta;
     }
 
     private Inscripcion crearInscripcion(Oferta oferta, Estudiante estudiante) {
+        var existentes = entityManager.createQuery("SELECT i FROM Inscripcion i WHERE i.oferta.id = :ofId AND i.estudiante.rut = :rut", Inscripcion.class)
+                .setParameter("ofId", oferta.getId())
+                .setParameter("rut", estudiante.getRut())
+                .getResultList();
+        if (!existentes.isEmpty()) return existentes.get(0);
+
         Inscripcion inscripcion = new Inscripcion(oferta, estudiante);
         entityManager.persist(inscripcion);
         return inscripcion;
     }
 
     private Asignacion crearAsignacion(Inscripcion inscripcion, Evaluador evaluador) {
+        var existentes = entityManager.createQuery("SELECT a FROM Asignacion a WHERE a.inscripcion.id = :insId AND a.evaluador.rut = :rut", Asignacion.class)
+                .setParameter("insId", inscripcion.getId())
+                .setParameter("rut", evaluador.getRut())
+                .getResultList();
+        if (!existentes.isEmpty()) return existentes.get(0);
+
         Asignacion asignacion = new Asignacion(inscripcion, evaluador);
         entityManager.persist(asignacion);
         return asignacion;
@@ -240,6 +259,12 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Clase crearClase(String asignatura, String tema, Planificacion planificacion, Inscripcion inscripcion, LocalDate fecha, LocalTime horaInicio, LocalTime horaFin) {
+        var existentes = entityManager.createQuery("SELECT c FROM Clase c WHERE c.inscripcion.id = :insId AND c.tema = :tema", Clase.class)
+                .setParameter("insId", inscripcion.getId())
+                .setParameter("tema", tema)
+                .getResultList();
+        if (!existentes.isEmpty()) return existentes.get(0);
+
         Clase clase = new Clase(asignatura, tema, planificacion, inscripcion, horaInicio);
         clase.setFecha(fecha);
         clase.setHoraFin(horaFin);
@@ -248,16 +273,34 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void crearEvaluacionClase(Clase clase, Evaluador evaluador, Double nota, String observaciones, LocalDateTime fecha) {
+        var existentes = entityManager.createQuery("SELECT ec FROM EvaluacionClase ec WHERE ec.clase.id = :cId AND ec.evaluador.rut = :rut", EvaluacionClase.class)
+                .setParameter("cId", clase.getId())
+                .setParameter("rut", evaluador.getRut())
+                .getResultList();
+        if (!existentes.isEmpty()) return;
+
         EvaluacionClase evaluacion = new EvaluacionClase("/uploads/evaluaciones-clase/eval-" + clase.getId() + ".pdf", clase, evaluador, nota, observaciones, fecha);
         entityManager.persist(evaluacion);
     }
 
     private void crearEvaluacionSemestral(Asignacion asignacion, String asignatura, Double nota, String observaciones) {
+        var existentes = entityManager.createQuery("SELECT es FROM EvaluacionSemestral es WHERE es.asignacion.id = :asId AND es.asignatura = :asig", EvaluacionSemestral.class)
+                .setParameter("asId", asignacion.getId())
+                .setParameter("asig", asignatura)
+                .getResultList();
+        if (!existentes.isEmpty()) return;
+
         EvaluacionSemestral evaluacion = new EvaluacionSemestral("/uploads/evaluaciones-semestrales/eval-sem-" + asignacion.getId() + ".pdf", asignacion, asignatura, nota, observaciones);
         entityManager.persist(evaluacion);
     }
 
     private void crearInforme(TipoEmisor emisor, String archivo, Inscripcion inscripcion) {
+        var existentes = entityManager.createQuery("SELECT inf FROM Informe inf WHERE inf.inscripcion.id = :insId AND inf.emisor = :em", Informe.class)
+                .setParameter("insId", inscripcion.getId())
+                .setParameter("em", emisor)
+                .getResultList();
+        if (!existentes.isEmpty()) return;
+
         Informe informe = new Informe(emisor, archivo, inscripcion);
         entityManager.persist(informe);
     }

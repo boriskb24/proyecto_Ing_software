@@ -4,11 +4,7 @@ import java.time.LocalDate;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "evaluacion_semestral", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {
-        "fecha", "asignatura"
-    })
-})
+@Table(name = "evaluacion_semestral")
 public class EvaluacionSemestral {
 
     public EvaluacionSemestral() {
