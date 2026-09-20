@@ -5,7 +5,6 @@ import java.util.List;
 @Entity
 @Table(name = "estudiante")
 public class Estudiante {
-
     public Estudiante() {
     }
     
@@ -63,8 +62,8 @@ public class Estudiante {
         return apellidoMaterno;
     }
 
-    public void setApellidoPaterno(String apelidoPaterno) {
-        this.apellidoPaterno = apelidoPaterno;
+    public void setApellidoPaterno(String apellidoPaterno) {
+        this.apellidoPaterno = apellidoPaterno;
     }
 
     public void setApellidoMaterno(String apellidoMaterno) {

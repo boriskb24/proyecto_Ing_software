@@ -31,7 +31,31 @@ public class Evaluador {
 
     @Column(name = "primer_nombre", nullable = false)
     private String primerNombre;
-    
+
+    @Column(name = "segundo_nombre", nullable = false)
+    private String segundoNombre;
+
+    @Column(name = "apellido_paterno", nullable = false)
+    private String apellidoPaterno;
+
+    @Column(name = "apellido_materno", nullable = false)
+    private String apellidoMaterno;
+
+    @Column(name = "correo", nullable = false)
+    private String correo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false)
+    private TipoEvaluador tipo;
+
+    public String getRut() {
+        return rut;
+    }
+
+    public void setRut(String rut) {
+        this.rut = rut;
+    }
+
     public String getPrimerNombre() {
         return primerNombre;
     }
@@ -40,9 +64,6 @@ public class Evaluador {
         this.primerNombre = primerNombre;
     }
 
-    @Column(name = "segundo_nombre", nullable = false)
-    private String segundoNombre;
-    
     public String getSegundoNombre() {
         return segundoNombre;
     }
@@ -51,9 +72,6 @@ public class Evaluador {
         this.segundoNombre = segundoNombre;
     }
 
-    @Column(name = "apellido_paterno", nullable = false)
-    private String apellidoPaterno;
-    
     public String getApellidoPaterno() {
         return apellidoPaterno;
     }
@@ -61,9 +79,6 @@ public class Evaluador {
     public void setApellidoPaterno(String apellidoPaterno) {
         this.apellidoPaterno = apellidoPaterno;
     }
-
-    @Column(name = "apellido_materno", nullable = false)
-    private String apellidoMaterno;
 
     public String getApellidoMaterno() {
         return apellidoMaterno;
@@ -73,12 +88,19 @@ public class Evaluador {
         this.apellidoMaterno = apellidoMaterno;
     }
 
-    @Column(name = "correo", nullable = false)
-    private String correo;
+    public String getCorreo() {
+        return correo;
+    }
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo", nullable = false)
-    private TipoEvaluador tipo;
+    public void setCorreo(String correo) {
+        this.correo = correo;
+    }
 
+    public TipoEvaluador getTipo() {
+        return tipo;
+    }
 
+    public void setTipo(TipoEvaluador tipo) {
+        this.tipo = tipo;
+    }
 }

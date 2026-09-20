@@ -1,7 +1,17 @@
 package com.ubb.dochub.service.impl;
 
+import com.ubb.dochub.dto.EvaluacionCLADto;
+import com.ubb.dochub.dto.EvaluacionSEMDto;
+import com.ubb.dochub.dto.EvaluacionesResponseDto;
 import com.ubb.dochub.dto.InformeEntregaResponse;
+import com.ubb.dochub.dto.TipoFiltroEvaluacion;
+import com.ubb.dochub.entity.Estudiante;
+import com.ubb.dochub.entity.EvaluacionClase;
+import com.ubb.dochub.entity.EvaluacionSemestral;
+import com.ubb.dochub.repository.EvaluacionClaseRepository;
+import com.ubb.dochub.repository.EvaluacionSemestralRepository;
 import com.ubb.dochub.service.PracticaService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,12 +23,20 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class PracticaServiceImpl implements PracticaService {
 
     private static final String UPLOAD_DIR = "uploads/informes";
+
+    @Autowired
+    private EvaluacionClaseRepository evaluacionClaseRepository;
+
+    @Autowired
+    private EvaluacionSemestralRepository evaluacionSemestralRepository;
 
     @Override
     public InformeEntregaResponse guardarInformeFinal(MultipartFile archivo) {
@@ -67,5 +85,52 @@ public class PracticaServiceImpl implements PracticaService {
                 "Error al procesar y guardar el archivo: " + e.getMessage()
             );
         }
+    }
+    @Override
+public EvaluacionesResponseDto obtenerEvaluacionesPorProfesor(String rutProfesor, TipoFiltroEvaluacion tipo) {
+    List<EvaluacionCLADto> listaClase = new ArrayList<>();
+    List<EvaluacionSEMDto> listaSemestral = new ArrayList<>();
+
+    // 1. Recuperar evaluaciones de clase o todas
+    if (tipo == TipoFiltroEvaluacion.CLASE || tipo == TipoFiltroEvaluacion.TODAS) {
+        List<EvaluacionClase> evalClases = evaluacionClaseRepository.findEvaluacionesPorRutProfesor(rutProfesor);
+        for (EvaluacionClase ec : evalClases) {
+            Estudiante est = ec.getClase().getInscripcion().getEstudiante();
+            String nombreComp = est.getPrimerNombre() + " " + est.getApellidoPaterno();
+            
+            // Map to EvaluacionesCLADto (LocalDateTime)
+            listaClase.add(new EvaluacionCLADto(
+                ec.getId(),
+                est.getRut(),
+                nombreComp,
+                "CLASE",
+                ec.getNota(),
+                ec.getObservaciones(),
+                ec.getFecha() // LocalDateTime
+            ));
+        }
+    }
+
+    // Recuperar todas las evaluaciones
+    if (tipo == TipoFiltroEvaluacion.SEMESTRAL || tipo == TipoFiltroEvaluacion.TODAS) {
+        List<EvaluacionSemestral> evalSemestrales = evaluacionSemestralRepository.findEvaluacionesPorRutProfesor(rutProfesor);
+        for (EvaluacionSemestral es : evalSemestrales) {
+            Estudiante est = es.getAsignacion().getInscripcion().getEstudiante();
+            String nombreComp = est.getPrimerNombre() + " " + est.getApellidoPaterno();
+            
+            // Map to EvaluacionesSEMDto (LocalDate)
+            listaSemestral.add(new EvaluacionSEMDto(
+                es.getId(),
+                est.getRut(),
+                nombreComp,
+                " SEMESTRAL",
+                es.getNota(),
+                es.getObservaciones(),
+                es.getFecha() // LocalDate
+            ));
+        }
+    }
+
+    return new EvaluacionesResponseDto(listaClase, listaSemestral);
     }
 }

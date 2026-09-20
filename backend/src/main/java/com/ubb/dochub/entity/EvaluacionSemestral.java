@@ -6,8 +6,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "evaluacion_semestral", uniqueConstraints = {
     @UniqueConstraint(columnNames = {
-        "fecha", "asignatura" // por el modelo de negocio sabemos que el evaluador realiza 4 evaluaciones al semestre, dos de Orientación y dos de Matemática, pero todas tienen
-                              // fechas distintas, así que no se puede subir dos evaluaciones de una misma asignatura en a misma fecha
+        "fecha", "asignatura"
     })
 })
 public class EvaluacionSemestral {
@@ -21,6 +20,14 @@ public class EvaluacionSemestral {
         this.asignatura = asignatura;
     }
 
+    public EvaluacionSemestral(String archivo, Asignacion asignacion, String asignatura, Double nota, String observaciones) {
+        this.archivo = archivo;
+        this.asignacion = asignacion;
+        this.asignatura = asignatura;
+        this.nota = nota;
+        this.observaciones = observaciones;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,57 +37,80 @@ public class EvaluacionSemestral {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_asignacion")
-    private Asignacion asignacion; // la evaluación semestral se da un contexto en el que Estudiante y Evaluador estan relacionados mediante la inscripción de asignatura
+    private Asignacion asignacion;
     
     @Column(name = "asignatura")
     private String asignatura;
 
-    @Column(name = "fecha", nullable = false, updatable = false) // la fecha de carga del archivo a la base de datos no se puede cambiar
-    private LocalDate fecha;
+    @Column(name = "nota", nullable = true)
+    private Double nota;
 
+    @Column(name = "observaciones", nullable = true) 
+    private String observaciones;
+
+    @Column(name = "fecha", nullable = false, updatable = false)
+    private LocalDate fecha;
 
     @PrePersist
     protected void onCreate() {
-        this.fecha = LocalDate.now(); // configurar automáticamente la fecha de carga como el momento en el que se creó el registro
+        if (this.fecha == null) {
+            this.fecha = LocalDate.now();
+        }
     }
-
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getArchivo() {
         return archivo;
     }
 
-
     public void setArchivo(String archivo) {
         this.archivo = archivo;
     }
-
 
     public Asignacion getAsignacion() {
         return asignacion;
     }
 
-
     public void setAsignacion(Asignacion asignacion) {
         this.asignacion = asignacion;
     }
-
 
     public String getAsignatura() {
         return asignatura;
     }
 
-
     public void setAsignatura(String asignatura) {
         this.asignatura = asignatura;
     }
 
+    public void setNota(Double nota){
+        this.nota = nota;
+    }
+
+    public Double getNota(){
+        return nota;
+    }
+
+    public void setObservaciones(String observaciones){
+        this.observaciones = observaciones;
+    }
+
+    public String getObservaciones(){
+        return observaciones;
+    }
 
     public LocalDate getFecha() {
         return fecha;
     }
 
+    public void setFecha(LocalDate fecha) {
+        this.fecha = fecha;
+    }
 }

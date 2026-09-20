@@ -44,3 +44,9 @@ yarn-error.log
 
 # Docker
 docker-data/
+
+
+backend/.classpath
+backend/.factorypath
+backend/.project
+backend/.settings/

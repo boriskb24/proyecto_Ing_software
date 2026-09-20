@@ -20,6 +20,13 @@ public class Oferta {
         this.asignaturaPractica = asignaturaPractica;
     }
 
+    public Oferta(int anio, int periodo, AsignaturaPractica asignaturaPractica, Profesor profesor) {
+        this.anio = anio;
+        this.periodo = periodo;
+        this.asignaturaPractica = asignaturaPractica;
+        this.profesor = profesor;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -11,6 +11,7 @@ import {
   Shield, 
   ChevronDown, 
   Settings,
+  GraduationCap,
   User as UserIcon 
 } from 'lucide-react'
 
@@ -72,6 +73,11 @@ export const Navbar: React.FC = () => {
           <li>
             <Link to="/planificaciones" style={styles.navLink}>
               <FileText size={16} /> Planificaciones
+            </Link>
+          </li>
+          <li>
+            <Link to="/evaluaciones" style={styles.navLink}>
+              <GraduationCap size={16} /> Evaluaciones
             </Link>
           </li>
           <li>
@@ -180,6 +186,16 @@ export const Navbar: React.FC = () => {
                     style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     <FileText size={16} /> Mis Documentos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate('/evaluaciones')
+                    }}
+                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    <GraduationCap size={16} /> Evaluaciones de Práctica
                   </button>
                 </div>
 

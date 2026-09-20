@@ -53,6 +53,4 @@ public class Inscripcion {
     public void setEstudiante(Estudiante estudiante) {
         this.estudiante = estudiante;
     }
-
-
 }

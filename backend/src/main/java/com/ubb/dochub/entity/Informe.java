@@ -6,6 +6,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "informe")
 public class Informe {
+
     public Informe() {
     }
 
@@ -33,20 +34,25 @@ public class Informe {
     // Se ejecuta automáticamente antes de insertar el registro en la BD
     @PrePersist
     protected void onCreate() {
-        this.fecha = LocalDate.now(); 
+        if (this.fecha == null) {
+            this.fecha = LocalDate.now(); 
+        }
     }
 
-    @ManyToOne(fetch =  FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_inscripcion", nullable = false)
     private Inscripcion inscripcion; // La inscripción a la que hace referencia este informe.
 
-    // --- SOLO GETTER (Sin setFecha para garantizar inmutabilidad) ---
     public LocalDate getFecha() {
         return fecha;
     }
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public TipoEmisor getEmisor() {
