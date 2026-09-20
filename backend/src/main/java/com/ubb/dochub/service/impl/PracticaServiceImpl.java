@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -119,8 +120,15 @@ public class PracticaServiceImpl implements PracticaService {
             }
             Files.copy(archivo.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            // Persistir registro de Informe
-            Informe informe = new Informe(TipoEmisor.PROFESOR, safeFileName, inscripcion);
+            // Persistir o actualizar registro de Informe para esta inscripción
+            List<Informe> existentes = informeRepository.findByInscripcionIdAndEmisorOrderByIdDesc(inscripcionId, TipoEmisor.PROFESOR);
+            Informe informe;
+            if (!existentes.isEmpty()) {
+                informe = existentes.get(0);
+                informe.setArchivo(safeFileName);
+            } else {
+                informe = new Informe(TipoEmisor.PROFESOR, safeFileName, inscripcion);
+            }
             Informe saved = informeRepository.save(informe);
 
             return new InformeEntregaResponse(

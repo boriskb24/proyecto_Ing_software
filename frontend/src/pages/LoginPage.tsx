@@ -22,7 +22,8 @@ export const LoginPage: React.FC = () => {
       const resp = await login(email, password)
       const role = resp?.user?.role ?? null
       if (role && role.toLowerCase().includes('profesor')) {
-        navigate('/profesor/ofertas')
+        // navigate('/profesor/ofertas')
+        navigate('/dashboard')
       } else {
         navigate('/dashboard')
       }

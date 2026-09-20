@@ -56,7 +56,7 @@ export const Navbar: React.FC = () => {
     <nav style={styles.navbar}>
       <div style={styles.inner}>
         {/* Logo and Brand */}
-        <Link to={isProfesor ? '/profesor/ofertas' : '/dashboard'} style={styles.brand}>
+        <Link to="/dashboard" style={styles.brand}>
           <div style={styles.logo}>UBB</div>
           <div style={styles.brandText}>
             <span style={styles.brandTitle}>Facultad de Educacion y Humanidades</span>
@@ -67,7 +67,7 @@ export const Navbar: React.FC = () => {
         {/* Navigation links */}
         <ul style={styles.navList}>
           <li>
-            <Link to={isProfesor ? '/profesor/ofertas' : '/dashboard'} style={{ ...styles.navLink, ...styles.navLinkActive }}>
+            <Link to="/dashboard" style={styles.navLink}>
               <Home size={16} /> Inicio
             </Link>
           </li>
@@ -78,7 +78,7 @@ export const Navbar: React.FC = () => {
           </li>
           <li>
             {isProfesor ? (
-              <Link to="/profesor/ofertas" style={styles.navLink}>
+              <Link to="/practicas" style={styles.navLink}>
                 <Briefcase size={16} /> Prácticas
               </Link>
             ) : (
@@ -87,22 +87,11 @@ export const Navbar: React.FC = () => {
               </a>
             )}
           </li>
-          <li>
-            {isProfesor ? (
-              <span style={{ ...styles.navLink, cursor: 'default', opacity: 0.8 }}>
-                <FileText size={16} /> Informes
-              </span>
-            ) : (
-              <Link to="/profesor/informes" style={styles.navLink}>
-                <FileText size={16} /> Informes
-              </Link>
-            )}
-          </li>
-          {!isProfesor && (
+          {isProfesor && (
             <li>
-              <a href="#profesores" style={styles.navLink}>
-                <Users size={16} /> Profesores
-              </a>
+              <Link to="/alumnos" style={styles.navLink}>
+                <Users size={16} /> Alumnos
+              </Link>
             </li>
           )}
         </ul>
@@ -150,14 +139,11 @@ export const Navbar: React.FC = () => {
                 <div style={styles.divider} />
 
                 <div style={{ padding: '6px' }}>
-                  <a href="#perfil" style={styles.menuItem}>
+                  <a href="#perfil" style={styles.menuItem} onClick={() => setDropdownOpen(false)}>
                     <UserIcon size={16} /> Mi Perfil Académico
                   </a>
-                  <a href="#documentos" style={styles.menuItem}>
+                  <a href="#documentos" style={styles.menuItem} onClick={() => setDropdownOpen(false)}>
                     <FileText size={16} /> Mis Documentos
-                  </a>
-                  <a href="#config" style={styles.menuItem}>
-                    <Settings size={16} /> Configuración
                   </a>
                 </div>
 

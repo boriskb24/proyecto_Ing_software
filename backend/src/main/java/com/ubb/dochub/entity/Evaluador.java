@@ -80,11 +80,27 @@ public class Evaluador {
     @Column(name = "tipo", nullable = false)
     private TipoEvaluador tipo;
 
+    public String getRut() {
+        return rut;
+    }
+
+    public void setRut(String rut) {
+        this.rut = rut;
+    }
+
     public String getCorreo() {
         return correo;
     }
 
     public void setCorreo(String correo) {
         this.correo = correo;
+    }
+
+    public TipoEvaluador getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoEvaluador tipo) {
+        this.tipo = tipo;
     }
 }

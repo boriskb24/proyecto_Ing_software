@@ -96,6 +96,15 @@ public class DataInitializer implements CommandLineRunner {
                 "matias.vargas@ubiobio.cl"
         );
 
+        Estudiante estudiante6 = crearEstudiante(
+                "21000000-0",
+                "Lucas",
+                "Ignacio",
+                "González",
+                "Morales",
+                "lucas.gonzalez@ubiobio.cl"
+        );
+
         Evaluador evaluador1 = crearEvaluador(
                 "44444444-4",
                 "Carlos",
@@ -152,6 +161,13 @@ public class DataInitializer implements CommandLineRunner {
                 profesor
         );
 
+        Oferta ofertaAntigua = crearOferta(
+                2025,
+                2,
+                asignatura,
+                profesor
+        );
+
         /*
          * ==========================================================
          * 4. INSCRIPCIONES
@@ -181,6 +197,11 @@ public class DataInitializer implements CommandLineRunner {
         Inscripcion inscripcion5 = crearInscripcion(
                 oferta2,
                 estudiante5
+        );
+
+        Inscripcion inscripcionAntigua = crearInscripcion(
+                ofertaAntigua,
+                estudiante1
         );
 
         /*
