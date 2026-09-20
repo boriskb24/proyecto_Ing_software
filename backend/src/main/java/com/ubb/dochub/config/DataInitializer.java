@@ -108,7 +108,7 @@ public class DataInitializer implements CommandLineRunner {
         // 6. Ofertas
         Oferta ofBoris1 = crearOferta(2026, 1, asig1, profBoris);
         Oferta ofBoris2 = crearOferta(2026, 1, asig2, profBoris);
-        Oferta ofJuan1 = crearOferta(2026, 1, asig1, profJuan);
+        Oferta ofJuan1 = crearOferta(2025, 2, asig1, profJuan);
         Oferta ofMariaMat = crearOferta(2026, 2, asigMat, profMaria);
 
         // 7. Inscripciones
