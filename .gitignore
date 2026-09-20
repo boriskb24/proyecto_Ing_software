@@ -50,3 +50,7 @@ backend/.classpath
 backend/.factorypath
 backend/.project
 backend/.settings/
+
+*.zip
+*.sql
+*.pdf

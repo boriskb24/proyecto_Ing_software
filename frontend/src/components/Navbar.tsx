@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { 
   Home, 
@@ -10,7 +10,6 @@ import {
   LogOut, 
   Shield, 
   ChevronDown, 
-  Settings,
   GraduationCap,
   User as UserIcon 
 } from 'lucide-react'
@@ -18,8 +17,11 @@ import {
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const isProfesorOrAdmin = user?.role === 'Administrador' || user?.role === 'Profesor'
 
   const displayName = user?.fullName || (user?.email ? user.email.split('@')[0] : 'Usuario')
   const userEmail = user?.email || ''
@@ -51,6 +53,8 @@ export const Navbar: React.FC = () => {
     navigate('/login')
   }
 
+  const isActive = (path: string) => location.pathname === path
+
   return (
     <nav style={styles.navbar}>
       <div style={styles.inner}>
@@ -58,7 +62,7 @@ export const Navbar: React.FC = () => {
         <Link to="/dashboard" style={styles.brand}>
           <div style={styles.logo}>UBB</div>
           <div style={styles.brandText}>
-            <span style={styles.brandTitle}>Depto. Matemáticas</span>
+            <span style={styles.brandTitle}>Facultad de Educación y Humanidades</span>
             <span style={styles.brandSubtitle}>Universidad del Bío-Bío</span>
           </div>
         </Link>
@@ -66,62 +70,32 @@ export const Navbar: React.FC = () => {
         {/* Navigation links */}
         <ul style={styles.navList}>
           <li>
-            <Link to="/dashboard" style={{ ...styles.navLink, ...styles.navLinkActive }}>
+            <Link to="/dashboard" style={{ ...styles.navLink, ...(isActive('/dashboard') ? styles.navLinkActive : {}) }}>
               <Home size={16} /> Inicio
             </Link>
           </li>
           <li>
-            <Link to="/planificaciones" style={styles.navLink}>
+            <Link to="/planificaciones" style={{ ...styles.navLink, ...(isActive('/planificaciones') ? styles.navLinkActive : {}) }}>
               <FileText size={16} /> Planificaciones
             </Link>
           </li>
           <li>
-            <Link to="/evaluaciones" style={styles.navLink}>
+            <Link to="/evaluaciones" style={{ ...styles.navLink, ...(isActive('/evaluaciones') ? styles.navLinkActive : {}) }}>
               <GraduationCap size={16} /> Evaluaciones
             </Link>
           </li>
           <li>
-            <span 
-              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '7px', padding: '4px 10px' }}
-              title="Opción no implementada"
-            >
-              <FileText size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-                <span style={{ fontSize: '13px', fontWeight: '500', color: '#94a3b8' }}>Documentos</span>
-                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '400', letterSpacing: '0.2px' }}>
-                  No implementada
-                </span>
-              </div>
-            </span>
+            <Link to="/practicas" style={{ ...styles.navLink, ...(isActive('/practicas') ? styles.navLinkActive : {}) }}>
+              <Briefcase size={16} /> Prácticas
+            </Link>
           </li>
-          <li>
-            <span 
-              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '7px', padding: '4px 10px' }}
-              title="Opción no implementada"
-            >
-              <Briefcase size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-                <span style={{ fontSize: '13px', fontWeight: '500', color: '#94a3b8' }}>Prácticas</span>
-                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '400', letterSpacing: '0.2px' }}>
-                  No implementada
-                </span>
-              </div>
-            </span>
-          </li>
-          <li>
-            <span 
-              style={{ ...styles.navLink, color: '#94a3b8', cursor: 'default', display: 'flex', alignItems: 'center', gap: '7px', padding: '4px 10px' }}
-              title="Opción no implementada"
-            >
-              <Users size={16} style={{ flexShrink: 0, opacity: 0.7 }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-                <span style={{ fontSize: '13px', fontWeight: '500', color: '#94a3b8' }}>Profesores</span>
-                <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '400', letterSpacing: '0.2px' }}>
-                  No implementada
-                </span>
-              </div>
-            </span>
-          </li>
+          {isProfesorOrAdmin && (
+            <li>
+              <Link to="/alumnos" style={{ ...styles.navLink, ...(isActive('/alumnos') ? styles.navLinkActive : {}) }}>
+                <Users size={16} /> Alumnos
+              </Link>
+            </li>
+          )}
         </ul>
 
         {/* Actions & Profile Dropdown */}
@@ -185,7 +159,7 @@ export const Navbar: React.FC = () => {
                     }}
                     style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
-                    <FileText size={16} /> Mis Documentos
+                    <FileText size={16} /> Mis Planificaciones
                   </button>
                   <button
                     type="button"
@@ -197,6 +171,28 @@ export const Navbar: React.FC = () => {
                   >
                     <GraduationCap size={16} /> Evaluaciones de Práctica
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate('/practicas')
+                    }}
+                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    <Briefcase size={16} /> Gestión de Prácticas
+                  </button>
+                  {isProfesorOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false)
+                        navigate('/alumnos')
+                      }}
+                      style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <Users size={16} /> Directorio de Alumnos
+                    </button>
+                  )}
                 </div>
 
                 <div style={styles.divider} />

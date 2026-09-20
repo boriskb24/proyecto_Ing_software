@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "evaluacion_clase")
 public class EvaluacionClase {
-
     public EvaluacionClase() {
     }
 

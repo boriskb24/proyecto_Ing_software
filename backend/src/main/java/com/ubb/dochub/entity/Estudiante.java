@@ -1,10 +1,11 @@
 package com.ubb.dochub.entity;
+
 import jakarta.persistence.*;
-import java.util.List;
 
 @Entity
 @Table(name = "estudiante")
 public class Estudiante {
+
     public Estudiante() {
     }
     
@@ -36,7 +37,6 @@ public class Estudiante {
 
     @Column(name = "correo", nullable = false, unique = true)
     private String correo;
-
 
     public String getCorreo() {
         return correo;
@@ -86,4 +86,3 @@ public class Estudiante {
         this.segundoNombre = segundoNombre;
     }
 }
-

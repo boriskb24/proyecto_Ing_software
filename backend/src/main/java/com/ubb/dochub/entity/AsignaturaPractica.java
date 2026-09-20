@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "asignatura_practica")
 public class AsignaturaPractica {
+
     public AsignaturaPractica() {
     }
 

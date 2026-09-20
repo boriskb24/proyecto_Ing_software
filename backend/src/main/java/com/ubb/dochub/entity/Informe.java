@@ -6,7 +6,6 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "informe")
 public class Informe {
-
     public Informe() {
     }
 

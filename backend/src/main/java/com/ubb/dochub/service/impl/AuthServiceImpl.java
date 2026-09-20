@@ -5,8 +5,12 @@ import com.ubb.dochub.dto.LoginRequest;
 import com.ubb.dochub.dto.RegisterRequest;
 import com.ubb.dochub.dto.UserDto;
 import com.ubb.dochub.entity.User;
+import com.ubb.dochub.entity.Profesor;
+import com.ubb.dochub.entity.Evaluador;
+import com.ubb.dochub.entity.Estudiante;
 import com.ubb.dochub.repository.UserRepository;
 import com.ubb.dochub.service.AuthService;
+import jakarta.persistence.EntityManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,10 +25,12 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EntityManager entityManager;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, EntityManager entityManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.entityManager = entityManager;
     }
 
     @Override
@@ -72,13 +78,49 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private UserDto mapToUserDto(User user) {
+        String role = determineRoleByEmail(user.getEmail());
         return new UserDto(
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getRole(),
+                role,
                 user.getInitials(),
                 user.getCreatedAt()
         );
+    }
+
+    private String determineRoleByEmail(String email) {
+        if (email == null) return "Estudiante";
+        String normalized = email.toLowerCase().trim();
+
+        if ("admin@ubiobio.cl".equalsIgnoreCase(normalized)) {
+            return "Administrador";
+        }
+
+        Long profesorCount = entityManager.createQuery(
+                "SELECT COUNT(p) FROM Profesor p WHERE LOWER(p.correo) = :email", Long.class)
+                .setParameter("email", normalized)
+                .getSingleResult();
+        if (profesorCount != null && profesorCount > 0) {
+            return "Profesor";
+        }
+
+        Long evaluadorCount = entityManager.createQuery(
+                "SELECT COUNT(e) FROM Evaluador e WHERE LOWER(e.correo) = :email", Long.class)
+                .setParameter("email", normalized)
+                .getSingleResult();
+        if (evaluadorCount != null && evaluadorCount > 0) {
+            return "Evaluador";
+        }
+
+        Long estudianteCount = entityManager.createQuery(
+                "SELECT COUNT(s) FROM Estudiante s WHERE LOWER(s.correo) = :email", Long.class)
+                .setParameter("email", normalized)
+                .getSingleResult();
+        if (estudianteCount != null && estudianteCount > 0) {
+            return "Estudiante";
+        }
+
+        return "Estudiante";
     }
 }

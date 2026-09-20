@@ -18,16 +18,19 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Create non-root user and uploads directory with permissions
-RUN addgroup -S spring && adduser -S spring -G spring \
-    && mkdir -p /app/uploads/planificaciones /app/uploads/informes \
-    && chown -R spring:spring /app
+# Install su-exec to drop privileges at runtime and allow chown
+RUN apk add --no-cache su-exec
 
-USER spring:spring
+# Create non-root user for security
+RUN addgroup -S spring && adduser -S spring -G spring
 
 # Copy built JAR from builder stage
 COPY --chown=spring:spring --from=builder /build/target/*.jar app.jar
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["/entrypoint.sh"]
