@@ -27,7 +27,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, EntityManager entityManager) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
+            EntityManager entityManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.entityManager = entityManager;
@@ -85,12 +86,12 @@ public class AuthServiceImpl implements AuthService {
                 user.getEmail(),
                 role,
                 user.getInitials(),
-                user.getCreatedAt()
-        );
+                user.getCreatedAt());
     }
 
     private String determineRoleByEmail(String email) {
-        if (email == null) return "Estudiante";
+        if (email == null)
+            return "Estudiante";
         String normalized = email.toLowerCase().trim();
 
         if ("admin@ubiobio.cl".equalsIgnoreCase(normalized)) {

@@ -20,7 +20,7 @@ public class DataInitializer implements CommandLineRunner {
     private final EntityManager entityManager;
 
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                           EntityManager entityManager) {
+            EntityManager entityManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.entityManager = entityManager;
@@ -63,32 +63,47 @@ public class DataInitializer implements CommandLineRunner {
         userRepository.save(estudianteUser);
 
         // 2. Semillas de Profesores
-        Profesor profBoris = crearProfesor("33333333-3", "Boris", "Alejandro", "Arenas", "Quezada", "boris.profe@ubiobio.cl", "Ingeniero Civil Informático");
-        Profesor profJuan = crearProfesor("11111111-1", "Juan", "Carlos", "Perez", "Gomez", "profesor@ubiobio.cl", "Profesor Guía de Práctica");
-        Profesor profMaria = crearProfesor("12345678-9", "Maria", "Jose", "Gonzalez", "Soto", "maria.gonzalez@ubiobio.cl", "Profesora de Educación Básica");
+        Profesor profBoris = crearProfesor("33333333-3", "Boris", "Alejandro", "Arenas", "Quezada",
+                "boris.profe@ubiobio.cl", "Ingeniero Civil Informático");
+        Profesor profJuan = crearProfesor("11111111-1", "Juan", "Carlos", "Perez", "Gomez", "profesor@ubiobio.cl",
+                "Profesor Guía de Práctica");
+        Profesor profMaria = crearProfesor("12345678-9", "Maria", "Jose", "Gonzalez", "Soto",
+                "maria.gonzalez@ubiobio.cl", "Profesora de Educación Básica");
 
         // Crear usuarios para estos profesores
         crearUsuarioSiNoExiste("Prof. Boris Arenas", "boris.profe@ubiobio.cl", "Profesor");
         crearUsuarioSiNoExiste("Prof. Maria Gonzalez", "maria.gonzalez@ubiobio.cl", "Profesor");
 
         // 3. Semillas de Evaluadores
-        Evaluador evalCarlos = crearEvaluador("44444444-4", "Carlos", "Andres", "Munoz", "Vega", "carlos.munoz@ubiobio.cl", TipoEvaluador.TUTOR);
-        Evaluador evalMaria = crearEvaluador("55555555-5", "Maria", "Jose", "Contreras", "Rivas", "maria.contreras@ubiobio.cl", TipoEvaluador.COLABORADOR);
-        Evaluador evalEmpresa = crearEvaluador("66666666-6", "Carlos", "Alberto", "Mendoza", "Perez", "evaluador@empresa.cl", TipoEvaluador.TUTOR);
+        Evaluador evalCarlos = crearEvaluador("44444444-4", "Carlos", "Andres", "Munoz", "Vega",
+                "carlos.munoz@ubiobio.cl", TipoEvaluador.TUTOR);
+        Evaluador evalMaria = crearEvaluador("55555555-5", "Maria", "Jose", "Contreras", "Rivas",
+                "maria.contreras@ubiobio.cl", TipoEvaluador.COLABORADOR);
+        Evaluador evalEmpresa = crearEvaluador("66666666-6", "Carlos", "Alberto", "Mendoza", "Perez",
+                "evaluador@empresa.cl", TipoEvaluador.TUTOR);
 
         crearUsuarioSiNoExiste("Carlos Muñoz (Tutor)", "carlos.munoz@ubiobio.cl", "Evaluador");
         crearUsuarioSiNoExiste("Maria Contreras (Colaborador)", "maria.contreras@ubiobio.cl", "Evaluador");
 
         // 4. Semillas de Estudiantes
-        Estudiante estDiego = crearEstudiante("20555555-5", "Diego", "Andres", "Martinez", "Soto", "diego.martinez@ubiobio.cl");
-        Estudiante estValentina = crearEstudiante("20666666-6", "Valentina", "Isabel", "Rojas", "Perez", "valentina.rojas@ubiobio.cl");
-        Estudiante estSebastian = crearEstudiante("20777777-7", "Sebastian", "Ignacio", "Fuentes", "Diaz", "sebastian.fuentes@ubiobio.cl");
-        Estudiante estCamila = crearEstudiante("20888888-8", "Camila", "Fernanda", "Navarro", "Silva", "camila.navarro@ubiobio.cl");
-        Estudiante estMatiasVargas = crearEstudiante("20999999-9", "Matias", "Sebastian", "Vargas", "Paredes", "matias.vargas@ubiobio.cl");
-        Estudiante estLucas = crearEstudiante("21000000-0", "Lucas", "Ignacio", "Gonzalez", "Morales", "lucas.gonzalez@ubiobio.cl");
-        Estudiante estAna = crearEstudiante("21.111.111-1", "Ana", "Sofia", "Perez", "Rojas", "ana.perez@alumnos.ubiobio.cl");
-        Estudiante estBruno = crearEstudiante("21.222.222-2", "Bruno", "Andres", "Munoz", "Vega", "bruno.munoz@alumnos.ubiobio.cl");
-        Estudiante estCarla = crearEstudiante("21.333.333-3", "Carla", "Isabel", "Contreras", "Diaz", "carla.contreras@alumnos.ubiobio.cl");
+        Estudiante estDiego = crearEstudiante("20555555-5", "Diego", "Andres", "Martinez", "Soto",
+                "diego.martinez@ubiobio.cl");
+        Estudiante estValentina = crearEstudiante("20666666-6", "Valentina", "Isabel", "Rojas", "Perez",
+                "valentina.rojas@ubiobio.cl");
+        Estudiante estSebastian = crearEstudiante("20777777-7", "Sebastian", "Ignacio", "Fuentes", "Diaz",
+                "sebastian.fuentes@ubiobio.cl");
+        Estudiante estCamila = crearEstudiante("20888888-8", "Camila", "Fernanda", "Navarro", "Silva",
+                "camila.navarro@ubiobio.cl");
+        Estudiante estMatiasVargas = crearEstudiante("20999999-9", "Matias", "Sebastian", "Vargas", "Paredes",
+                "matias.vargas@ubiobio.cl");
+        Estudiante estLucas = crearEstudiante("21000000-0", "Lucas", "Ignacio", "Gonzalez", "Morales",
+                "lucas.gonzalez@ubiobio.cl");
+        Estudiante estAna = crearEstudiante("21.111.111-1", "Ana", "Sofia", "Perez", "Rojas",
+                "ana.perez@alumnos.ubiobio.cl");
+        Estudiante estBruno = crearEstudiante("21.222.222-2", "Bruno", "Andres", "Munoz", "Vega",
+                "bruno.munoz@alumnos.ubiobio.cl");
+        Estudiante estCarla = crearEstudiante("21.333.333-3", "Carla", "Isabel", "Contreras", "Diaz",
+                "carla.contreras@alumnos.ubiobio.cl");
 
         crearUsuarioSiNoExiste("Diego Martínez", "diego.martinez@ubiobio.cl", "Estudiante");
         crearUsuarioSiNoExiste("Valentina Rojas", "valentina.rojas@ubiobio.cl", "Estudiante");
@@ -129,26 +144,41 @@ public class DataInitializer implements CommandLineRunner {
         Asignacion asigBruno = crearAsignacion(inscBruno, evalEmpresa);
 
         // 9. Planificaciones y Clases
-        Planificacion plan1 = crearPlanificacion("/uploads/planificaciones/diego-planificacion.pdf", EstadoPlanificacion.APROBADA, "Planificación de clase de ecuaciones cuadráticas.");
-        Planificacion plan2 = crearPlanificacion("/uploads/planificaciones/valentina-planificacion.pdf", EstadoPlanificacion.PENDIENTE, null);
-        Planificacion plan3 = crearPlanificacion("/uploads/planificaciones/sebastian-planificacion.pdf", EstadoPlanificacion.RECHAZADA, "Debe incorporar una actividad de cierre.");
-        Planificacion planAna = crearPlanificacion("/uploads/planificaciones/ana-planificacion.pdf", EstadoPlanificacion.APROBADA, "Excelente desarrollo metodológico.");
-        Planificacion planBruno = crearPlanificacion("/uploads/planificaciones/bruno-planificacion.pdf", EstadoPlanificacion.APROBADA, "Aprobada.");
-        Planificacion planCarla = crearPlanificacion("/uploads/planificaciones/carla-planificacion.pdf", EstadoPlanificacion.PENDIENTE, null);
+        Planificacion plan1 = crearPlanificacion("/uploads/planificaciones/diego-planificacion.pdf",
+                EstadoPlanificacion.APROBADA, "Planificación de clase de ecuaciones cuadráticas.");
+        Planificacion plan2 = crearPlanificacion("/uploads/planificaciones/valentina-planificacion.pdf",
+                EstadoPlanificacion.PENDIENTE, null);
+        Planificacion plan3 = crearPlanificacion("/uploads/planificaciones/sebastian-planificacion.pdf",
+                EstadoPlanificacion.RECHAZADA, "Debe incorporar una actividad de cierre.");
+        Planificacion planAna = crearPlanificacion("/uploads/planificaciones/ana-planificacion.pdf",
+                EstadoPlanificacion.APROBADA, "Excelente desarrollo metodológico.");
+        Planificacion planBruno = crearPlanificacion("/uploads/planificaciones/bruno-planificacion.pdf",
+                EstadoPlanificacion.APROBADA, "Aprobada.");
+        Planificacion planCarla = crearPlanificacion("/uploads/planificaciones/carla-planificacion.pdf",
+                EstadoPlanificacion.PENDIENTE, null);
 
-        Clase clase1 = crearClase("Matemática", "Ecuaciones cuadráticas", plan1, inscDiego, LocalDate.of(2026, 9, 10), LocalTime.of(10, 0), LocalTime.of(11, 30));
-        Clase clase2 = crearClase("Matemática", "Funciones lineales", plan2, inscVal, LocalDate.of(2026, 9, 11), LocalTime.of(10, 0), LocalTime.of(11, 30));
-        Clase clase3 = crearClase("Orientación", "Convivencia escolar", plan3, inscSeb, LocalDate.of(2026, 9, 12), LocalTime.of(12, 0), LocalTime.of(13, 30));
-        Clase claseAna = crearClase("Matematica", "Ecuaciones cuadraticas", planAna, inscAna, LocalDate.of(2026, 9, 8), LocalTime.of(9, 0), LocalTime.of(10, 30));
-        Clase claseBruno = crearClase("Matematica", "Fracciones y proporciones", planBruno, inscBruno, LocalDate.of(2026, 9, 9), LocalTime.of(11, 0), LocalTime.of(12, 30));
-        Clase claseCarla = crearClase("Matematica", "Resolucion de problemas", planCarla, inscCarla, LocalDate.of(2026, 9, 10), LocalTime.of(14, 0), LocalTime.of(15, 30));
+        Clase clase1 = crearClase("Matemática", "Ecuaciones cuadráticas", plan1, inscDiego, LocalDate.of(2026, 9, 10),
+                LocalTime.of(10, 0), LocalTime.of(11, 30));
+        Clase clase2 = crearClase("Matemática", "Funciones lineales", plan2, inscVal, LocalDate.of(2026, 9, 11),
+                LocalTime.of(10, 0), LocalTime.of(11, 30));
+        Clase clase3 = crearClase("Orientación", "Convivencia escolar", plan3, inscSeb, LocalDate.of(2026, 9, 12),
+                LocalTime.of(12, 0), LocalTime.of(13, 30));
+        Clase claseAna = crearClase("Matematica", "Ecuaciones cuadraticas", planAna, inscAna, LocalDate.of(2026, 9, 8),
+                LocalTime.of(9, 0), LocalTime.of(10, 30));
+        Clase claseBruno = crearClase("Matematica", "Fracciones y proporciones", planBruno, inscBruno,
+                LocalDate.of(2026, 9, 9), LocalTime.of(11, 0), LocalTime.of(12, 30));
+        Clase claseCarla = crearClase("Matematica", "Resolucion de problemas", planCarla, inscCarla,
+                LocalDate.of(2026, 9, 10), LocalTime.of(14, 0), LocalTime.of(15, 30));
 
         // 10. Evaluaciones de Clase y Semestrales
-        crearEvaluacionClase(clase1, evalCarlos, 6.7, "Excelente dominio de grupo.", LocalDateTime.of(2026, 9, 10, 11, 45));
+        crearEvaluacionClase(clase1, evalCarlos, 6.7, "Excelente dominio de grupo.",
+                LocalDateTime.of(2026, 9, 10, 11, 45));
         crearEvaluacionClase(clase2, evalCarlos, 5.9, "Buen manejo pedagógico.", LocalDateTime.of(2026, 9, 11, 11, 45));
         crearEvaluacionClase(clase3, evalMaria, 6.2, "Muy buena disposición.", LocalDateTime.of(2026, 9, 12, 13, 45));
-        crearEvaluacionClase(claseAna, evalEmpresa, 6.5, "Excelente participación.", LocalDateTime.of(2026, 9, 8, 10, 45));
-        crearEvaluacionClase(claseBruno, evalEmpresa, 5.8, "Debe justificar mejor sus procedimientos.", LocalDateTime.of(2026, 9, 9, 12, 45));
+        crearEvaluacionClase(claseAna, evalEmpresa, 6.5, "Excelente participación.",
+                LocalDateTime.of(2026, 9, 8, 10, 45));
+        crearEvaluacionClase(claseBruno, evalEmpresa, 5.8, "Debe justificar mejor sus procedimientos.",
+                LocalDateTime.of(2026, 9, 9, 12, 45));
         crearEvaluacionClase(claseCarla, evalEmpresa, 6.1, "Buen progreso.", LocalDateTime.of(2026, 9, 10, 15, 45));
 
         crearEvaluacionSemestral(asigAna, "Matematica", 6.2, "Cumple los objetivos del semestre.");
@@ -176,36 +206,46 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private Estudiante crearEstudiante(String rut, String primerNombre, String segundoNombre, String apellidoPaterno, String apellidoMaterno, String correo) {
+    private Estudiante crearEstudiante(String rut, String primerNombre, String segundoNombre, String apellidoPaterno,
+            String apellidoMaterno, String correo) {
         Estudiante existente = entityManager.find(Estudiante.class, rut);
-        if (existente != null) return existente;
+        if (existente != null)
+            return existente;
 
-        Estudiante estudiante = new Estudiante(rut, primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno, correo);
+        Estudiante estudiante = new Estudiante(rut, primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno,
+                correo);
         entityManager.persist(estudiante);
         return estudiante;
     }
 
-    private Profesor crearProfesor(String rut, String primerNombre, String segundoNombre, String apellidoPaterno, String apellidoMaterno, String correo, String titulo) {
+    private Profesor crearProfesor(String rut, String primerNombre, String segundoNombre, String apellidoPaterno,
+            String apellidoMaterno, String correo, String titulo) {
         Profesor existente = entityManager.find(Profesor.class, rut);
-        if (existente != null) return existente;
+        if (existente != null)
+            return existente;
 
-        Profesor profesor = new Profesor(rut, primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno, correo, titulo);
+        Profesor profesor = new Profesor(rut, primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno, correo,
+                titulo);
         entityManager.persist(profesor);
         return profesor;
     }
 
-    private Evaluador crearEvaluador(String rut, String primerNombre, String segundoNombre, String apellidoPaterno, String apellidoMaterno, String correo, TipoEvaluador tipo) {
+    private Evaluador crearEvaluador(String rut, String primerNombre, String segundoNombre, String apellidoPaterno,
+            String apellidoMaterno, String correo, TipoEvaluador tipo) {
         Evaluador existente = entityManager.find(Evaluador.class, rut);
-        if (existente != null) return existente;
+        if (existente != null)
+            return existente;
 
-        Evaluador evaluador = new Evaluador(rut, primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno, correo, tipo);
+        Evaluador evaluador = new Evaluador(rut, primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno, correo,
+                tipo);
         entityManager.persist(evaluador);
         return evaluador;
     }
 
     private AsignaturaPractica crearAsignatura(String codigo, String nombre) {
         AsignaturaPractica existente = entityManager.find(AsignaturaPractica.class, codigo);
-        if (existente != null) return existente;
+        if (existente != null)
+            return existente;
 
         AsignaturaPractica asignatura = new AsignaturaPractica(codigo, nombre);
         entityManager.persist(asignatura);
@@ -213,12 +253,15 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Oferta crearOferta(int anio, int periodo, AsignaturaPractica asignatura, Profesor profesor) {
-        var existentes = entityManager.createQuery("SELECT o FROM Oferta o WHERE o.asignaturaPractica.codigo = :cod AND o.anio = :anio AND o.periodo = :per", Oferta.class)
+        var existentes = entityManager.createQuery(
+                "SELECT o FROM Oferta o WHERE o.asignaturaPractica.codigo = :cod AND o.anio = :anio AND o.periodo = :per",
+                Oferta.class)
                 .setParameter("cod", asignatura.getCodigo())
                 .setParameter("anio", anio)
                 .setParameter("per", periodo)
                 .getResultList();
-        if (!existentes.isEmpty()) return existentes.get(0);
+        if (!existentes.isEmpty())
+            return existentes.get(0);
 
         Oferta oferta = new Oferta(anio, periodo, asignatura, profesor);
         entityManager.persist(oferta);
@@ -226,11 +269,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Inscripcion crearInscripcion(Oferta oferta, Estudiante estudiante) {
-        var existentes = entityManager.createQuery("SELECT i FROM Inscripcion i WHERE i.oferta.id = :ofId AND i.estudiante.rut = :rut", Inscripcion.class)
+        var existentes = entityManager
+                .createQuery("SELECT i FROM Inscripcion i WHERE i.oferta.id = :ofId AND i.estudiante.rut = :rut",
+                        Inscripcion.class)
                 .setParameter("ofId", oferta.getId())
                 .setParameter("rut", estudiante.getRut())
                 .getResultList();
-        if (!existentes.isEmpty()) return existentes.get(0);
+        if (!existentes.isEmpty())
+            return existentes.get(0);
 
         Inscripcion inscripcion = new Inscripcion(oferta, estudiante);
         entityManager.persist(inscripcion);
@@ -238,11 +284,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Asignacion crearAsignacion(Inscripcion inscripcion, Evaluador evaluador) {
-        var existentes = entityManager.createQuery("SELECT a FROM Asignacion a WHERE a.inscripcion.id = :insId AND a.evaluador.rut = :rut", Asignacion.class)
+        var existentes = entityManager
+                .createQuery("SELECT a FROM Asignacion a WHERE a.inscripcion.id = :insId AND a.evaluador.rut = :rut",
+                        Asignacion.class)
                 .setParameter("insId", inscripcion.getId())
                 .setParameter("rut", evaluador.getRut())
                 .getResultList();
-        if (!existentes.isEmpty()) return existentes.get(0);
+        if (!existentes.isEmpty())
+            return existentes.get(0);
 
         Asignacion asignacion = new Asignacion(inscripcion, evaluador);
         entityManager.persist(asignacion);
@@ -258,12 +307,15 @@ public class DataInitializer implements CommandLineRunner {
         return planificacion;
     }
 
-    private Clase crearClase(String asignatura, String tema, Planificacion planificacion, Inscripcion inscripcion, LocalDate fecha, LocalTime horaInicio, LocalTime horaFin) {
-        var existentes = entityManager.createQuery("SELECT c FROM Clase c WHERE c.inscripcion.id = :insId AND c.tema = :tema", Clase.class)
+    private Clase crearClase(String asignatura, String tema, Planificacion planificacion, Inscripcion inscripcion,
+            LocalDate fecha, LocalTime horaInicio, LocalTime horaFin) {
+        var existentes = entityManager
+                .createQuery("SELECT c FROM Clase c WHERE c.inscripcion.id = :insId AND c.tema = :tema", Clase.class)
                 .setParameter("insId", inscripcion.getId())
                 .setParameter("tema", tema)
                 .getResultList();
-        if (!existentes.isEmpty()) return existentes.get(0);
+        if (!existentes.isEmpty())
+            return existentes.get(0);
 
         Clase clase = new Clase(asignatura, tema, planificacion, inscripcion, horaInicio);
         clase.setFecha(fecha);
@@ -272,34 +324,47 @@ public class DataInitializer implements CommandLineRunner {
         return clase;
     }
 
-    private void crearEvaluacionClase(Clase clase, Evaluador evaluador, Double nota, String observaciones, LocalDateTime fecha) {
-        var existentes = entityManager.createQuery("SELECT ec FROM EvaluacionClase ec WHERE ec.clase.id = :cId AND ec.evaluador.rut = :rut", EvaluacionClase.class)
+    private void crearEvaluacionClase(Clase clase, Evaluador evaluador, Double nota, String observaciones,
+            LocalDateTime fecha) {
+        var existentes = entityManager
+                .createQuery("SELECT ec FROM EvaluacionClase ec WHERE ec.clase.id = :cId AND ec.evaluador.rut = :rut",
+                        EvaluacionClase.class)
                 .setParameter("cId", clase.getId())
                 .setParameter("rut", evaluador.getRut())
                 .getResultList();
-        if (!existentes.isEmpty()) return;
+        if (!existentes.isEmpty())
+            return;
 
-        EvaluacionClase evaluacion = new EvaluacionClase("/uploads/evaluaciones-clase/eval-" + clase.getId() + ".pdf", clase, evaluador, nota, observaciones, fecha);
+        EvaluacionClase evaluacion = new EvaluacionClase("/uploads/evaluaciones-clase/eval-" + clase.getId() + ".pdf",
+                clase, evaluador, nota, observaciones, fecha);
         entityManager.persist(evaluacion);
     }
 
     private void crearEvaluacionSemestral(Asignacion asignacion, String asignatura, Double nota, String observaciones) {
-        var existentes = entityManager.createQuery("SELECT es FROM EvaluacionSemestral es WHERE es.asignacion.id = :asId AND es.asignatura = :asig", EvaluacionSemestral.class)
+        var existentes = entityManager.createQuery(
+                "SELECT es FROM EvaluacionSemestral es WHERE es.asignacion.id = :asId AND es.asignatura = :asig",
+                EvaluacionSemestral.class)
                 .setParameter("asId", asignacion.getId())
                 .setParameter("asig", asignatura)
                 .getResultList();
-        if (!existentes.isEmpty()) return;
+        if (!existentes.isEmpty())
+            return;
 
-        EvaluacionSemestral evaluacion = new EvaluacionSemestral("/uploads/evaluaciones-semestrales/eval-sem-" + asignacion.getId() + ".pdf", asignacion, asignatura, nota, observaciones);
+        EvaluacionSemestral evaluacion = new EvaluacionSemestral(
+                "/uploads/evaluaciones-semestrales/eval-sem-" + asignacion.getId() + ".pdf", asignacion, asignatura,
+                nota, observaciones);
         entityManager.persist(evaluacion);
     }
 
     private void crearInforme(TipoEmisor emisor, String archivo, Inscripcion inscripcion) {
-        var existentes = entityManager.createQuery("SELECT inf FROM Informe inf WHERE inf.inscripcion.id = :insId AND inf.emisor = :em", Informe.class)
+        var existentes = entityManager
+                .createQuery("SELECT inf FROM Informe inf WHERE inf.inscripcion.id = :insId AND inf.emisor = :em",
+                        Informe.class)
                 .setParameter("insId", inscripcion.getId())
                 .setParameter("em", emisor)
                 .getResultList();
-        if (!existentes.isEmpty()) return;
+        if (!existentes.isEmpty())
+            return;
 
         Informe informe = new Informe(emisor, archivo, inscripcion);
         entityManager.persist(informe);
