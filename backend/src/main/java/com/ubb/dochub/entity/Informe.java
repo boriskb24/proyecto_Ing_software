@@ -35,7 +35,7 @@ public class Informe {
     @PrePersist
     protected void onCreate() {
         if (this.fecha == null) {
-            this.fecha = LocalDate.now(); 
+            this.fecha = LocalDate.now();
         }
     }
 
