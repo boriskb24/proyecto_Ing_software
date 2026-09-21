@@ -38,6 +38,8 @@ export interface InformeEntregaResponse {
   tamanoBytes: number;
   contentType: string;
   fechaEntrega: string;
+  id?: number;
+  archivoUrl?: string;
 }
 
 export interface Planificacion {
@@ -45,17 +47,29 @@ export interface Planificacion {
   nombreArchivo?: string;
   tipoArchivo?: string;
   archivo?: string;
+  archivoUrl?: string;
   rutaAlmacenamiento?: string;
   estado?: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | string;
   fecha?: string;
   fechaCreacion?: string;
+  fechaClase?: string;
   retroalimentacion?: string | null;
   usuario?: UserDto | null;
 }
 
-export const uploadInformeFinal = async (archivo: File): Promise<InformeEntregaResponse> => {
+export const uploadInformeFinal = async (
+  archivo: File,
+  userId?: number,
+  correo?: string
+): Promise<InformeEntregaResponse> => {
   const formData = new FormData();
   formData.append('archivo', archivo);
+  if (userId) {
+    formData.append('userId', userId.toString());
+  }
+  if (correo) {
+    formData.append('correo', correo);
+  }
 
   const response = await API.post<InformeEntregaResponse>('/practicas/informe-final', formData, {
     headers: {
@@ -85,6 +99,9 @@ export interface OfertaDto {
   asignaturaCodigo: string;
   asignaturaNombre: string;
   inscritosCount?: number;
+  inscripcionId?: number;
+  profesorNombre?: string;
+  profesorCorreo?: string;
 }
 
 export const getOfertasForProfesor = async (profesorEmail: string): Promise<OfertaDto[]> => {
@@ -116,6 +133,9 @@ export const uploadInformeForInscripcion = async (inscripcionId: number, archivo
 export interface EvaluadorItemDto {
   rut: string;
   nombreCompleto: string;
+  primerNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
   correo: string;
   tipo: string;
 }
@@ -134,6 +154,7 @@ export interface PracticaHistorialItemDto {
 export interface InformeItemDto {
   id: number;
   archivo: string;
+  archivoUrl?: string;
   nombreArchivo: string;
   fecha: string;
   emisor: string;
@@ -158,8 +179,9 @@ export interface EstudianteDetalleDto {
   informeActual?: InformeItemDto | null;
 }
 
-export const getDetalleInscripcion = async (inscripcionId: number): Promise<EstudianteDetalleDto> => {
-  const response = await API.get<EstudianteDetalleDto>(`/practicas/inscripciones/${inscripcionId}?t=${Date.now()}`);
+export const getDetalleInscripcion = async (inscripcionId: number, userEmail?: string): Promise<EstudianteDetalleDto> => {
+  const emailParam = userEmail ? `&userEmail=${encodeURIComponent(userEmail)}` : '';
+  const response = await API.get<EstudianteDetalleDto>(`/practicas/inscripciones/${inscripcionId}?t=${Date.now()}${emailParam}`);
   return response.data;
 };
 
@@ -183,8 +205,15 @@ export const getEstudiantesDirectorio = async (profesorEmail?: string): Promise<
   return response.data;
 };
 
-export const getDetalleEstudianteByRut = async (rut: string): Promise<EstudianteDetalleDto> => {
-  const response = await API.get<EstudianteDetalleDto>(`/practicas/estudiantes/${rut}`);
+export const getDetalleEstudianteByRut = async (rut: string, userEmail?: string): Promise<EstudianteDetalleDto> => {
+  const emailParam = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
+  const response = await API.get<EstudianteDetalleDto>(`/practicas/estudiantes/${rut}${emailParam}`);
+  return response.data;
+};
+
+export const getDetalleEstudianteByCorreo = async (correo: string, userEmail?: string): Promise<EstudianteDetalleDto> => {
+  const emailParam = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
+  const response = await API.get<EstudianteDetalleDto>(`/practicas/estudiantes/correo/${encodeURIComponent(correo)}${emailParam}`);
   return response.data;
 };
 
@@ -215,12 +244,15 @@ export const esPracticaActual = (anio: number, periodo: number, periodoActual?: 
   return anio === ref.anio && periodo === ref.periodo;
 };
 
-// Subir planificación asociando el userId para RBAC
-export const uploadPlanificacion = async (file: File, userId?: number): Promise<Planificacion> => {
+// Subir planificación asociando el userId para RBAC y fechaClase para la clase planificada
+export const uploadPlanificacion = async (file: File, userId?: number, fechaClase?: string): Promise<Planificacion> => {
   const formData = new FormData();
   formData.append('archivo', file);
   if (userId) {
     formData.append('userId', userId.toString());
+  }
+  if (fechaClase) {
+    formData.append('fechaClase', fechaClase);
   }
 
   const response = await API.post<Planificacion>('/planificaciones', formData, {
@@ -232,12 +264,19 @@ export const uploadPlanificacion = async (file: File, userId?: number): Promise<
   return response.data;
 };
 
-// Obtener historial con parámetros RBAC (userId y role)
-export const getPlanificaciones = async (userId?: number, role?: string): Promise<Planificacion[]> => {
+// Obtener historial con parámetros RBAC (userId, role, email, inscripcionId)
+export const getPlanificaciones = async (
+  userId?: number,
+  role?: string,
+  email?: string,
+  inscripcionId?: number
+): Promise<Planificacion[]> => {
   const response = await API.get<Planificacion[]>('/planificaciones', {
     params: {
       userId,
       role,
+      email,
+      inscripcionId,
     },
   });
   return response.data;
@@ -247,11 +286,13 @@ export const getPlanificaciones = async (userId?: number, role?: string): Promis
 export const evaluarPlanificacion = async (
   id: number,
   estado: 'APROBADA' | 'RECHAZADA',
-  retroalimentacion?: string
+  retroalimentacion?: string,
+  userEmail?: string
 ): Promise<Planificacion> => {
   const response = await API.patch<Planificacion>(`/planificaciones/${id}/evaluar`, {
     estado,
     retroalimentacion: retroalimentacion || '',
+    userEmail: userEmail || '',
   });
   return response.data;
 };

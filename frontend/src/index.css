@@ -49,8 +49,9 @@ button {
 }
 
 .evaluaciones-page h3 {
-  margin-bottom: 12px;
-  color: var(--text-main);
+  margin-bottom: 14px;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .evaluaciones-toolbar {
@@ -58,22 +59,22 @@ button {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 28px;
-  color: var(--text-main);
-  font-weight: 700;
+  margin-bottom: 24px;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .evaluaciones-toolbar select,
 .rut-search input {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #0b1329;
+  color: #ffffff;
   font: inherit;
 }
 
 .evaluaciones-toolbar select {
-  padding: 9px 32px 9px 10px;
+  padding: 9px 32px 9px 12px;
 }
 
 .rut-search {
@@ -81,11 +82,11 @@ button {
   align-items: center;
   gap: 8px;
   margin-left: auto;
-  padding: 0 11px;
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #475569;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #0b1329;
+  color: #94a3b8;
 }
 
 .rut-search input {
@@ -93,41 +94,48 @@ button {
   padding: 9px 0;
   border: 0;
   outline: 0;
+  background: transparent;
 }
 
 .table-scroll {
   overflow-x: auto;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 9px;
-  background: rgba(19, 30, 58, 0.82);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: #131e3a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .evaluaciones-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 760px;
   border-collapse: collapse;
   text-align: left;
 }
 
 .evaluaciones-table th {
-  padding: 12px 14px;
-  background: #e2e8f0;
-  color: #0f172a;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  padding: 14px 18px;
+  background: #18274d;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .evaluaciones-table td {
-  padding: 13px 14px;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
-  color: var(--text-main);
-  vertical-align: top;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  vertical-align: middle;
+}
+
+.evaluaciones-table tbody tr {
+  transition: background-color 0.15s ease;
 }
 
 .evaluaciones-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(37, 99, 235, 0.12);
 }
 
 .empty-state {

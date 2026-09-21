@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react'
-import { uploadInformeFinal, InformeEntregaResponse } from '../services/api'
+import React, { useState, useEffect, useRef } from 'react'
+import { uploadInformeFinal, getOfertasForProfesor, OfertaDto, InformeEntregaResponse } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 export const EntregaInformeForm: React.FC = () => {
@@ -8,7 +8,20 @@ export const EntregaInformeForm: React.FC = () => {
   const [isUploading, setIsUploading] = useState<boolean>(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successData, setSuccessData] = useState<InformeEntregaResponse | null>(null)
+  const [practicaActual, setPracticaActual] = useState<OfertaDto | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (user?.email) {
+      getOfertasForProfesor(user.email)
+        .then((ofertas) => {
+          if (ofertas && ofertas.length > 0) {
+            setPracticaActual(ofertas[0])
+          }
+        })
+        .catch((err) => console.error('Error al resolver práctica actual:', err))
+    }
+  }, [user])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMessage(null)
@@ -42,11 +55,12 @@ export const EntregaInformeForm: React.FC = () => {
     setSuccessData(null)
 
     try {
-      const response = await uploadInformeFinal(selectedFile)
+      const response = await uploadInformeFinal(selectedFile, user?.id, user?.email)
       setSuccessData(response)
       if (user?.id) {
         localStorage.setItem(`ubb_informe_entrega_${user.id}`, JSON.stringify(response))
       }
+      localStorage.setItem('ubb_ultimo_informe_entregado', JSON.stringify(response))
       setSelectedFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (err: any) {
@@ -73,6 +87,29 @@ export const EntregaInformeForm: React.FC = () => {
         <p style={styles.subtitle}>
           Sube tu informe final de práctica profesional en formato <strong>PDF</strong> para completar formalmente tu proceso.
         </p>
+        {practicaActual && (
+          <div style={{
+            marginTop: '12px',
+            padding: '10px 14px',
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '12.5px',
+            color: '#1e40af'
+          }}>
+            <span>
+              <strong>Práctica Actual:</strong> {practicaActual.asignaturaNombre} ({practicaActual.anio}-{practicaActual.periodo})
+            </span>
+            {practicaActual.profesorNombre && (
+              <span style={{ color: '#64748b', fontSize: '11.5px' }}>
+                Docente: {practicaActual.profesorNombre}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} style={styles.form}>

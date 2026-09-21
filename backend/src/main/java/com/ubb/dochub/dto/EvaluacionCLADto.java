@@ -10,10 +10,27 @@ public class EvaluacionCLADto {
     private Double nota;
     private String observaciones;
     private LocalDateTime fecha;
+    private String archivoUrl;
+    private String nombreArchivo;
+
+    private String evaluadorNombre;
+    private String evaluadorRut;
+    private String evaluadorTipo;
+    private Integer anio;
+    private Integer periodo;
+    private String asignaturaNombre;
 
     public EvaluacionCLADto() {}
 
     public EvaluacionCLADto(Long id, String rutEstudiante, String nombreCompletoEstudiante, String tipoEvaluacion, Double nota, String observaciones, LocalDateTime fecha) {
+        this(id, rutEstudiante, nombreCompletoEstudiante, tipoEvaluacion, nota, observaciones, fecha, null, null);
+    }
+
+    public EvaluacionCLADto(Long id, String rutEstudiante, String nombreCompletoEstudiante, String tipoEvaluacion, Double nota, String observaciones, LocalDateTime fecha, String archivoUrl, String nombreArchivo) {
+        this(id, rutEstudiante, nombreCompletoEstudiante, tipoEvaluacion, nota, observaciones, fecha, archivoUrl, nombreArchivo, null, null, null, null, null, null);
+    }
+
+    public EvaluacionCLADto(Long id, String rutEstudiante, String nombreCompletoEstudiante, String tipoEvaluacion, Double nota, String observaciones, LocalDateTime fecha, String archivoUrl, String nombreArchivo, String evaluadorNombre, String evaluadorRut, String evaluadorTipo, Integer anio, Integer periodo, String asignaturaNombre) {
         this.id = id;
         this.rutEstudiante = rutEstudiante;
         this.nombreCompletoEstudiante = nombreCompletoEstudiante;
@@ -21,6 +38,14 @@ public class EvaluacionCLADto {
         this.nota = nota;
         this.observaciones = observaciones;
         this.fecha = fecha;
+        this.archivoUrl = archivoUrl;
+        this.nombreArchivo = nombreArchivo;
+        this.evaluadorNombre = evaluadorNombre;
+        this.evaluadorRut = evaluadorRut;
+        this.evaluadorTipo = evaluadorTipo;
+        this.anio = anio;
+        this.periodo = periodo;
+        this.asignaturaNombre = asignaturaNombre;
     }
 
     public Long getId() { return id; }
@@ -43,4 +68,28 @@ public class EvaluacionCLADto {
 
     public LocalDateTime getFecha() { return fecha; }
     public void setFecha(LocalDateTime fecha) { this.fecha = fecha; }
+
+    public String getArchivoUrl() { return archivoUrl; }
+    public void setArchivoUrl(String archivoUrl) { this.archivoUrl = archivoUrl; }
+
+    public String getNombreArchivo() { return nombreArchivo; }
+    public void setNombreArchivo(String nombreArchivo) { this.nombreArchivo = nombreArchivo; }
+
+    public String getEvaluadorNombre() { return evaluadorNombre; }
+    public void setEvaluadorNombre(String evaluadorNombre) { this.evaluadorNombre = evaluadorNombre; }
+
+    public String getEvaluadorRut() { return evaluadorRut; }
+    public void setEvaluadorRut(String evaluadorRut) { this.evaluadorRut = evaluadorRut; }
+
+    public String getEvaluadorTipo() { return evaluadorTipo; }
+    public void setEvaluadorTipo(String evaluadorTipo) { this.evaluadorTipo = evaluadorTipo; }
+
+    public Integer getAnio() { return anio; }
+    public void setAnio(Integer anio) { this.anio = anio; }
+
+    public Integer getPeriodo() { return periodo; }
+    public void setPeriodo(Integer periodo) { this.periodo = periodo; }
+
+    public String getAsignaturaNombre() { return asignaturaNombre; }
+    public void setAsignaturaNombre(String asignaturaNombre) { this.asignaturaNombre = asignaturaNombre; }
 }

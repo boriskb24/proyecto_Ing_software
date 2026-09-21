@@ -10,16 +10,27 @@ import jakarta.persistence.*;
 })
 public class Asignacion {
 
-    public Asignacion() {}
+    public Asignacion() {
+    }
 
     public Asignacion(Inscripcion inscripcion, Evaluador evaluador) {
         this.inscripcion = inscripcion;
         this.evaluador = evaluador;
     }
 
+    public Asignacion(Inscripcion inscripcion, Evaluador evaluador, String establecimiento) {
+        this.inscripcion = inscripcion;
+        this.evaluador = evaluador;
+        this.establecimiento = establecimiento;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Atributo definido formalmente en MER_3
+    @Column(name = "establecimiento")
+    private String establecimiento;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_inscripcion")
@@ -31,6 +42,18 @@ public class Asignacion {
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getEstablecimiento() {
+        return establecimiento;
+    }
+
+    public void setEstablecimiento(String establecimiento) {
+        this.establecimiento = establecimiento;
     }
 
     public Inscripcion getInscripcion() {

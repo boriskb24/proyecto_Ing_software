@@ -54,3 +54,8 @@ backend/.settings/
 *.zip
 *.sql
 *.pdf
+!backend/src/main/resources/samples/*.pdf
+*.log
+*.jpg
+*.jpeg
+*.png

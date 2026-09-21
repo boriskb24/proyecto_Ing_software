@@ -161,16 +161,18 @@ export const Navbar: React.FC = () => {
                   >
                     <FileText size={16} /> Mis Planificaciones
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDropdownOpen(false)
-                      navigate('/evaluaciones')
-                    }}
-                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-                  >
-                    <GraduationCap size={16} /> Evaluaciones de Práctica
-                  </button>
+                  {isProfesorOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false)
+                        navigate('/evaluaciones')
+                      }}
+                      style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <GraduationCap size={16} /> Evaluaciones de Práctica
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {

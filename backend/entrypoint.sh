@@ -5,9 +5,11 @@ set -e
 UPLOADS_DIR=/app/uploads
 INFORMES_DIR="$UPLOADS_DIR/informes"
 PLANIF_DIR="$UPLOADS_DIR/planificaciones"
+EVAL_DIR="$UPLOADS_DIR/evaluaciones"
 
 mkdir -p "$INFORMES_DIR"
 mkdir -p "$PLANIF_DIR"
+mkdir -p "$EVAL_DIR"
 
 # Attempt to chown; if not permitted, continue and hope permissions allow write
 chown -R spring:spring "$UPLOADS_DIR" || true

@@ -16,33 +16,27 @@ public class EvaluacionSemestral {
         this.asignatura = asignatura;
     }
 
-    public EvaluacionSemestral(String archivo, Asignacion asignacion, String asignatura, Double nota, String observaciones) {
+    public EvaluacionSemestral(String archivo, Asignacion asignacion, String asignatura, LocalDate fecha) {
         this.archivo = archivo;
         this.asignacion = asignacion;
         this.asignatura = asignatura;
-        this.nota = nota;
-        this.observaciones = observaciones;
+        this.fecha = fecha;
     }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Ruta al archivo PDF en disco
     @Column(name = "archivo", nullable = false)
-    private String archivo; // ruta al archivo en disco
+    private String archivo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_asignacion")
     private Asignacion asignacion;
-    
+
     @Column(name = "asignatura")
     private String asignatura;
-
-    @Column(name = "nota", nullable = true)
-    private Double nota;
-
-    @Column(name = "observaciones", nullable = true) 
-    private String observaciones;
 
     @Column(name = "fecha", nullable = false, updatable = false)
     private LocalDate fecha;
@@ -84,22 +78,6 @@ public class EvaluacionSemestral {
 
     public void setAsignatura(String asignatura) {
         this.asignatura = asignatura;
-    }
-
-    public void setNota(Double nota){
-        this.nota = nota;
-    }
-
-    public Double getNota(){
-        return nota;
-    }
-
-    public void setObservaciones(String observaciones){
-        this.observaciones = observaciones;
-    }
-
-    public String getObservaciones(){
-        return observaciones;
     }
 
     public LocalDate getFecha() {

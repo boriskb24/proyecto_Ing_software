@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -56,7 +57,7 @@ public class DataInitializer implements CommandLineRunner {
         userRepository.save(profesorUser);
 
         User estudianteUser = userRepository.findByEmail("estudiante@alumnos.ubiobio.cl").orElse(new User());
-        estudianteUser.setFullName("Matías González (Estudiante)");
+        estudianteUser.setFullName("Matías González Silva");
         estudianteUser.setEmail("estudiante@alumnos.ubiobio.cl");
         estudianteUser.setRole("Estudiante");
         estudianteUser.setPassword(passwordEncoder.encode("password123"));
@@ -105,15 +106,15 @@ public class DataInitializer implements CommandLineRunner {
         Estudiante estCarla = crearEstudiante("21.333.333-3", "Carla", "Isabel", "Contreras", "Diaz",
                 "carla.contreras@alumnos.ubiobio.cl");
 
-        crearUsuarioSiNoExiste("Diego Martínez", "diego.martinez@ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Valentina Rojas", "valentina.rojas@ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Sebastián Fuentes", "sebastian.fuentes@ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Camila Navarro", "camila.navarro@ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Matías Vargas", "matias.vargas@ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Lucas González", "lucas.gonzalez@ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Ana Pérez", "ana.perez@alumnos.ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Bruno Muñoz", "bruno.munoz@alumnos.ubiobio.cl", "Estudiante");
-        crearUsuarioSiNoExiste("Carla Contreras", "carla.contreras@alumnos.ubiobio.cl", "Estudiante");
+        User userDiego = crearUsuarioSiNoExiste("Diego Martínez Soto", "diego.martinez@ubiobio.cl", "Estudiante");
+        User userVal = crearUsuarioSiNoExiste("Valentina Rojas Pérez", "valentina.rojas@ubiobio.cl", "Estudiante");
+        User userSeb = crearUsuarioSiNoExiste("Sebastián Fuentes Díaz", "sebastian.fuentes@ubiobio.cl", "Estudiante");
+        User userCam = crearUsuarioSiNoExiste("Camila Navarro Silva", "camila.navarro@ubiobio.cl", "Estudiante");
+        User userMat = crearUsuarioSiNoExiste("Matías Vargas Paredes", "matias.vargas@ubiobio.cl", "Estudiante");
+        User userLucas = crearUsuarioSiNoExiste("Lucas González Morales", "lucas.gonzalez@ubiobio.cl", "Estudiante");
+        User userAna = crearUsuarioSiNoExiste("Ana Pérez Rojas", "ana.perez@alumnos.ubiobio.cl", "Estudiante");
+        User userBruno = crearUsuarioSiNoExiste("Bruno Muñoz Vega", "bruno.munoz@alumnos.ubiobio.cl", "Estudiante");
+        User userCarla = crearUsuarioSiNoExiste("Carla Contreras Díaz", "carla.contreras@alumnos.ubiobio.cl", "Estudiante");
 
         // 5. Asignaturas de Práctica
         AsignaturaPractica asig1 = crearAsignatura("INF-403", "Práctica Profesional I");
@@ -128,6 +129,7 @@ public class DataInitializer implements CommandLineRunner {
 
         // 7. Inscripciones
         Inscripcion inscDiego = crearInscripcion(ofBoris1, estDiego);
+        Inscripcion inscDiegoAnt = crearInscripcion(ofJuan1, estDiego);
         Inscripcion inscVal = crearInscripcion(ofBoris1, estValentina);
         Inscripcion inscSeb = crearInscripcion(ofBoris1, estSebastian);
         Inscripcion inscCam = crearInscripcion(ofBoris2, estCamila);
@@ -137,25 +139,23 @@ public class DataInitializer implements CommandLineRunner {
         Inscripcion inscCarla = crearInscripcion(ofMariaMat, estCarla);
 
         // 8. Asignaciones Evaluadores
-        Asignacion asigDiego = crearAsignacion(inscDiego, evalCarlos);
-        Asignacion asigVal = crearAsignacion(inscVal, evalCarlos);
-        Asignacion asigSeb = crearAsignacion(inscSeb, evalMaria);
-        Asignacion asigAna = crearAsignacion(inscAna, evalEmpresa);
-        Asignacion asigBruno = crearAsignacion(inscBruno, evalEmpresa);
+        Asignacion asigDiego = crearAsignacion(inscDiego, evalCarlos, "Liceo Bicentenario San Nicolás");
+        Asignacion asigVal = crearAsignacion(inscVal, evalCarlos, "Liceo Bicentenario San Nicolás");
+        Asignacion asigSeb = crearAsignacion(inscSeb, evalMaria, "Colegio Concepción");
+        Asignacion asigAna = crearAsignacion(inscAna, evalEmpresa, "Colegio Santa María");
+        Asignacion asigBruno = crearAsignacion(inscBruno, evalEmpresa, "Colegio Santa María");
 
         // 9. Planificaciones y Clases
-        Planificacion plan1 = crearPlanificacion("/uploads/planificaciones/diego-planificacion.pdf",
+        Planificacion plan1 = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
                 EstadoPlanificacion.APROBADA, "Planificación de clase de ecuaciones cuadráticas.");
-        Planificacion plan2 = crearPlanificacion("/uploads/planificaciones/valentina-planificacion.pdf",
+        Planificacion plan2 = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
                 EstadoPlanificacion.PENDIENTE, null);
-        Planificacion plan3 = crearPlanificacion("/uploads/planificaciones/sebastian-planificacion.pdf",
+        Planificacion plan3 = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
                 EstadoPlanificacion.RECHAZADA, "Debe incorporar una actividad de cierre.");
-        Planificacion planAna = crearPlanificacion("/uploads/planificaciones/ana-planificacion.pdf",
+        Planificacion planAna = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
                 EstadoPlanificacion.APROBADA, "Excelente desarrollo metodológico.");
-        Planificacion planBruno = crearPlanificacion("/uploads/planificaciones/bruno-planificacion.pdf",
+        Planificacion planBruno = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
                 EstadoPlanificacion.APROBADA, "Aprobada.");
-        Planificacion planCarla = crearPlanificacion("/uploads/planificaciones/carla-planificacion.pdf",
-                EstadoPlanificacion.PENDIENTE, null);
 
         Clase clase1 = crearClase("Matemática", "Ecuaciones cuadráticas", plan1, inscDiego, LocalDate.of(2026, 9, 10),
                 LocalTime.of(10, 0), LocalTime.of(11, 30));
@@ -167,27 +167,24 @@ public class DataInitializer implements CommandLineRunner {
                 LocalTime.of(9, 0), LocalTime.of(10, 30));
         Clase claseBruno = crearClase("Matematica", "Fracciones y proporciones", planBruno, inscBruno,
                 LocalDate.of(2026, 9, 9), LocalTime.of(11, 0), LocalTime.of(12, 30));
-        Clase claseCarla = crearClase("Matematica", "Resolucion de problemas", planCarla, inscCarla,
+        // Carla queda con una clase pero sin planificación (para probar estado pendiente / sin entrega)
+        Clase claseCarla = crearClase("Matematica", "Resolucion de problemas", null, inscCarla,
                 LocalDate.of(2026, 9, 10), LocalTime.of(14, 0), LocalTime.of(15, 30));
 
         // 10. Evaluaciones de Clase y Semestrales
-        crearEvaluacionClase(clase1, evalCarlos, 6.7, "Excelente dominio de grupo.",
-                LocalDateTime.of(2026, 9, 10, 11, 45));
-        crearEvaluacionClase(clase2, evalCarlos, 5.9, "Buen manejo pedagógico.", LocalDateTime.of(2026, 9, 11, 11, 45));
-        crearEvaluacionClase(clase3, evalMaria, 6.2, "Muy buena disposición.", LocalDateTime.of(2026, 9, 12, 13, 45));
-        crearEvaluacionClase(claseAna, evalEmpresa, 6.5, "Excelente participación.",
-                LocalDateTime.of(2026, 9, 8, 10, 45));
-        crearEvaluacionClase(claseBruno, evalEmpresa, 5.8, "Debe justificar mejor sus procedimientos.",
-                LocalDateTime.of(2026, 9, 9, 12, 45));
-        crearEvaluacionClase(claseCarla, evalEmpresa, 6.1, "Buen progreso.", LocalDateTime.of(2026, 9, 10, 15, 45));
+        crearEvaluacionClase(clase1, evalCarlos);
+        crearEvaluacionClase(clase2, evalCarlos);
+        crearEvaluacionClase(clase3, evalMaria);
+        crearEvaluacionClase(claseAna, evalEmpresa);
+        crearEvaluacionClase(claseBruno, evalEmpresa);
 
-        crearEvaluacionSemestral(asigAna, "Matematica", 6.2, "Cumple los objetivos del semestre.");
-        crearEvaluacionSemestral(asigBruno, "Orientacion", 6.0, "Participacion constante.");
-        crearEvaluacionSemestral(asigDiego, "Práctica Profesional I", 6.8, "Desempeño sobresaliente en el centro.");
+        crearEvaluacionSemestral(asigAna, "Matematica");
+        crearEvaluacionSemestral(asigBruno, "Orientacion");
+        crearEvaluacionSemestral(asigDiego, "Práctica Profesional I");
 
-        // 11. Informes
-        crearInforme(TipoEmisor.PROFESOR, "/uploads/informes/diego-informe-final.pdf", inscDiego);
-        crearInforme(TipoEmisor.PROFESOR, "/uploads/informes/valentina-informe-final.pdf", inscVal);
+        // 11. Informes (Diego y Valentina tienen informe entregado; Sebastián, Camila y Carla sin informe)
+        crearInforme(TipoEmisor.PROFESOR, "uploads/informes/Ejemplo_Informe.pdf", inscDiego);
+        crearInforme(TipoEmisor.PROFESOR, "uploads/informes/Ejemplo_Informe.pdf", inscVal);
 
         entityManager.flush();
         System.out.println("==========================================");
@@ -195,15 +192,18 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("==========================================");
     }
 
-    private void crearUsuarioSiNoExiste(String fullName, String email, String role) {
-        if (userRepository.findByEmail(email).isEmpty()) {
+    private User crearUsuarioSiNoExiste(String fullName, String email, String role) {
+        return userRepository.findByEmail(email).map(u -> {
+            u.setFullName(fullName);
+            return userRepository.save(u);
+        }).orElseGet(() -> {
             User u = new User();
             u.setFullName(fullName);
             u.setEmail(email);
             u.setRole(role);
             u.setPassword(passwordEncoder.encode("password123"));
-            userRepository.save(u);
-        }
+            return userRepository.save(u);
+        });
     }
 
     private Estudiante crearEstudiante(String rut, String primerNombre, String segundoNombre, String apellidoPaterno,
@@ -278,12 +278,24 @@ public class DataInitializer implements CommandLineRunner {
         if (!existentes.isEmpty())
             return existentes.get(0);
 
+        // Invariante de negocio: un estudiante no puede inscribirse en más de una práctica por período académico
+        var mismoPeriodo = entityManager
+                .createQuery("SELECT i FROM Inscripcion i WHERE i.estudiante.rut = :rut AND i.oferta.anio = :anio AND i.oferta.periodo = :periodo",
+                        Inscripcion.class)
+                .setParameter("rut", estudiante.getRut())
+                .setParameter("anio", oferta.getAnio())
+                .setParameter("periodo", oferta.getPeriodo())
+                .getResultList();
+        if (!mismoPeriodo.isEmpty()) {
+            return mismoPeriodo.get(0);
+        }
+
         Inscripcion inscripcion = new Inscripcion(oferta, estudiante);
         entityManager.persist(inscripcion);
         return inscripcion;
     }
 
-    private Asignacion crearAsignacion(Inscripcion inscripcion, Evaluador evaluador) {
+    private Asignacion crearAsignacion(Inscripcion inscripcion, Evaluador evaluador, String establecimiento) {
         var existentes = entityManager
                 .createQuery("SELECT a FROM Asignacion a WHERE a.inscripcion.id = :insId AND a.evaluador.rut = :rut",
                         Asignacion.class)
@@ -293,12 +305,20 @@ public class DataInitializer implements CommandLineRunner {
         if (!existentes.isEmpty())
             return existentes.get(0);
 
-        Asignacion asignacion = new Asignacion(inscripcion, evaluador);
+        Asignacion asignacion = new Asignacion(inscripcion, evaluador, establecimiento);
         entityManager.persist(asignacion);
         return asignacion;
     }
 
     private Planificacion crearPlanificacion(String archivo, EstadoPlanificacion estado, String retroalimentacion) {
+        var existentes = entityManager
+                .createQuery("SELECT p FROM Planificacion p WHERE p.archivo = :archivo", Planificacion.class)
+                .setParameter("archivo", archivo)
+                .getResultList();
+        if (!existentes.isEmpty()) {
+            return existentes.get(0);
+        }
+
         Planificacion planificacion = new Planificacion();
         planificacion.setArchivo(archivo);
         planificacion.setEstado(estado);
@@ -324,8 +344,7 @@ public class DataInitializer implements CommandLineRunner {
         return clase;
     }
 
-    private void crearEvaluacionClase(Clase clase, Evaluador evaluador, Double nota, String observaciones,
-            LocalDateTime fecha) {
+    private void crearEvaluacionClase(Clase clase, Evaluador evaluador) {
         var existentes = entityManager
                 .createQuery("SELECT ec FROM EvaluacionClase ec WHERE ec.clase.id = :cId AND ec.evaluador.rut = :rut",
                         EvaluacionClase.class)
@@ -335,12 +354,12 @@ public class DataInitializer implements CommandLineRunner {
         if (!existentes.isEmpty())
             return;
 
-        EvaluacionClase evaluacion = new EvaluacionClase("/uploads/evaluaciones-clase/eval-" + clase.getId() + ".pdf",
-                clase, evaluador, nota, observaciones, fecha);
+        EvaluacionClase evaluacion = new EvaluacionClase("uploads/evaluaciones/Pauta_Ev_Ejemplo.pdf",
+                clase, evaluador);
         entityManager.persist(evaluacion);
     }
 
-    private void crearEvaluacionSemestral(Asignacion asignacion, String asignatura, Double nota, String observaciones) {
+    private void crearEvaluacionSemestral(Asignacion asignacion, String asignatura) {
         var existentes = entityManager.createQuery(
                 "SELECT es FROM EvaluacionSemestral es WHERE es.asignacion.id = :asId AND es.asignatura = :asig",
                 EvaluacionSemestral.class)
@@ -351,8 +370,7 @@ public class DataInitializer implements CommandLineRunner {
             return;
 
         EvaluacionSemestral evaluacion = new EvaluacionSemestral(
-                "/uploads/evaluaciones-semestrales/eval-sem-" + asignacion.getId() + ".pdf", asignacion, asignatura,
-                nota, observaciones);
+                "uploads/evaluaciones/Pauta_Ev_Ejemplo.pdf", asignacion, asignatura);
         entityManager.persist(evaluacion);
     }
 

@@ -6,9 +6,12 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS builder
 WORKDIR /build
 
-# Copy Maven descriptor and download dependencies (layer caching)
+# Configure JVM limits for Maven build to prevent OOM crashes in container builds
+ENV MAVEN_OPTS="-Xmx1024m -XX:+UseSerialGC"
+
+# Copy Maven descriptor and pre-cache dependencies (layer caching)
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B || true
 
 # Copy source code and package
 COPY src ./src

@@ -1,8 +1,14 @@
 package com.ubb.dochub.service.impl;
 
+import com.ubb.dochub.dto.PlanificacionResponseDto;
+import com.ubb.dochub.entity.Clase;
 import com.ubb.dochub.entity.EstadoPlanificacion;
+import com.ubb.dochub.entity.Estudiante;
+import com.ubb.dochub.entity.Inscripcion;
 import com.ubb.dochub.entity.Planificacion;
 import com.ubb.dochub.entity.User;
+import com.ubb.dochub.repository.ClaseRepository;
+import com.ubb.dochub.repository.InscripcionRepository;
 import com.ubb.dochub.repository.PlanificacionRepository;
 import com.ubb.dochub.repository.UserRepository;
 import com.ubb.dochub.service.PlanificacionService;
@@ -17,9 +23,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.*;
 
 @Service
 public class PlanificacionServiceImpl implements PlanificacionService {
@@ -27,24 +33,97 @@ public class PlanificacionServiceImpl implements PlanificacionService {
     private static final String UPLOAD_DIR = "uploads/planificaciones";
     private final PlanificacionRepository planificacionRepository;
     private final UserRepository userRepository;
+    private final ClaseRepository claseRepository;
+    private final InscripcionRepository inscripcionRepository;
 
-    public PlanificacionServiceImpl(PlanificacionRepository planificacionRepository, UserRepository userRepository) {
+    public PlanificacionServiceImpl(
+            PlanificacionRepository planificacionRepository,
+            UserRepository userRepository,
+            ClaseRepository claseRepository,
+            InscripcionRepository inscripcionRepository) {
         this.planificacionRepository = planificacionRepository;
         this.userRepository = userRepository;
+        this.claseRepository = claseRepository;
+        this.inscripcionRepository = inscripcionRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Planificacion> obtenerHistorialPorRol(Long userId, String userRole) {
-        // Validación de RBAC:
-        // Si el rol es Profesor, Administrador o Evaluador -> Devuelve TODAS las planificaciones
-        if ("Profesor".equalsIgnoreCase(userRole) || "Administrador".equalsIgnoreCase(userRole) || "Evaluador".equalsIgnoreCase(userRole)) {
-            return planificacionRepository.findAllByOrderByFechaDesc();
+    public List<PlanificacionResponseDto> obtenerHistorialPorRol(Long userId, String userRole, String email, Long inscripcionId) {
+        // Resolver correo efectivo
+        String emailEfectivo = (email != null && !email.trim().isEmpty()) ? email.trim().toLowerCase() : null;
+        if (emailEfectivo == null && userId != null) {
+            User u = userRepository.findById(userId).orElse(null);
+            if (u != null) {
+                emailEfectivo = u.getEmail().trim().toLowerCase();
+                if (userRole == null) {
+                    userRole = u.getRole();
+                }
+            }
         }
 
-        // Si es Estudiante -> Aplica filtro WHERE user_id = :userId
-        if (userId != null) {
-            return planificacionRepository.findByUsuarioIdOrderByFechaDesc(userId);
+        // 1. Si se solicita específicamente por inscripción (Ficha del Alumno)
+        if (inscripcionId != null) {
+            if (emailEfectivo != null && !"admin@ubiobio.cl".equalsIgnoreCase(emailEfectivo)) {
+                Inscripcion insc = inscripcionRepository.findByIdWithDetails(inscripcionId).orElse(null);
+                if (insc != null) {
+                    boolean esSuProfesor = insc.getOferta() != null && insc.getOferta().getProfesor() != null
+                            && emailEfectivo.equalsIgnoreCase(insc.getOferta().getProfesor().getCorreo());
+                    boolean esElMismoEstudiante = insc.getEstudiante() != null
+                            && emailEfectivo.equalsIgnoreCase(insc.getEstudiante().getCorreo());
+                    if (!esSuProfesor && !esElMismoEstudiante) {
+                        return List.of();
+                    }
+                }
+            }
+
+            List<Clase> clasesInscripcion = claseRepository.findClasesWithPlanificacionByInscripcionId(inscripcionId);
+            List<PlanificacionResponseDto> resultado = new ArrayList<>();
+            for (Clase c : clasesInscripcion) {
+                if (c.getPlanificacion() != null) {
+                    resultado.add(mapToDto(c.getPlanificacion(), c));
+                }
+            }
+            return resultado;
+        }
+
+        // 2. Administrador: supervisión global
+        if ("Administrador".equalsIgnoreCase(userRole)) {
+            List<Clase> todas = claseRepository.findAllClasesWithPlanificacion();
+            List<PlanificacionResponseDto> resultado = new ArrayList<>();
+            for (Clase c : todas) {
+                if (c.getPlanificacion() != null) {
+                    resultado.add(mapToDto(c.getPlanificacion(), c));
+                }
+            }
+            return resultado;
+        }
+
+        // 3. Profesor de Asignatura: ÚNICAMENTE planificaciones de estudiantes en sus prácticas
+        if ("Profesor".equalsIgnoreCase(userRole) || "Evaluador".equalsIgnoreCase(userRole)) {
+            if (emailEfectivo != null) {
+                List<Clase> clasesProfesor = claseRepository.findClasesWithPlanificacionByProfesorCorreo(emailEfectivo.trim());
+                List<PlanificacionResponseDto> resultado = new ArrayList<>();
+                for (Clase c : clasesProfesor) {
+                    if (c.getPlanificacion() != null) {
+                        resultado.add(mapToDto(c.getPlanificacion(), c));
+                    }
+                }
+                return resultado;
+            }
+            return List.of();
+        }
+
+        // 4. Estudiante: ÚNICAMENTE sus propias planificaciones
+        if (emailEfectivo != null) {
+            List<Clase> clasesEstudiante = claseRepository.findClasesWithPlanificacionByEstudianteCorreo(emailEfectivo.trim());
+            List<PlanificacionResponseDto> resultado = new ArrayList<>();
+            for (Clase c : clasesEstudiante) {
+                if (c.getPlanificacion() != null) {
+                    resultado.add(mapToDto(c.getPlanificacion(), c));
+                }
+            }
+            return resultado;
         }
 
         return List.of();
@@ -52,7 +131,13 @@ public class PlanificacionServiceImpl implements PlanificacionService {
 
     @Override
     @Transactional
-    public Planificacion guardarPlanificacion(MultipartFile archivo, Long userId) {
+    public PlanificacionResponseDto guardarPlanificacion(MultipartFile archivo, Long userId) {
+        return guardarPlanificacion(archivo, userId, null);
+    }
+
+    @Override
+    @Transactional
+    public PlanificacionResponseDto guardarPlanificacion(MultipartFile archivo, Long userId, LocalDate fechaClase) {
         // 1. Validar que el archivo exista y no esté vacío
         if (archivo == null || archivo.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar un archivo válido para subir.");
@@ -86,18 +171,39 @@ public class PlanificacionServiceImpl implements PlanificacionService {
             // 5. Guardar archivo físico en disco
             Files.copy(archivo.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            // 6. Crear y persistir el registro con timestamp real dinámico
+            // 6. Crear y persistir el registro de Planificación puro (según MER)
             Planificacion planificacion = new Planificacion();
             planificacion.setArchivo(targetLocation.toString());
             planificacion.setEstado(EstadoPlanificacion.PENDIENTE);
-            planificacion.setFecha(LocalDateTime.now());
+            planificacion.setFecha(LocalDate.now());
 
-            // 7. Asociar al usuario autenticado (RBAC)
+            Planificacion guardada = planificacionRepository.save(planificacion);
+
+            // 7. Conectar la relación canónica mediante la entidad Clase (FK id_planificacion e id_inscripcion)
+            Clase claseGuardada = null;
             if (userId != null) {
-                userRepository.findById(userId).ifPresent(planificacion::setUsuario);
+                User user = userRepository.findById(userId).orElse(null);
+                if (user != null && user.getEmail() != null) {
+                    List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteCorreoWithOferta(user.getEmail());
+                    if (!inscripciones.isEmpty()) {
+                        Inscripcion inscripcion = inscripciones.get(0);
+                        Clase clase = new Clase();
+                        clase.setFecha(fechaClase != null ? fechaClase : LocalDate.now());
+                        clase.setPlanificacion(guardada);
+                        clase.setInscripcion(inscripcion);
+                        String asig = (inscripcion.getOferta() != null && inscripcion.getOferta().getAsignaturaPractica() != null)
+                                ? inscripcion.getOferta().getAsignaturaPractica().getNombre()
+                                : "Práctica Profesional";
+                        clase.setAsignatura(asig);
+                        clase.setTema("Planificación: " + guardada.getNombreArchivo());
+                        clase.setHoraInicio(LocalTime.of(8, 30));
+                        clase.setHoraFin(LocalTime.of(10, 0));
+                        claseGuardada = claseRepository.save(clase);
+                    }
+                }
             }
 
-            return planificacionRepository.save(planificacion);
+            return mapToDto(guardada, claseGuardada);
 
         } catch (IOException e) {
             throw new ResponseStatusException(
@@ -108,7 +214,7 @@ public class PlanificacionServiceImpl implements PlanificacionService {
 
     @Override
     @Transactional
-    public Planificacion evaluarPlanificacion(Long id, EstadoPlanificacion nuevoEstado, String retroalimentacion) {
+    public PlanificacionResponseDto evaluarPlanificacion(Long id, EstadoPlanificacion nuevoEstado, String retroalimentacion) {
         Planificacion planificacion = planificacionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planificación no encontrada con id: " + id));
 
@@ -117,6 +223,45 @@ public class PlanificacionServiceImpl implements PlanificacionService {
             planificacion.setRetroalimentacion(retroalimentacion.trim());
         }
 
-        return planificacionRepository.save(planificacion);
+        Planificacion guardada = planificacionRepository.save(planificacion);
+        List<Clase> clases = claseRepository.findByPlanificacionId(guardada.getId());
+        Clase clase = clases.isEmpty() ? null : clases.get(0);
+
+        return mapToDto(guardada, clase);
+    }
+
+    private PlanificacionResponseDto mapToDto(Planificacion p, Clase c) {
+        PlanificacionResponseDto dto = new PlanificacionResponseDto();
+        dto.setId(p.getId());
+        dto.setArchivo(p.getArchivo());
+        dto.setNombreArchivo(p.getNombreArchivo());
+        dto.setTipoArchivo(p.getTipoArchivo());
+        dto.setEstado(p.getEstado());
+        dto.setFecha(p.getFecha() != null ? p.getFecha().toString() : "");
+        dto.setFechaCreacion(p.getFechaCreacion());
+        dto.setRetroalimentacion(p.getRetroalimentacion());
+        dto.setArchivoUrl("/api/planificaciones/" + p.getId() + "/archivo");
+
+        if (c != null) {
+            if (c.getFecha() != null) {
+                dto.setFechaClase(c.getFecha().toString());
+            }
+            if (c.getInscripcion() != null && c.getInscripcion().getEstudiante() != null) {
+                Estudiante est = c.getInscripcion().getEstudiante();
+                String nombreCompleto = (est.getPrimerNombre() + " " + est.getApellidoPaterno() + " " + est.getApellidoMaterno()).trim();
+                Long uid = null;
+                Optional<User> uOpt = userRepository.findByEmail(est.getCorreo());
+                if (uOpt.isPresent()) {
+                    uid = uOpt.get().getId();
+                }
+                dto.setUsuario(new PlanificacionResponseDto.UsuarioPlanificacionDto(
+                        uid,
+                        nombreCompleto,
+                        est.getCorreo(),
+                        "Estudiante"
+                ));
+            }
+        }
+        return dto;
     }
 }

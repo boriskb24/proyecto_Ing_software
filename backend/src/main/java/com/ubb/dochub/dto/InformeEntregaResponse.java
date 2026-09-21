@@ -10,6 +10,9 @@ public class InformeEntregaResponse {
     private String contentType;
     private LocalDateTime fechaEntrega;
 
+    private Long id;
+    private String archivoUrl;
+
     public InformeEntregaResponse() {
     }
 
@@ -19,6 +22,22 @@ public class InformeEntregaResponse {
         this.tamanoBytes = tamanoBytes;
         this.contentType = contentType;
         this.fechaEntrega = fechaEntrega;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getArchivoUrl() {
+        return archivoUrl;
+    }
+
+    public void setArchivoUrl(String archivoUrl) {
+        this.archivoUrl = archivoUrl;
     }
 
     public String getMensaje() {

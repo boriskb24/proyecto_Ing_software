@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Navbar } from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
-import { getPlanificaciones, Planificacion, getOfertasForProfesor, OfertaDto } from '../services/api'
+import { getPlanificaciones, Planificacion, getOfertasForProfesor, OfertaDto, getDetalleEstudianteByCorreo } from '../services/api'
 import {
   Search,
   FileText,
@@ -19,7 +19,8 @@ import {
   CheckSquare,
   UserPlus,
   FolderOpen,
-  Upload
+  Upload,
+  ExternalLink
 } from 'lucide-react'
 
 export interface PracticeStudent {
@@ -52,7 +53,7 @@ export const HomePage: React.FC = () => {
   const [chatOpen, setChatOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [userPlanificaciones, setUserPlanificaciones] = useState<Planificacion[]>([])
-  const [informeEntregado, setInformeEntregado] = useState<{ nombreArchivo: string; fechaEntrega?: string } | null>(null)
+  const [informeEntregado, setInformeEntregado] = useState<{ id?: number; nombreArchivo: string; fechaEntrega?: string; archivoUrl?: string } | null>(null)
 
   const [studentsList, setStudentsList] = useState<PracticeStudent[]>(() => {
     const saved = localStorage.getItem('ubb_practice_students_list')
@@ -163,7 +164,26 @@ export const HomePage: React.FC = () => {
         }
       }
 
-      const rawInforme = localStorage.getItem('ubb_ultimo_informe_entregado')
+      // Si es estudiante, consultar detalle en backend para obtener su informe final más reciente
+      if (!isDocenteOrAdmin && user?.email) {
+        try {
+          const detalle = await getDetalleEstudianteByCorreo(user.email, user.email)
+          if (detalle?.informeActual) {
+            setInformeEntregado({
+              id: detalle.informeActual.id,
+              nombreArchivo: detalle.informeActual.nombreArchivo || detalle.informeActual.archivo || 'Informe_Final_Practica.pdf',
+              fechaEntrega: detalle.informeActual.fecha,
+              archivoUrl: detalle.informeActual.archivoUrl || (detalle.informeActual.id ? `/api/practicas/informes/${detalle.informeActual.id}/archivo` : undefined)
+            })
+            return
+          }
+        } catch (err) {
+          console.error('Error fetching detalle estudiante:', err)
+        }
+      }
+
+      const rawUserInforme = user?.id ? localStorage.getItem(`ubb_informe_entrega_${user.id}`) : null
+      const rawInforme = rawUserInforme || localStorage.getItem('ubb_ultimo_informe_entregado')
       if (rawInforme) {
         try {
           setInformeEntregado(JSON.parse(rawInforme))
@@ -221,15 +241,13 @@ export const HomePage: React.FC = () => {
           <div style={styles.heroContent}>
             <div style={styles.badgeHero}>
               <span style={styles.dot} />
-              Portal de Prácticas y Documentación Académica UBB
+              Bienvenido de vuelta, {displayName}
             </div>
             <h1 style={styles.heroTitle}>
-              Hola, <span style={styles.highlight}>{displayName}</span>
+              UBB <span style={styles.highlight}>DocHUB</span>
             </h1>
             <p style={styles.heroSubtitle}>
-              {isDocenteOrAdmin
-                ? 'Supervisa ofertas de práctica, planificaciones de clase, evaluaciones y convenios estudiantiles.'
-                : 'Accede a tus asignaturas, sube planificaciones de clase y entrega tu informe final de práctica.'}
+              Gestión de documentos de práctica
             </p>
           </div>
         </section>
@@ -277,8 +295,8 @@ export const HomePage: React.FC = () => {
             <>
               <button onClick={() => navigate('/entrega-informe')} style={{ ...styles.quickCard, ...styles.quickCardBlue }}>
                 <Upload size={22} />
-                <div style={styles.quickCardTitle}>Entregar Informe Final</div>
-                <div style={styles.quickCardDesc}>Subir archivo PDF de Práctica</div>
+                <div style={styles.quickCardTitle}>{tieneInformeFinal ? 'Mi Informe Final' : 'Entregar Informe Final'}</div>
+                <div style={styles.quickCardDesc}>{tieneInformeFinal ? 'Ver o actualizar archivo PDF' : 'Subir archivo PDF de Práctica'}</div>
               </button>
               <button onClick={() => navigate('/planificaciones')} style={{ ...styles.quickCard, ...styles.quickCardGold }}>
                 <FileText size={22} />
@@ -288,7 +306,7 @@ export const HomePage: React.FC = () => {
               <button onClick={() => navigate('/evaluaciones')} style={{ ...styles.quickCard, ...styles.quickCardTeal }}>
                 <GraduationCap size={22} />
                 <div style={styles.quickCardTitle}>Mis Evaluaciones</div>
-                <div style={styles.quickCardDesc}>Notas y retroalimentación</div>
+                <div style={styles.quickCardDesc}>Pautas y desempeño</div>
               </button>
               <button onClick={() => navigate('/perfil')} style={{ ...styles.quickCard, ...styles.quickCardPurple }}>
                 <Users size={22} />
@@ -468,120 +486,6 @@ export const HomePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 3. Gestión de Convenios y Directorio Rápido */}
-                <div style={styles.card}>
-                  <div style={styles.cardHeader}>
-                    <div>
-                      <h2 style={styles.cardTitle}>Convenios de Práctica y Expedientes</h2>
-                      <p style={styles.cardSubtitle}>Validación formal y asignación de tutores</p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => setIsNewStudentModalOpen(true)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                          color: '#60a5fa',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <UserPlus size={14} /> Inscribir Alumno
-                      </button>
-                      <button
-                        onClick={() => navigate('/alumnos')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          backgroundColor: '#2563eb',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Users size={14} /> Directorio Completo →
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Tabs */}
-                  <div style={styles.tabContainer}>
-                    <button onClick={() => setActiveTab('TODOS')} style={{ ...styles.tabBtn, ...(activeTab === 'TODOS' ? styles.tabBtnActive : {}) }}>
-                      Todos ({studentsList.length})
-                    </button>
-                    <button onClick={() => setActiveTab('PENDIENTE')} style={{ ...styles.tabBtn, ...(activeTab === 'PENDIENTE' ? styles.tabBtnActive : {}) }}>
-                      Pendientes ({conveniosPendientes})
-                    </button>
-                    <button onClick={() => setActiveTab('APROBADO')} style={{ ...styles.tabBtn, ...(activeTab === 'APROBADO' ? styles.tabBtnActive : {}) }}>
-                      Aprobados ({conveniosAprobados})
-                    </button>
-                    <button onClick={() => setActiveTab('REVISION')} style={{ ...styles.tabBtn, ...(activeTab === 'REVISION' ? styles.tabBtnActive : {}) }}>
-                      En Revisión ({conveniosRevision})
-                    </button>
-                  </div>
-
-                  <div style={styles.cardBody}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr style={styles.trHead}>
-                          <th style={styles.th}>Estudiante</th>
-                          <th style={styles.th}>Estado del Convenio</th>
-                          <th style={styles.th}>Profesor Guía</th>
-                          <th style={{ ...styles.th, textAlign: 'right' }}>Acción</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredStudents.slice(0, 5).map((s) => (
-                          <tr key={s.id} style={styles.trBody}>
-                            <td style={styles.td}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={styles.studentAvatar}>{s.avatar}</div>
-                                <div>
-                                  <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '13px' }}>{s.name}</div>
-                                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>ID: {s.id}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={styles.td}>
-                              <span style={s.statusClass === 'status-approved' ? styles.statusApproved : s.statusClass === 'status-review' ? styles.statusReview : styles.statusPending}>
-                                {s.status}
-                              </span>
-                            </td>
-                            <td style={{ ...styles.td, color: '#cbd5e1' }}>{s.professor}</td>
-                            <td style={{ ...styles.td, textAlign: 'right' }}>
-                              <button
-                                onClick={() => setSelectedStudentForExpediente(s)}
-                                style={{
-                                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                                  color: '#60a5fa',
-                                  border: '1px solid rgba(59, 130, 246, 0.3)',
-                                  borderRadius: '6px',
-                                  padding: '5px 10px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Expediente
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
               </>
             ) : (
               /* Vista Estudiante */
@@ -591,9 +495,6 @@ export const HomePage: React.FC = () => {
                     <h2 style={styles.cardTitle}>Mi Estado de Práctica Profesional</h2>
                     <p style={styles.cardSubtitle}>Seguimiento personal de tu práctica y entregas en tiempo real</p>
                   </div>
-                  <span style={styles.badgeBlue}>
-                    {tieneInformeFinal && planificacionesAprobadas > 0 ? 'En Evaluación' : totalPlanificaciones > 0 ? 'En Proceso' : 'Convenio Aprobado'}
-                  </span>
                 </div>
                 <div style={{ padding: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(59, 130, 246, 0.08)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)', marginBottom: '20px' }}>
@@ -626,12 +527,37 @@ export const HomePage: React.FC = () => {
                     </div>
                     <div style={{ background: '#131e3a', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                       <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px' }}>Informe Final de Práctica</div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#f8fafc' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: tieneInformeFinal ? '#4ade80' : '#f8fafc' }}>
                         {tieneInformeFinal ? 'Entregado (PDF)' : 'Pendiente de entrega'}
                       </div>
-                      <div style={{ fontSize: '11px', color: tieneInformeFinal ? '#60a5fa' : '#f59e0b', marginTop: '2px' }}>
-                        {tieneInformeFinal ? `Archivo: ${informeEntregado?.nombreArchivo || 'Informe'}` : 'Plazo máx: 30 de Noviembre'}
+                      <div style={{ fontSize: '11px', color: tieneInformeFinal ? '#86efac' : '#f59e0b', marginTop: '2px', wordBreak: 'break-all' }}>
+                        {tieneInformeFinal ? `Archivo: ${informeEntregado?.nombreArchivo || 'Informe_Final.pdf'}` : 'Plazo máx: 30 de Noviembre'}
                       </div>
+                      {tieneInformeFinal && (
+                        <div style={{ marginTop: '10px' }}>
+                          <a
+                            href={informeEntregado?.archivoUrl || (informeEntregado?.id ? `/api/practicas/informes/${informeEntregado.id}/archivo` : '#')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: '600',
+                              color: '#60a5fa',
+                              textDecoration: 'none',
+                              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <ExternalLink size={13} /> Ver Mi Informe (PDF)
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -646,7 +572,7 @@ export const HomePage: React.FC = () => {
                       onClick={() => navigate('/entrega-informe')}
                       style={{ flex: 1, padding: '12px', backgroundColor: tieneInformeFinal ? '#059669' : '#334155', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                     >
-                      <Upload size={16} /> {tieneInformeFinal ? 'Reenviar Informe' : 'Entregar Informe Final'}
+                      <Upload size={16} /> {tieneInformeFinal ? 'Reemplazar / Actualizar Informe' : 'Entregar Informe Final'}
                     </button>
                   </div>
                 </div>
@@ -659,7 +585,7 @@ export const HomePage: React.FC = () => {
             {isDocenteOrAdmin ? (
               <>
                 {/* Stats Administrativas */}
-                <div style={styles.statGrid}>
+                <div style={{ ...styles.statGrid, gridTemplateColumns: 'repeat(3, 1fr)' }}>
                   <div style={styles.statCard}>
                     <div style={styles.statIcon}><Briefcase size={18} color="#60a5fa" /></div>
                     <div style={styles.statValue}>{totalOfertas}</div>
@@ -675,11 +601,6 @@ export const HomePage: React.FC = () => {
                     <div style={styles.statValue}>{totalPlanificaciones}</div>
                     <div style={styles.statLabel}>Planificaciones</div>
                   </div>
-                  <div style={styles.statCard}>
-                    <div style={styles.statIcon}><CheckCircle size={18} color="#a855f7" /></div>
-                    <div style={styles.statValue}>{conveniosAprobados}</div>
-                    <div style={styles.statLabel}>Convenios Validados</div>
-                  </div>
                 </div>
 
                 {/* Tareas y Alertas Académicas */}
@@ -689,13 +610,13 @@ export const HomePage: React.FC = () => {
                   </div>
                   <div style={styles.cardBody}>
                     <div style={{ ...styles.recentDocItem, alignItems: 'flex-start' }}>
-                      <AlertCircle size={18} color={conveniosPendientes > 0 ? '#f59e0b' : '#22c55e'} style={{ marginTop: '2px' }} />
+                      <FileText size={18} color="#f59e0b" style={{ marginTop: '2px' }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '13px', fontWeight: '600', color: '#f8fafc' }}>
-                          Convenios por Validar {conveniosPendientes > 0 ? `(${conveniosPendientes})` : '— Al día'}
+                          Planificaciones Recientes
                         </div>
-                        <div style={{ fontSize: '11.5px', color: conveniosPendientes > 0 ? '#facc15' : '#4ade80', marginTop: '2px' }}>
-                          {conveniosPendientes > 0 ? 'Requieren validación o firma del profesor guía' : 'Todos los convenios han sido aprobados'}
+                        <div style={{ fontSize: '11.5px', color: '#cbd5e1', marginTop: '2px' }}>
+                          Supervisión y retroalimentación de actividades docentes
                         </div>
                       </div>
                     </div>
@@ -777,68 +698,7 @@ export const HomePage: React.FC = () => {
         </div>
       </main>
 
-      {/* Modal: Expediente de Práctica */}
-      {selectedStudentForExpediente && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FolderOpen size={22} color="#60a5fa" />
-                <h3 style={styles.modalTitle}>Expediente de Práctica Profesional</h3>
-              </div>
-              <button onClick={() => setSelectedStudentForExpediente(null)} style={styles.modalCloseBtn}>
-                <X size={18} />
-              </button>
-            </div>
 
-            <div style={styles.modalBody}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(59, 130, 246, 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.25)', marginBottom: '20px' }}>
-                <div style={{ ...styles.studentAvatar, width: '48px', height: '48px', fontSize: '18px' }}>
-                  {selectedStudentForExpediente.avatar}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '700', fontSize: '16px', color: '#ffffff' }}>{selectedStudentForExpediente.name}</div>
-                  <div style={{ fontSize: '12.5px', color: '#94a3b8', marginTop: '2px' }}>
-                    ID: <strong style={{ color: '#e2e8f0' }}>{selectedStudentForExpediente.id}</strong> • {selectedStudentForExpediente.email || `${selectedStudentForExpediente.id.toLowerCase()}@alumnos.ubiobio.cl`}
-                  </div>
-                </div>
-                <span style={selectedStudentForExpediente.statusClass === 'status-approved' ? styles.statusApproved : selectedStudentForExpediente.statusClass === 'status-review' ? styles.statusReview : styles.statusPending}>
-                  {selectedStudentForExpediente.status}
-                </span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-                <div style={{ background: '#101a33', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '11.5px', color: '#94a3b8', marginBottom: '4px' }}>Profesor Guía Asignado</div>
-                  <div style={{ fontSize: '13.5px', fontWeight: '600', color: '#f8fafc' }}>{selectedStudentForExpediente.professor}</div>
-                  <div style={{ fontSize: '11px', color: '#60a5fa', marginTop: '4px' }}>Departamento de Ingeniería de Software</div>
-                </div>
-                <div style={{ background: '#101a33', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '11.5px', color: '#94a3b8', marginBottom: '4px' }}>Supervisor de Centro</div>
-                  <div style={{ fontSize: '13.5px', fontWeight: '600', color: '#f8fafc' }}>{selectedStudentForExpediente.supervisor || 'Ing. Carlos Mendoza'}</div>
-                  <div style={{ fontSize: '11px', color: '#4ade80', marginTop: '4px' }}>Convenio Vigente</div>
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.modalFooter}>
-              <button onClick={() => setSelectedStudentForExpediente(null)} style={styles.modalSecondaryBtn}>
-                Cerrar
-              </button>
-              <button
-                onClick={() => {
-                  updateStudentStatus(selectedStudentForExpediente.id, 'Convenio Aprobado', 'status-approved')
-                  setSelectedStudentForExpediente(null)
-                  showFeedback(`Convenio de ${selectedStudentForExpediente.name} aprobado.`)
-                }}
-                style={styles.modalPrimaryBtn}
-              >
-                Aprobar Convenio
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal: Inscribir Alumno */}
       {isNewStudentModalOpen && (

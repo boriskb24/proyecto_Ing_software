@@ -89,14 +89,117 @@ export const ProfesorOfertasPage: React.FC = () => {
     return periodo === 1 ? 'Primer Semestre' : periodo === 2 ? 'Segundo Semestre' : `Período ${periodo}`
   }
 
+  const isDocente = !!user?.role && (
+    user.role.toLowerCase().includes('profesor') ||
+    user.role.toLowerCase().includes('administrador') ||
+    user.role.toLowerCase().includes('evaluador')
+  )
+  const isEstudiante = !isDocente
+
+  const handleCardClick = (o: OfertaDto) => {
+    if (isEstudiante) {
+      return
+    }
+    navigate(`/practicas/${o.id}`)
+  }
+
   const renderPracticaCard = (o: OfertaDto, esActual: boolean) => {
+    // Si es estudiante: tarjeta estática informativa, sin botón y sin navegación
+    if (isEstudiante) {
+      return (
+        <div
+          key={o.id}
+          style={{
+            backgroundColor: '#131e3a',
+            border: esActual ? '1.5px solid rgba(37, 99, 235, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '14px',
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            cursor: 'default',
+            boxShadow: esActual ? '0 4px 20px rgba(37, 99, 235, 0.12)' : '0 2px 10px rgba(0, 0, 0, 0.2)',
+          }}
+        >
+          {/* Lado izquierdo: Datos de la práctica */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              backgroundColor: esActual ? 'rgba(37, 99, 235, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+              color: esActual ? '#60a5fa' : '#94a3b8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              {esActual ? <Sparkles size={22} /> : <Briefcase size={22} />}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                <span style={{ fontWeight: '800', fontSize: '16px', color: '#ffffff' }}>
+                  {o.asignaturaNombre}
+                </span>
+                <span style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  color: '#cbd5e1',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}>
+                  {o.asignaturaCodigo}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: '#94a3b8', fontSize: '13px', flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <Calendar size={14} color="#60a5fa" />
+                  Año <strong style={{ color: '#e2e8f0' }}>{o.anio}</strong> • <strong style={{ color: '#e2e8f0' }}>{periodoTexto(o.periodo)}</strong>
+                </span>
+                {o.profesorNombre && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#93c5fd' }}>
+                    • Prof. Guía: <strong style={{ color: '#ffffff' }}>{o.profesorNombre}</strong>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Lado derecho: Estado de la práctica (sin botón entrar, sin redirección) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: esActual ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+              border: `1px solid ${esActual ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+              padding: '6px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: esActual ? '#4ade80' : '#cbd5e1',
+              fontWeight: '600'
+            }}>
+              <CheckCircle2 size={15} />
+              <span>{esActual ? 'En curso' : 'Finalizada'}</span>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Modo Profesor / Administrador
     return (
       <div
         key={o.id}
-        onClick={() => navigate(`/practicas/${o.id}`)}
+        onClick={() => handleCardClick(o)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            navigate(`/practicas/${o.id}`)
+            handleCardClick(o)
           }
         }}
         role="button"
@@ -160,11 +263,16 @@ export const ProfesorOfertasPage: React.FC = () => {
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: '#94a3b8', fontSize: '13px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: '#94a3b8', fontSize: '13px', flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                 <Calendar size={14} color="#60a5fa" />
                 Año <strong style={{ color: '#e2e8f0' }}>{o.anio}</strong> • <strong style={{ color: '#e2e8f0' }}>{periodoTexto(o.periodo)}</strong>
               </span>
+              {o.profesorNombre && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#93c5fd' }}>
+                  • Prof. Guía: <strong style={{ color: '#ffffff' }}>{o.profesorNombre}</strong>
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -253,15 +361,19 @@ export const ProfesorOfertasPage: React.FC = () => {
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#60a5fa', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                <Briefcase size={16} />
-                <span>Gestión Docente</span>
-              </div>
+              {!isEstudiante && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#60a5fa', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  <Briefcase size={16} />
+                  <span>Gestión Docente</span>
+                </div>
+              )}
               <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#ffffff', margin: '0 0 8px 0' }}>
                 Mis <span style={{ color: '#d4af37' }}>Prácticas</span>
               </h1>
               <p style={{ fontSize: '14.5px', color: '#94a3b8', margin: 0, maxWidth: '600px' }}>
-                Supervisión de prácticas profesionales divididas por período académico vigente e histórico.
+                {isEstudiante
+                  ? 'Aquí puedes ver el listado de tus prácticas actuales y antiguas'
+                  : 'Supervisión de prácticas profesionales divididas por período académico vigente e histórico.'}
               </p>
             </div>
 
@@ -304,10 +416,12 @@ export const ProfesorOfertasPage: React.FC = () => {
               <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' }}>Prácticas Antiguas</div>
               <div style={{ fontSize: '22px', fontWeight: '800', color: '#cbd5e1', marginTop: '4px' }}>{antiguas.length}</div>
             </div>
-            <div style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', padding: '14px 18px', borderRadius: '10px', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-              <div style={{ fontSize: '12px', color: '#d4af37', textTransform: 'uppercase' }}>Alumnos Inscritos</div>
-              <div style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', marginTop: '4px' }}>{totalInscritos}</div>
-            </div>
+            {!isEstudiante && (
+              <div style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', padding: '14px 18px', borderRadius: '10px', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+                <div style={{ fontSize: '12px', color: '#d4af37', textTransform: 'uppercase' }}>Alumnos Inscritos</div>
+                <div style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', marginTop: '4px' }}>{totalInscritos}</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -445,7 +559,7 @@ export const ProfesorOfertasPage: React.FC = () => {
                     </span>
                   </div>
                   <span style={{ fontSize: '12.5px', color: '#94a3b8' }}>
-                    {filteredActuales.length} oferta(s) activa(s)
+                    {filteredActuales.length} {isEstudiante ? 'práctica(s) activa(s)' : 'oferta(s) activa(s)'}
                   </span>
                 </div>
 
@@ -461,7 +575,9 @@ export const ProfesorOfertasPage: React.FC = () => {
                   }}>
                     {searchQuery.trim()
                       ? 'No hay prácticas actuales que coincidan con la búsqueda.'
-                      : 'No hay ofertas de práctica vigentes para este período académico.'}
+                      : (isEstudiante
+                          ? 'No tienes prácticas vigentes para este período académico.'
+                          : 'No hay ofertas de práctica vigentes para este período académico.')}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -516,7 +632,9 @@ export const ProfesorOfertasPage: React.FC = () => {
                   }}>
                     {searchQuery.trim()
                       ? 'No hay prácticas antiguas que coincidan con la búsqueda.'
-                      : 'No se registran prácticas finalizadas de períodos anteriores.'}
+                      : (isEstudiante
+                          ? 'No registras prácticas finalizadas de períodos anteriores.'
+                          : 'No se registran prácticas finalizadas de períodos anteriores.')}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

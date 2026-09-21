@@ -78,6 +78,9 @@ public class EstudianteDetalleResponse {
     public static class EvaluadorItemDto {
         private String rut;
         private String nombreCompleto;
+        private String primerNombre;
+        private String primerApellido;
+        private String segundoApellido;
         private String correo;
         private String tipo;
 
@@ -90,10 +93,26 @@ public class EstudianteDetalleResponse {
             this.tipo = tipo;
         }
 
+        public EvaluadorItemDto(String rut, String nombreCompleto, String primerNombre, String primerApellido, String segundoApellido, String correo, String tipo) {
+            this.rut = rut;
+            this.nombreCompleto = nombreCompleto;
+            this.primerNombre = primerNombre;
+            this.primerApellido = primerApellido;
+            this.segundoApellido = segundoApellido;
+            this.correo = correo;
+            this.tipo = tipo;
+        }
+
         public String getRut() { return rut; }
         public void setRut(String rut) { this.rut = rut; }
         public String getNombreCompleto() { return nombreCompleto; }
         public void setNombreCompleto(String nombreCompleto) { this.nombreCompleto = nombreCompleto; }
+        public String getPrimerNombre() { return primerNombre; }
+        public void setPrimerNombre(String primerNombre) { this.primerNombre = primerNombre; }
+        public String getPrimerApellido() { return primerApellido; }
+        public void setPrimerApellido(String primerApellido) { this.primerApellido = primerApellido; }
+        public String getSegundoApellido() { return segundoApellido; }
+        public void setSegundoApellido(String segundoApellido) { this.segundoApellido = segundoApellido; }
         public String getCorreo() { return correo; }
         public void setCorreo(String correo) { this.correo = correo; }
         public String getTipo() { return tipo; }
@@ -144,6 +163,7 @@ public class EstudianteDetalleResponse {
     public static class InformeItemDto {
         private Long id;
         private String archivo;
+        private String archivoUrl;
         private String nombreArchivo;
         private String fecha;
         private String emisor;
@@ -151,8 +171,13 @@ public class EstudianteDetalleResponse {
         public InformeItemDto() {}
 
         public InformeItemDto(Long id, String archivo, String nombreArchivo, String fecha, String emisor) {
+            this(id, archivo, null, nombreArchivo, fecha, emisor);
+        }
+
+        public InformeItemDto(Long id, String archivo, String archivoUrl, String nombreArchivo, String fecha, String emisor) {
             this.id = id;
             this.archivo = archivo;
+            this.archivoUrl = archivoUrl;
             this.nombreArchivo = nombreArchivo;
             this.fecha = fecha;
             this.emisor = emisor;
@@ -162,6 +187,8 @@ public class EstudianteDetalleResponse {
         public void setId(Long id) { this.id = id; }
         public String getArchivo() { return archivo; }
         public void setArchivo(String archivo) { this.archivo = archivo; }
+        public String getArchivoUrl() { return archivoUrl; }
+        public void setArchivoUrl(String archivoUrl) { this.archivoUrl = archivoUrl; }
         public String getNombreArchivo() { return nombreArchivo; }
         public void setNombreArchivo(String nombreArchivo) { this.nombreArchivo = nombreArchivo; }
         public String getFecha() { return fecha; }

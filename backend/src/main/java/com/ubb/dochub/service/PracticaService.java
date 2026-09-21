@@ -12,6 +12,23 @@ public interface PracticaService {
     // Guardar informe asociado a una inscripcion (usado por profesor)
     InformeEntregaResponse guardarInformeFinalParaInscripcion(MultipartFile archivo, Long inscripcionId);
 
+    // Guardar informe final del estudiante (asociado automáticamente a su práctica activa)
+    InformeEntregaResponse guardarInformeFinalEstudiante(MultipartFile archivo, String correoEstudiante, Long userId);
+
     // Evaluaciones de profesor (Pablo)
-    EvaluacionesResponseDto obtenerEvaluacionesPorProfesor(String rutProfesor, TipoFiltroEvaluacion tipo);
+    default EvaluacionesResponseDto obtenerEvaluacionesPorProfesor(String rutProfesor, TipoFiltroEvaluacion tipo) {
+        return obtenerEvaluacionesPorProfesor(rutProfesor, null, null, null, tipo);
+    }
+
+    default EvaluacionesResponseDto obtenerEvaluacionesPorProfesor(String rutProfesor, String correoProfesor, TipoFiltroEvaluacion tipo) {
+        return obtenerEvaluacionesPorProfesor(rutProfesor, correoProfesor, null, null, tipo);
+    }
+
+    EvaluacionesResponseDto obtenerEvaluacionesPorProfesor(String rutProfesor, String correoProfesor, String rutEstudiante, Long inscripcionId, TipoFiltroEvaluacion tipo);
+
+    // Evaluaciones de estudiante (limitadas a su práctica actual por defecto)
+    EvaluacionesResponseDto obtenerEvaluacionesPorEstudiante(String correoEstudiante, String rutEstudiante, Long inscripcionId, TipoFiltroEvaluacion tipo);
+
+    // Validación de invariante: máximo 1 práctica por estudiante en el mismo período académico
+    void validarInscripcionUnicaPorPeriodo(String rutEstudiante, String correoEstudiante, Integer anio, Integer periodo);
 }

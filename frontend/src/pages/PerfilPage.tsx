@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Navbar } from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
-import { getPlanificaciones, Planificacion } from '../services/api'
+import { getPlanificaciones, Planificacion, getDetalleEstudianteByCorreo, EstudianteDetalleDto } from '../services/api'
 import {
   User,
   Mail,
@@ -25,6 +25,8 @@ export const PerfilPage: React.FC = () => {
   const navigate = useNavigate()
   const [planificaciones, setPlanificaciones] = useState<Planificacion[]>([])
   const [informeFinal, setInformeFinal] = useState<{ nombreArchivo: string; fechaEntrega?: string } | null>(null)
+  const [estudianteDetalle, setEstudianteDetalle] = useState<EstudianteDetalleDto | null>(null)
+  const [isLoadingDetalle, setIsLoadingDetalle] = useState<boolean>(false)
 
   const displayName = user?.fullName || 'Usuario UBB'
   const email = user?.email || 'sin-correo@ubiobio.cl'
@@ -46,8 +48,18 @@ export const PerfilPage: React.FC = () => {
           setInformeFinal(null)
         }
       }
+
+      if (isEstudiante && user.email) {
+        setIsLoadingDetalle(true)
+        getDetalleEstudianteByCorreo(user.email, user.email)
+          .then((det) => setEstudianteDetalle(det))
+          .catch((err) => {
+            console.error('Error cargando detalle estudiante:', err)
+          })
+          .finally(() => setIsLoadingDetalle(false))
+      }
     }
-  }, [user])
+  }, [user, isEstudiante])
 
   const totalPlanif = planificaciones.length
   const aprobadas = planificaciones.filter(p => p.estado === 'APROBADA').length
@@ -158,20 +170,47 @@ export const PerfilPage: React.FC = () => {
                   </div>
 
                   <div style={styles.infoItem}>
-                    <span style={styles.infoLabel}>Convenio Institucional</span>
-                    <span style={{ ...styles.infoValue, color: '#10b981', fontWeight: '600' }}>
-                      ✓ Convenio Firmado y Vigente
+                    <span style={styles.infoLabel}>Profesor Guía Asignado</span>
+                    <span style={styles.infoValue}>
+                      {estudianteDetalle?.profesorGuiaNombre
+                        ? `${estudianteDetalle.profesorGuiaNombre} (${estudianteDetalle.profesorGuiaCorreo || ''})`
+                        : 'Prof. Boris Arenas (boris.profe@ubiobio.cl)'}
                     </span>
                   </div>
 
                   <div style={styles.infoItem}>
-                    <span style={styles.infoLabel}>Profesor Guía Asignado</span>
-                    <span style={styles.infoValue}>Prof. Juan Pérez (profesor@ubiobio.cl)</span>
-                  </div>
-
-                  <div style={styles.infoItem}>
-                    <span style={styles.infoLabel}>Supervisor de Empresa</span>
-                    <span style={styles.infoValue}>Ing. Carlos Mendoza (evaluador@empresa.cl)</span>
+                    <span style={styles.infoLabel}>Evaluadores</span>
+                    {isLoadingDetalle ? (
+                      <span style={{ ...styles.infoValue, color: '#94a3b8' }}>Cargando evaluadores...</span>
+                    ) : estudianteDetalle && estudianteDetalle.evaluadores && estudianteDetalle.evaluadores.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                        {estudianteDetalle.evaluadores.map((ev) => {
+                          const nombreEvaluador = ev.primerNombre && ev.primerApellido
+                            ? `${ev.primerNombre} ${ev.primerApellido} ${ev.segundoApellido || ''}`.trim()
+                            : ev.nombreCompleto;
+                          const tipoStr = ev.tipo?.toLowerCase().includes('tutor') ? 'tutor' : 'colaborador';
+                          return (
+                            <div key={ev.rut || ev.correo} style={{ fontSize: '13.5px', color: '#e2e8f0' }}>
+                              <strong style={{ color: '#f8fafc' }}>{nombreEvaluador}</strong>
+                              <span style={{ color: '#94a3b8', marginLeft: '6px' }}>({ev.correo})</span>
+                              <span style={{
+                                marginLeft: '8px',
+                                fontSize: '11px',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                backgroundColor: tipoStr === 'tutor' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(168, 85, 247, 0.2)',
+                                color: tipoStr === 'tutor' ? '#60a5fa' : '#c084fc',
+                                fontWeight: '600'
+                              }}>
+                                {tipoStr}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span style={{ ...styles.infoValue, color: '#94a3b8' }}>Sin evaluadores asignados actualmente</span>
+                    )}
                   </div>
 
                   <div style={styles.infoItem}>

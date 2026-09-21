@@ -10,10 +10,16 @@ import com.ubb.dochub.dto.TipoFiltroEvaluacion;
 import com.ubb.dochub.entity.*;
 import com.ubb.dochub.repository.AsignacionRepository;
 import com.ubb.dochub.repository.EstudianteRepository;
+import com.ubb.dochub.repository.EvaluacionClaseRepository;
+import com.ubb.dochub.repository.EvaluacionSemestralRepository;
 import com.ubb.dochub.repository.InformeRepository;
 import com.ubb.dochub.repository.InscripcionRepository;
 import com.ubb.dochub.repository.OfertaRepository;
 import com.ubb.dochub.service.PracticaService;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +27,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +48,8 @@ public class PracticaController {
     private final AsignacionRepository asignacionRepository;
     private final InformeRepository informeRepository;
     private final EstudianteRepository estudianteRepository;
+    private final EvaluacionClaseRepository evaluacionClaseRepository;
+    private final EvaluacionSemestralRepository evaluacionSemestralRepository;
 
     public PracticaController(
             PracticaService practicaService,
@@ -45,30 +57,233 @@ public class PracticaController {
             OfertaRepository ofertaRepository,
             AsignacionRepository asignacionRepository,
             InformeRepository informeRepository,
-            EstudianteRepository estudianteRepository) {
+            EstudianteRepository estudianteRepository,
+            EvaluacionClaseRepository evaluacionClaseRepository,
+            EvaluacionSemestralRepository evaluacionSemestralRepository) {
         this.practicaService = practicaService;
         this.inscripcionRepository = inscripcionRepository;
         this.ofertaRepository = ofertaRepository;
         this.asignacionRepository = asignacionRepository;
         this.informeRepository = informeRepository;
         this.estudianteRepository = estudianteRepository;
+        this.evaluacionClaseRepository = evaluacionClaseRepository;
+        this.evaluacionSemestralRepository = evaluacionSemestralRepository;
     }
 
-    // 1. Entrega informe estudiante
+    // 1. Entrega informe estudiante (vinculado automáticamente a su práctica actual)
     @PostMapping(value = "/informe-final", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<InformeEntregaResponse> subirInformeFinal(
-            @RequestParam("archivo") MultipartFile archivo) {
-        InformeEntregaResponse response = practicaService.guardarInformeFinal(archivo);
+            @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "correo", required = false) String correo) {
+        InformeEntregaResponse response = practicaService.guardarInformeFinalEstudiante(archivo, correo, userId);
         return ResponseEntity.ok(response);
     }
 
     // 2. Evaluaciones de profesor (Pablo)
     @GetMapping("/evaluaciones/profesor")
     public ResponseEntity<EvaluacionesResponseDto> obtenerEvaluacionesProfesor(
-            @RequestParam String rutProfesor,
+            @RequestParam(required = false) String rutProfesor,
+            @RequestParam(required = false) String correoProfesor,
+            @RequestParam(required = false) String rutEstudiante,
+            @RequestParam(required = false) Long inscripcionId,
             @RequestParam(defaultValue = "TODAS") TipoFiltroEvaluacion tipo) {
-        EvaluacionesResponseDto response = practicaService.obtenerEvaluacionesPorProfesor(rutProfesor, tipo);
+        if (correoProfesor != null && !correoProfesor.isBlank()) {
+            String emailNorm = correoProfesor.trim().toLowerCase();
+            boolean esEstudiante = estudianteRepository.findByCorreo(emailNorm).isPresent();
+            if (esEstudiante) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Los estudiantes deben consultar sus evaluaciones a través de /evaluaciones/estudiante.");
+            }
+        }
+        EvaluacionesResponseDto response = practicaService.obtenerEvaluacionesPorProfesor(rutProfesor, correoProfesor, rutEstudiante, inscripcionId, tipo);
         return ResponseEntity.ok(response);
+    }
+
+    // 2b. Evaluaciones de estudiante (limitadas a su práctica en curso por defecto)
+    @GetMapping("/evaluaciones/estudiante")
+    public ResponseEntity<EvaluacionesResponseDto> obtenerEvaluacionesEstudiante(
+            @RequestParam(required = false) String correoEstudiante,
+            @RequestParam(required = false) String rutEstudiante,
+            @RequestParam(required = false) Long inscripcionId,
+            @RequestParam(defaultValue = "TODAS") TipoFiltroEvaluacion tipo) {
+        EvaluacionesResponseDto response = practicaService.obtenerEvaluacionesPorEstudiante(correoEstudiante, rutEstudiante, inscripcionId, tipo);
+        return ResponseEntity.ok(response);
+    }
+
+    // Visualizar PDF de evaluación de clase con validación de dominio
+    @GetMapping("/evaluaciones/clase/{id}/archivo")
+    public ResponseEntity<Resource> verArchivoEvaluacionClase(
+            @PathVariable Long id,
+            @RequestParam(value = "userEmail", required = false) String userEmail) {
+        EvaluacionClase ec = evaluacionClaseRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evaluación de clase no encontrada con id: " + id));
+
+        if (userEmail != null && !userEmail.isBlank()) {
+            String emailNorm = userEmail.trim().toLowerCase();
+            if (!"admin@ubiobio.cl".equalsIgnoreCase(emailNorm)) {
+                Inscripcion insc = ec.getClase() != null ? ec.getClase().getInscripcion() : null;
+                boolean esEstudiante = insc != null && insc.getEstudiante() != null
+                        && emailNorm.equalsIgnoreCase(insc.getEstudiante().getCorreo());
+                boolean esProfesor = insc != null && insc.getOferta() != null && insc.getOferta().getProfesor() != null
+                        && emailNorm.equalsIgnoreCase(insc.getOferta().getProfesor().getCorreo());
+                boolean esEvaluador = ec.getEvaluador() != null
+                        && emailNorm.equalsIgnoreCase(ec.getEvaluador().getCorreo());
+
+                if (!esEstudiante && !esProfesor && !esEvaluador) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: No tiene permisos para visualizar esta evaluación de clase fuera de su dominio.");
+                }
+            }
+        }
+
+        return servirPdfInline(ec.getArchivo(), "Pauta_Evaluacion_Clase_" + id + ".pdf");
+    }
+
+    // Visualizar PDF de evaluación semestral con validación de dominio
+    @GetMapping("/evaluaciones/semestral/{id}/archivo")
+    public ResponseEntity<Resource> verArchivoEvaluacionSemestral(
+            @PathVariable Long id,
+            @RequestParam(value = "userEmail", required = false) String userEmail) {
+        EvaluacionSemestral es = evaluacionSemestralRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evaluación semestral no encontrada con id: " + id));
+
+        if (userEmail != null && !userEmail.isBlank()) {
+            String emailNorm = userEmail.trim().toLowerCase();
+            if (!"admin@ubiobio.cl".equalsIgnoreCase(emailNorm)) {
+                Inscripcion insc = es.getAsignacion() != null ? es.getAsignacion().getInscripcion() : null;
+                boolean esEstudiante = insc != null && insc.getEstudiante() != null
+                        && emailNorm.equalsIgnoreCase(insc.getEstudiante().getCorreo());
+                boolean esProfesor = insc != null && insc.getOferta() != null && insc.getOferta().getProfesor() != null
+                        && emailNorm.equalsIgnoreCase(insc.getOferta().getProfesor().getCorreo());
+                boolean esEvaluador = es.getAsignacion() != null && es.getAsignacion().getEvaluador() != null
+                        && emailNorm.equalsIgnoreCase(es.getAsignacion().getEvaluador().getCorreo());
+
+                if (!esEstudiante && !esProfesor && !esEvaluador) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: No tiene permisos para visualizar esta evaluación semestral fuera de su dominio.");
+                }
+            }
+        }
+
+        return servirPdfInline(es.getArchivo(), "Evaluacion_Semestral_" + id + ".pdf");
+    }
+
+    // Visualizar PDF de informe final de práctica con validación de dominio
+    @GetMapping("/informes/{id}/archivo")
+    public ResponseEntity<Resource> verArchivoInforme(
+            @PathVariable Long id,
+            @RequestParam(value = "userEmail", required = false) String userEmail) {
+        Informe inf = informeRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Informe no encontrado con id: " + id));
+
+        if (userEmail != null && !userEmail.isBlank()) {
+            String emailNorm = userEmail.trim().toLowerCase();
+            if (!"admin@ubiobio.cl".equalsIgnoreCase(emailNorm)) {
+                Inscripcion insc = inf.getInscripcion();
+                boolean esEstudiante = insc != null && insc.getEstudiante() != null
+                        && emailNorm.equalsIgnoreCase(insc.getEstudiante().getCorreo());
+                boolean esProfesor = insc != null && insc.getOferta() != null && insc.getOferta().getProfesor() != null
+                        && emailNorm.equalsIgnoreCase(insc.getOferta().getProfesor().getCorreo());
+                boolean esEvaluador = insc != null && asignacionRepository.findByInscripcionIdWithEvaluador(insc.getId()).stream()
+                        .anyMatch(a -> a.getEvaluador() != null && emailNorm.equalsIgnoreCase(a.getEvaluador().getCorreo()));
+
+                if (!esEstudiante && !esProfesor && !esEvaluador) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: No tiene permisos para visualizar este informe final fuera de su dominio.");
+                }
+            }
+        }
+
+        return servirPdfInformeInline(inf.getArchivo(), "Informe_Final_" + id + ".pdf");
+    }
+
+    private ResponseEntity<Resource> servirPdfInformeInline(String rutaArchivo, String fallbackNombre) {
+        if (rutaArchivo != null && !rutaArchivo.trim().isEmpty()) {
+            try {
+                Path path = Paths.get(rutaArchivo);
+                if (!Files.exists(path)) {
+                    if (rutaArchivo.startsWith("/")) {
+                        path = Paths.get(rutaArchivo.substring(1));
+                    }
+                    if (!Files.exists(path)) {
+                        path = Paths.get("backend").resolve(rutaArchivo.startsWith("/") ? rutaArchivo.substring(1) : rutaArchivo);
+                    }
+                    if (!Files.exists(path)) {
+                        path = Paths.get("uploads/informes/Ejemplo_Informe.pdf");
+                    }
+                    if (!Files.exists(path)) {
+                        path = Paths.get("backend/uploads/informes/Ejemplo_Informe.pdf");
+                    }
+                }
+                if (Files.exists(path)) {
+                    Resource resource = new UrlResource(path.toUri());
+                    String nombreDescarga = path.getFileName() != null ? path.getFileName().toString() : fallbackNombre;
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.APPLICATION_PDF)
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nombreDescarga + "\"")
+                            .body(resource);
+                }
+            } catch (MalformedURLException ignored) {
+            }
+        }
+
+        // Fallback directo a ClassPathResource (empaquetado dentro del JAR)
+        ClassPathResource classpathResource = new ClassPathResource("samples/Ejemplo_Informe.pdf");
+        if (classpathResource.exists()) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fallbackNombre + "\"")
+                    .body(classpathResource);
+        }
+
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El archivo físico del informe no fue encontrado en el servidor.");
+    }
+
+    private ResponseEntity<Resource> servirPdfInline(String rutaArchivo, String fallbackNombre) {
+        if (rutaArchivo == null || rutaArchivo.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No hay archivo asociado a esta evaluación.");
+        }
+
+        try {
+            Path path = Paths.get(rutaArchivo);
+            if (!Files.exists(path)) {
+                if (rutaArchivo.startsWith("/")) {
+                    path = Paths.get(rutaArchivo.substring(1));
+                }
+                if (!Files.exists(path)) {
+                    path = Paths.get("backend").resolve(rutaArchivo.startsWith("/") ? rutaArchivo.substring(1) : rutaArchivo);
+                }
+                if (!Files.exists(path)) {
+                    path = Paths.get("uploads/evaluaciones/Pauta_Ev_Ejemplo.pdf");
+                    if (!Files.exists(path)) {
+                        path = Paths.get("backend/uploads/evaluaciones/Pauta_Ev_Ejemplo.pdf");
+                    }
+                    if (!Files.exists(path)) {
+                        path = Paths.get("Pauta_Ev_Ejemplo.pdf");
+                    }
+                }
+            }
+
+            if (!Files.exists(path)) {
+                // Fallback directo a ClassPathResource (empaquetado dentro del JAR)
+                ClassPathResource classpathResource = new ClassPathResource("samples/Pauta_Ev_Ejemplo.pdf");
+                if (classpathResource.exists()) {
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.APPLICATION_PDF)
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fallbackNombre + "\"")
+                            .body(classpathResource);
+                }
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El archivo físico no fue encontrado en el servidor.");
+            }
+
+            Resource resource = new UrlResource(path.toUri());
+            String nombreDescarga = path.getFileName() != null ? path.getFileName().toString() : fallbackNombre;
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nombreDescarga + "\"")
+                    .body(resource);
+
+        } catch (MalformedURLException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al preparar el archivo: " + e.getMessage());
+        }
     }
 
     // 3. Inscripciones por profesor (Yonatan)
@@ -89,24 +304,55 @@ public class PracticaController {
         return ResponseEntity.ok(dto);
     }
 
-    // 4. Ofertas por profesor
+    // 4. Ofertas por profesor o estudiante
     @GetMapping("/ofertas")
     public ResponseEntity<List<OfertaResponse>> listarOfertasPorProfesor(@RequestParam(value = "profesorEmail", required = false) String profesorEmail) {
-        List<Oferta> ofertas;
+        List<OfertaResponse> dto;
         if (profesorEmail != null && !profesorEmail.isBlank() && !"admin@ubiobio.cl".equalsIgnoreCase(profesorEmail.trim())) {
-            ofertas = ofertaRepository.findByProfesorCorreoIgnoreCaseOrderByAnioDescPeriodoDesc(profesorEmail.trim());
+            List<Oferta> ofertas = ofertaRepository.findByProfesorCorreoIgnoreCaseOrderByAnioDescPeriodoDesc(profesorEmail.trim());
             if (ofertas.isEmpty()) {
                 ofertas = ofertaRepository.findByProfesorCorreoOrderByAnioDescPeriodoDesc(profesorEmail.trim());
             }
-        } else {
-            ofertas = ofertaRepository.findAllWithDetailsOrderByAnioDescPeriodoDesc();
-        }
 
-        List<OfertaResponse> dto = ofertas.stream().map(o -> {
-            var ap = o.getAsignaturaPractica();
-            Long inscritos = inscripcionRepository.countByOfertaId(o.getId());
-            return new OfertaResponse(o.getId(), o.getAnio(), o.getPeriodo(), ap != null ? ap.getCodigo() : null, ap != null ? ap.getNombre() : null, inscritos == null ? 0L : inscritos);
-        }).collect(Collectors.toList());
+            if (!ofertas.isEmpty()) {
+                // Caso Profesor: listar ofertas a su cargo
+                dto = ofertas.stream().map(o -> {
+                    var ap = o.getAsignaturaPractica();
+                    Long inscritos = inscripcionRepository.countByOfertaId(o.getId());
+                    return new OfertaResponse(o.getId(), o.getAnio(), o.getPeriodo(), ap != null ? ap.getCodigo() : null, ap != null ? ap.getNombre() : null, inscritos == null ? 0L : inscritos);
+                }).collect(Collectors.toList());
+            } else {
+                // Caso Estudiante: listar sus prácticas inscritas
+                List<Inscripcion> inscripcionesEst = inscripcionRepository.findByEstudianteCorreoWithOferta(profesorEmail.trim());
+                dto = inscripcionesEst.stream().map(i -> {
+                    Oferta o = i.getOferta();
+                    var ap = (o != null) ? o.getAsignaturaPractica() : null;
+                    var prof = (o != null) ? o.getProfesor() : null;
+                    String profNom = (prof != null) ? (prof.getPrimerNombre() + " " + prof.getApellidoPaterno()).trim() : null;
+                    String profCor = (prof != null) ? prof.getCorreo() : null;
+
+                    OfertaResponse r = new OfertaResponse(
+                            (o != null) ? o.getId() : i.getId(),
+                            (o != null) ? o.getAnio() : 0,
+                            (o != null) ? o.getPeriodo() : 0,
+                            (ap != null) ? ap.getCodigo() : "INF-PRA",
+                            (ap != null) ? ap.getNombre() : "Práctica Profesional",
+                            1L
+                    );
+                    r.setInscripcionId(i.getId());
+                    r.setProfesorNombre(profNom);
+                    r.setProfesorCorreo(profCor);
+                    return r;
+                }).collect(Collectors.toList());
+            }
+        } else {
+            List<Oferta> ofertas = ofertaRepository.findAllWithDetailsOrderByAnioDescPeriodoDesc();
+            dto = ofertas.stream().map(o -> {
+                var ap = o.getAsignaturaPractica();
+                Long inscritos = inscripcionRepository.countByOfertaId(o.getId());
+                return new OfertaResponse(o.getId(), o.getAnio(), o.getPeriodo(), ap != null ? ap.getCodigo() : null, ap != null ? ap.getNombre() : null, inscritos == null ? 0L : inscritos);
+            }).collect(Collectors.toList());
+        }
 
         return ResponseEntity.ok(dto);
     }
@@ -148,7 +394,9 @@ public class PracticaController {
 
     // 7. Detalle de inscripción (Ficha de Alumno)
     @GetMapping("/inscripciones/{inscripcionId}")
-    public ResponseEntity<EstudianteDetalleResponse> getDetalleInscripcion(@PathVariable("inscripcionId") Long inscripcionId) {
+    public ResponseEntity<EstudianteDetalleResponse> getDetalleInscripcion(
+            @PathVariable("inscripcionId") Long inscripcionId,
+            @RequestParam(value = "userEmail", required = false) String userEmail) {
         if (inscripcionId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Se requiere el ID de la inscripción.");
         }
@@ -160,6 +408,26 @@ public class PracticaController {
         Oferta ofertaActual = inscripcion.getOferta();
         AsignaturaPractica apActual = ofertaActual != null ? ofertaActual.getAsignaturaPractica() : null;
         Profesor profActual = ofertaActual != null ? ofertaActual.getProfesor() : null;
+        List<Asignacion> asignaciones = asignacionRepository.findByInscripcionIdWithEvaluador(inscripcionId);
+
+        // Control de Integridad de Dominio:
+        if (userEmail != null && !userEmail.isBlank()) {
+            String emailNorm = userEmail.trim().toLowerCase();
+            if (!"admin@ubiobio.cl".equalsIgnoreCase(emailNorm)) {
+                boolean esSuProfesor = profActual != null && profActual.getCorreo() != null
+                        && emailNorm.equalsIgnoreCase(profActual.getCorreo().trim());
+                boolean esElMismoEstudiante = est != null && est.getCorreo() != null
+                        && emailNorm.equalsIgnoreCase(est.getCorreo().trim());
+                boolean esEvaluadorAsignado = asignaciones != null && asignaciones.stream()
+                        .anyMatch(a -> a.getEvaluador() != null && a.getEvaluador().getCorreo() != null
+                                && emailNorm.equalsIgnoreCase(a.getEvaluador().getCorreo().trim()));
+
+                if (!esSuProfesor && !esElMismoEstudiante && !esEvaluadorAsignado) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
+                        "Acceso denegado: No tiene autorización para consultar la ficha de un estudiante fuera de su dominio académico.");
+                }
+            }
+        }
 
         EstudianteDetalleResponse resp = new EstudianteDetalleResponse();
         resp.setInscripcionId(inscripcion.getId());
@@ -196,8 +464,6 @@ public class PracticaController {
         }
 
         resp.setEstablecimiento("Liceo Bicentenario de Excelencia Polivalente San Nicolás");
-
-        List<Asignacion> asignaciones = asignacionRepository.findByInscripcionIdWithEvaluador(inscripcionId);
         List<EstudianteDetalleResponse.EvaluadorItemDto> evaluadoresDto = asignaciones.stream().map(a -> {
             Evaluador ev = a.getEvaluador();
             if (ev == null) return null;
@@ -209,6 +475,9 @@ public class PracticaController {
             return new EstudianteDetalleResponse.EvaluadorItemDto(
                     ev.getRut(),
                     nomEv,
+                    ev.getPrimerNombre(),
+                    ev.getApellidoPaterno(),
+                    ev.getApellidoMaterno(),
                     ev.getCorreo(),
                     ev.getTipo() != null ? ev.getTipo().name() : "EVALUADOR"
             );
@@ -245,9 +514,11 @@ public class PracticaController {
                 nombreArchivo = rawArchivo.substring(rawArchivo.lastIndexOf("/") + 1);
                 nombreArchivo = nombreArchivo.replaceFirst("^[a-f0-9\\-]{36}_", "");
             }
+            String archivoUrl = "/api/practicas/informes/" + ultimo.getId() + "/archivo";
             resp.setInformeActual(new EstudianteDetalleResponse.InformeItemDto(
                     ultimo.getId(),
                     ultimo.getArchivo(),
+                    archivoUrl,
                     nombreArchivo,
                     ultimo.getFecha() != null ? ultimo.getFecha().toString() : "",
                     ultimo.getEmisor() != null ? ultimo.getEmisor().name() : "PROFESOR"
@@ -266,22 +537,32 @@ public class PracticaController {
         return ResponseEntity.ok(response);
     }
 
-    // 9. Directorio de alumnos
+    // 9. Directorio de alumnos con validación estricta de rol docente
     @GetMapping("/alumnos")
     public ResponseEntity<List<EstudianteDirectorioDto>> listarTodosLosAlumnos(
             @RequestParam(value = "profesorEmail", required = false) String profesorEmail) {
 
-        List<Inscripcion> inscripciones;
-        if (profesorEmail != null && !profesorEmail.isBlank()) {
-            if ("admin@ubiobio.cl".equalsIgnoreCase(profesorEmail.trim())) {
-                inscripciones = inscripcionRepository.findAllWithDetails();
-            } else {
-                inscripciones = inscripcionRepository.findByOfertaProfesorCorreoWithDetails(profesorEmail.trim());
-            }
-        } else {
-            inscripciones = List.of();
+        if (profesorEmail == null || profesorEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Se requiere identificación docente para acceder al directorio.");
         }
 
+        String emailNorm = profesorEmail.trim().toLowerCase();
+        if ("admin@ubiobio.cl".equalsIgnoreCase(emailNorm)) {
+            List<Inscripcion> inscripciones = inscripcionRepository.findAllWithDetails();
+            return ResponseEntity.ok(construirDirectorioAlumnos(inscripciones));
+        }
+
+        // Si el usuario es un Estudiante, bloquear acceso directo al directorio general
+        boolean esEstudiante = estudianteRepository.findByCorreo(emailNorm).isPresent();
+        if (esEstudiante) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Los estudiantes no tienen autorización para consultar el directorio general de alumnos.");
+        }
+
+        List<Inscripcion> inscripciones = inscripcionRepository.findByOfertaProfesorCorreoWithDetails(emailNorm);
+        return ResponseEntity.ok(construirDirectorioAlumnos(inscripciones));
+    }
+
+    private List<EstudianteDirectorioDto> construirDirectorioAlumnos(List<Inscripcion> inscripciones) {
         Map<String, EstudianteDirectorioDto> alumnoMap = new LinkedHashMap<>();
 
         for (Inscripcion i : inscripciones) {
@@ -317,20 +598,29 @@ public class PracticaController {
                 ));
             }
         }
-
-        return ResponseEntity.ok(new ArrayList<>(alumnoMap.values()));
+        return new ArrayList<>(alumnoMap.values());
     }
 
-    // 10. Detalle de estudiante por RUT
+    // 10. Detalle de estudiante por RUT con validación de dominio
     @GetMapping("/estudiantes/{rut}")
-    public ResponseEntity<EstudianteDetalleResponse> getDetallePorRutEstudiante(@PathVariable("rut") String rut) {
+    public ResponseEntity<EstudianteDetalleResponse> getDetallePorRutEstudiante(
+            @PathVariable("rut") String rut,
+            @RequestParam(value = "userEmail", required = false) String userEmail) {
         List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteRutWithOferta(rut);
         if (!inscripciones.isEmpty()) {
-            return getDetalleInscripcion(inscripciones.get(0).getId());
+            return getDetalleInscripcion(inscripciones.get(0).getId(), userEmail);
         }
 
         Estudiante est = estudianteRepository.findById(rut)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Estudiante no encontrado con RUT: " + rut));
+
+        // Si se especificó usuario consultor, validar dominio
+        if (userEmail != null && !userEmail.isBlank()) {
+            String emailNorm = userEmail.trim().toLowerCase();
+            if (!"admin@ubiobio.cl".equalsIgnoreCase(emailNorm) && !emailNorm.equalsIgnoreCase(est.getCorreo())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: No tiene permisos para consultar información de este estudiante.");
+            }
+        }
 
         EstudianteDetalleResponse resp = new EstudianteDetalleResponse();
         resp.setEstudianteRut(est.getRut());
@@ -344,5 +634,25 @@ public class PracticaController {
         resp.setCarrera("Ingeniería Civil en Informática");
         resp.setEstablecimiento("Sin asignación de centro");
         return ResponseEntity.ok(resp);
+    }
+
+    // 11. Detalle de estudiante por Correo con validación de dominio
+    @GetMapping("/estudiantes/correo/{correo}")
+    public ResponseEntity<EstudianteDetalleResponse> getDetallePorCorreoEstudiante(
+            @PathVariable("correo") String correo,
+            @RequestParam(value = "userEmail", required = false) String userEmail) {
+        if (correo == null || correo.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Correo inválido");
+        }
+
+        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteCorreoWithOferta(correo.trim());
+        if (!inscripciones.isEmpty()) {
+            return getDetalleInscripcion(inscripciones.get(0).getId(), userEmail);
+        }
+
+        Estudiante est = estudianteRepository.findByCorreo(correo.trim())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Estudiante no encontrado con correo: " + correo));
+
+        return getDetallePorRutEstudiante(est.getRut(), userEmail);
     }
 }

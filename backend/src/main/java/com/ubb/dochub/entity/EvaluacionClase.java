@@ -1,11 +1,11 @@
 package com.ubb.dochub.entity;
 
-import java.time.LocalDateTime;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "evaluacion_clase")
 public class EvaluacionClase {
+
     public EvaluacionClase() {
     }
 
@@ -15,21 +15,13 @@ public class EvaluacionClase {
         this.evaluador = evaluador;
     }
 
-    public EvaluacionClase(String archivo, Clase clase, Evaluador evaluador, Double nota, String observaciones, LocalDateTime fecha) {
-        this.archivo = archivo;
-        this.clase = clase;
-        this.evaluador = evaluador;
-        this.nota = nota;
-        this.observaciones = observaciones;
-        this.fecha = fecha;
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Pauta de evaluación (archivo PDF de la evaluación en disco) según MER_3
     @Column(name = "archivo", nullable = false)
-    private String archivo; // ruta al archivo en disco de evaluación de la clase
+    private String archivo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_clase")
@@ -39,19 +31,10 @@ public class EvaluacionClase {
     @JoinColumn(name = "rut_evaluador")
     private Evaluador evaluador;
 
-    @Column(name = "nota")
-    private Double nota;
-
-    @Column(name = "observaciones")
-    private String observaciones;
-
-    @Column(name = "fecha")
-    private LocalDateTime fecha;
-
     public Long getId() {
         return id;
     }
-    
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -64,28 +47,12 @@ public class EvaluacionClase {
         this.archivo = archivo;
     }
 
-    public Double getNota() {
-        return nota;
+    public String getPautaEvaluacion() {
+        return archivo;
     }
 
-    public void setNota(Double nota) {
-        this.nota = nota;
-    }
-
-    public String getObservaciones() {
-        return observaciones;
-    }
-
-    public void setObservaciones(String observaciones) {
-        this.observaciones = observaciones;
-    }
-
-    public LocalDateTime getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(LocalDateTime fecha) {
-        this.fecha = fecha;
+    public void setPautaEvaluacion(String pautaEvaluacion) {
+        this.archivo = pautaEvaluacion;
     }
 
     public Clase getClase() {

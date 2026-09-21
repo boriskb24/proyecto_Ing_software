@@ -7,6 +7,9 @@ public class OfertaResponse {
     private String asignaturaCodigo;
     private String asignaturaNombre;
     private Long inscritosCount;
+    private Long inscripcionId;
+    private String profesorNombre;
+    private String profesorCorreo;
 
     public OfertaResponse() {}
 
@@ -31,4 +34,10 @@ public class OfertaResponse {
     public void setAsignaturaNombre(String asignaturaNombre) { this.asignaturaNombre = asignaturaNombre; }
     public Long getInscritosCount() { return inscritosCount; }
     public void setInscritosCount(Long inscritosCount) { this.inscritosCount = inscritosCount; }
+    public Long getInscripcionId() { return inscripcionId; }
+    public void setInscripcionId(Long inscripcionId) { this.inscripcionId = inscripcionId; }
+    public String getProfesorNombre() { return profesorNombre; }
+    public void setProfesorNombre(String profesorNombre) { this.profesorNombre = profesorNombre; }
+    public String getProfesorCorreo() { return profesorCorreo; }
+    public void setProfesorCorreo(String profesorCorreo) { this.profesorCorreo = profesorCorreo; }
 }

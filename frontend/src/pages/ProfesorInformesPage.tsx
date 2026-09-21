@@ -29,7 +29,19 @@ export const ProfesorInformesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [filterQuery, setFilterQuery] = useState<string>('')
 
+  const isDocente = !!user?.role && (
+    user.role.toLowerCase().includes('profesor') ||
+    user.role.toLowerCase().includes('administrador') ||
+    user.role.toLowerCase().includes('evaluador')
+  )
+
   useEffect(() => {
+    if (!user) return
+    if (!isDocente) {
+      navigate('/practicas', { replace: true })
+      return
+    }
+
     const fetch = async () => {
       setLoading(true)
       setError(null)

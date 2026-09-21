@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { uploadPlanificacion, getPlanificaciones, evaluarPlanificacion, Planificacion } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Search, Users, Filter, X } from 'lucide-react';
+import { Search, Users, Filter, X, ExternalLink } from 'lucide-react';
 
 export const PlanificacionesView: React.FC = () => {
   const { user } = useAuth();
@@ -12,6 +12,7 @@ export const PlanificacionesView: React.FC = () => {
 
   const [planificaciones, setPlanificaciones] = useState<Planificacion[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fechaClase, setFechaClase] = useState<string>('');
   const [isLoadingList, setIsLoadingList] = useState<boolean>(true);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [evaluatingId, setEvaluatingId] = useState<number | null>(null);
@@ -31,11 +32,11 @@ export const PlanificacionesView: React.FC = () => {
   const [observacionTexto, setObservacionTexto] = useState<string>('');
   const [isSubmittingEval, setIsSubmittingEval] = useState<boolean>(false);
 
-  // Cargar historial con filtro RBAC (userId y role)
+  // Cargar historial con filtro RBAC (userId, role y email)
   const cargarPlanificaciones = async () => {
     try {
       setIsLoadingList(true);
-      const data = await getPlanificaciones(user?.id, user?.role);
+      const data = await getPlanificaciones(user?.id, user?.role, user?.email);
       setPlanificaciones(data);
     } catch (err: any) {
       setErrorMessage('No se pudo cargar el historial de planificaciones.');
@@ -78,14 +79,20 @@ export const PlanificacionesView: React.FC = () => {
       return;
     }
 
+    if (!fechaClase) {
+      setErrorMessage('Por favor, ingresa la fecha de la clase que estás planificando.');
+      return;
+    }
+
     setIsUploading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      const nuevaPlanificacion = await uploadPlanificacion(selectedFile, user?.id);
+      const nuevaPlanificacion = await uploadPlanificacion(selectedFile, user?.id, fechaClase);
       setSuccessMessage(`¡Planificación "${nuevaPlanificacion.nombreArchivo || 'PDF'}" subida con éxito!`);
       setSelectedFile(null);
+      setFechaClase('');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -130,7 +137,8 @@ export const PlanificacionesView: React.FC = () => {
       const actualizada = await evaluarPlanificacion(
         planificacionAEvaluar.id,
         nuevoEstado,
-        observacionTexto.trim()
+        observacionTexto.trim(),
+        user?.email
       );
       setPlanificaciones((prev) =>
         prev.map((item) => (item.id === planificacionAEvaluar.id ? actualizada : item))
@@ -165,6 +173,36 @@ export const PlanificacionesView: React.FC = () => {
         minute: '2-digit',
         hour12: true,
       }).format(date);
+    } catch {
+      return fechaStr;
+    }
+  };
+
+  // Formateador de fecha de la clase (LocalDate YYYY-MM-DD)
+  const formatearFechaClase = (fechaStr?: string): string => {
+    if (!fechaStr) return 'No definida';
+    try {
+      const parts = fechaStr.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const date = new Date(year, month, day);
+        return new Intl.DateTimeFormat('es-CL', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }).format(date);
+      }
+      const date = new Date(fechaStr);
+      if (!isNaN(date.getTime())) {
+        return new Intl.DateTimeFormat('es-CL', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }).format(date);
+      }
+      return fechaStr;
     } catch {
       return fechaStr;
     }
@@ -214,7 +252,7 @@ export const PlanificacionesView: React.FC = () => {
   const hayFiltrosActivos = filtroEstudiante !== 'TODOS' || filtroEstado !== 'TODOS' || busquedaTexto.trim().length > 0;
 
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, maxWidth: esDocente ? '1440px' : '1200px' }}>
       <header style={styles.header}>
         <span style={styles.badge}>Centro de Documentos</span>
         <h1 style={styles.title}>
@@ -240,6 +278,34 @@ export const PlanificacionesView: React.FC = () => {
         <section style={styles.card}>
           <h2 style={styles.cardTitle}>Subir Nueva Planificación</h2>
           <form onSubmit={handleUpload} style={styles.form}>
+            {/* Campo obligatorio: Fecha de la clase planificada */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📅 Fecha de la Clase Planificada:</span>
+                <span style={{ color: '#dc2626', fontSize: '0.8rem' }}>* Obligatorio</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={fechaClase}
+                onChange={(e) => setFechaClase(e.target.value)}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.9rem',
+                  color: '#1e293b',
+                  backgroundColor: '#ffffff',
+                  outline: 'none',
+                  maxWidth: '260px',
+                  cursor: 'pointer',
+                }}
+              />
+              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                Ingresa la fecha en la que se impartirá esta clase. El botón de subida permanecerá desactivado hasta que indiques la fecha y selecciones el archivo.
+              </span>
+            </div>
+
             <div
               style={{
                 ...styles.dropzone,
@@ -285,11 +351,11 @@ export const PlanificacionesView: React.FC = () => {
 
             <button
               type="submit"
-              disabled={!selectedFile || isUploading}
+              disabled={!selectedFile || !fechaClase || isUploading}
               style={{
                 ...styles.submitBtn,
-                opacity: !selectedFile || isUploading ? 0.6 : 1,
-                cursor: !selectedFile || isUploading ? 'not-allowed' : 'pointer',
+                opacity: !selectedFile || !fechaClase || isUploading ? 0.6 : 1,
+                cursor: !selectedFile || !fechaClase || isUploading ? 'not-allowed' : 'pointer',
               }}
             >
               {isUploading ? 'Subiendo archivo...' : 'Subir Planificación'}
@@ -420,12 +486,12 @@ export const PlanificacionesView: React.FC = () => {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={{ ...styles.th, width: '45px', textAlign: 'center' }}>ID</th>
-                  <th style={{ ...styles.th, minWidth: '150px' }}>Archivo</th>
-                  {esDocente && <th style={{ ...styles.th, minWidth: '150px' }}>Estudiante</th>}
-                  <th style={{ ...styles.th, width: '100px', textAlign: 'center' }}>Estado</th>
-                  <th style={{ ...styles.th, width: '120px' }}>Fecha</th>
-                  <th style={{ ...styles.th, minWidth: '140px' }}>Retroalimentación</th>
+                  <th style={{ ...styles.th, minWidth: esDocente ? '180px' : '220px' }}>Archivo</th>
+                  {esDocente && <th style={{ ...styles.th, minWidth: '180px' }}>Estudiante</th>}
+                  <th style={{ ...styles.th, width: '110px', textAlign: 'center' }}>Estado</th>
+                  <th style={{ ...styles.th, width: '135px' }}>Fecha de Clase</th>
+                  <th style={{ ...styles.th, width: '130px' }}>Fecha de Subida</th>
+                  <th style={{ ...styles.th, minWidth: esDocente ? '240px' : '200px' }}>Retroalimentación</th>
                   {esDocente && <th style={{ ...styles.th, width: '100px', textAlign: 'center' }}>Acción</th>}
                 </tr>
               </thead>
@@ -436,44 +502,59 @@ export const PlanificacionesView: React.FC = () => {
 
                   return (
                     <tr key={item.id} style={styles.tr}>
-                      <td style={{ ...styles.td, textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.8rem' }}>
-                        #{item.id}
-                      </td>
                       <td style={styles.tdPrimary}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={rawName}>
+                        <a
+                          href={item.archivoUrl || `/api/planificaciones/${item.id}/archivo`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            textDecoration: 'none',
+                            color: '#1d4ed8',
+                            cursor: 'pointer',
+                          }}
+                          title={`Haga clic para ver o descargar la planificación "${rawName}"`}
+                        >
                           <span style={{ flexShrink: 0, fontSize: '1rem' }}>📄</span>
                           <span style={{
                             fontWeight: 600,
-                            color: '#1e293b',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '220px',
+                            maxWidth: esDocente ? '230px' : '280px',
                             display: 'inline-block',
+                            textDecoration: 'underline',
                           }}>
                             {displayName}
                           </span>
-                        </div>
+                          <ExternalLink size={13} style={{ flexShrink: 0, color: '#2563eb' }} />
+                        </a>
                       </td>
                       {esDocente && (
                         <td style={styles.td}>
-                          {item.usuario ? (
-                            <div style={{ maxWidth: '170px' }}>
+                          {item.usuario?.fullName ? (
+                            <div style={{ maxWidth: '240px' }}>
                               <div
-                                style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title={item.usuario.fullName}
                               >
                                 {item.usuario.fullName}
                               </div>
-                              <div
-                                style={{ fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                title={item.usuario.email}
-                              >
-                                {item.usuario.email}
-                              </div>
+                              {item.usuario.email && (
+                                <div
+                                  style={{ fontSize: '0.75rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                  title={item.usuario.email}
+                                >
+                                  {item.usuario.email}
+                                </div>
+                              )}
                             </div>
                           ) : (
-                            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Estudiante UBB</span>
+                            <span style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 500 }}>
+                              {item.usuario?.email || 'Estudiante'}
+                            </span>
                           )}
                         </td>
                       )}
@@ -486,14 +567,36 @@ export const PlanificacionesView: React.FC = () => {
                           {item.estado || 'PENDIENTE'}
                         </span>
                       </td>
-                      <td style={{ ...styles.td, fontSize: '0.78rem', color: '#475569', whiteSpace: 'nowrap' }}>
+                      <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
+                        {item.fechaClase ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            fontWeight: 600,
+                            color: '#1d4ed8',
+                            backgroundColor: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                          }}>
+                            {formatearFechaClase(item.fechaClase)}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                            No asignada
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...styles.td, fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                         {formatearFecha(item.fecha || item.fechaCreacion || '')}
                       </td>
                       <td style={styles.td}>
                         {item.retroalimentacion ? (
                           <div
                             style={{
-                              maxWidth: '180px',
+                              maxWidth: esDocente ? '280px' : '300px',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -566,7 +669,7 @@ export const PlanificacionesView: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Estudiante:</span>
                   <span style={{ color: '#0f172a', fontSize: '0.85rem', fontWeight: 600 }}>
-                    {planificacionAEvaluar.usuario?.fullName || 'Estudiante UBB'}
+                    {planificacionAEvaluar.usuario?.fullName || 'Estudiante'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -577,20 +680,27 @@ export const PlanificacionesView: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Documento:</span>
-                  <span
+                  <a
+                    href={planificacionAEvaluar.archivoUrl || `/api/planificaciones/${planificacionAEvaluar.id}/archivo`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
-                      color: '#334155',
+                      color: '#2563eb',
                       fontSize: '0.82rem',
-                      fontWeight: 500,
+                      fontWeight: 600,
                       maxWidth: '260px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      textDecoration: 'underline',
                     }}
-                    title={planificacionAEvaluar.nombreArchivo || planificacionAEvaluar.archivo || ''}
+                    title={`Abrir "${planificacionAEvaluar.nombreArchivo || planificacionAEvaluar.archivo || ''}" en nueva pestaña`}
                   >
-                    📄 {limpiarNombreArchivo(planificacionAEvaluar.nombreArchivo || planificacionAEvaluar.archivo || '')}
-                  </span>
+                    📄 {limpiarNombreArchivo(planificacionAEvaluar.nombreArchivo || planificacionAEvaluar.archivo || '')} <ExternalLink size={12} />
+                  </a>
                 </div>
               </div>
 
