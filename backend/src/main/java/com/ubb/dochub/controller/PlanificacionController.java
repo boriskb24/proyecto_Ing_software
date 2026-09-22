@@ -146,6 +146,12 @@ public class PlanificacionController {
                         path = Paths.get("backend").resolve(rutaArchivo.startsWith("/") ? rutaArchivo.substring(1) : rutaArchivo);
                     }
                     if (!Files.exists(path)) {
+                        path = Paths.get("uploads/planificaciones").resolve(rutaArchivo);
+                    }
+                    if (!Files.exists(path)) {
+                        path = Paths.get("backend/uploads/planificaciones").resolve(rutaArchivo);
+                    }
+                    if (!Files.exists(path)) {
                         path = Paths.get("uploads/planificaciones/Ejemplo_Planificacion.pdf");
                     }
                     if (!Files.exists(path)) {

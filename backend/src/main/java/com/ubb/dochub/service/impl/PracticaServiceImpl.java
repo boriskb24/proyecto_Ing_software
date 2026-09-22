@@ -275,14 +275,16 @@ public class PracticaServiceImpl implements PracticaService {
             }
             Files.copy(archivo.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
+            String rutaArchivo = targetLocation.toString().replace('\\', '/');
+
             // Persistir o actualizar registro de Informe para esta inscripción
             List<Informe> existentes = informeRepository.findByInscripcionIdAndEmisorOrderByIdDesc(inscripcionId, TipoEmisor.PROFESOR);
             Informe informe;
             if (!existentes.isEmpty()) {
                 informe = existentes.get(0);
-                informe.setArchivo(safeFileName);
+                informe.setArchivo(rutaArchivo);
             } else {
-                informe = new Informe(TipoEmisor.PROFESOR, safeFileName, inscripcion);
+                informe = new Informe(TipoEmisor.PROFESOR, rutaArchivo, inscripcion);
             }
             Informe saved = informeRepository.save(informe);
 
@@ -359,14 +361,16 @@ public class PracticaServiceImpl implements PracticaService {
             }
             Files.copy(archivo.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
+            String rutaArchivo = targetLocation.toString().replace('\\', '/');
+
             // Persistir o actualizar registro de Informe emitido por ESTUDIANTE para su práctica actual
             List<Informe> existentes = informeRepository.findByInscripcionIdAndEmisorOrderByIdDesc(inscripcionActual.getId(), TipoEmisor.ESTUDIANTE);
             Informe informe;
             if (!existentes.isEmpty()) {
                 informe = existentes.get(0);
-                informe.setArchivo(safeFileName);
+                informe.setArchivo(rutaArchivo);
             } else {
-                informe = new Informe(TipoEmisor.ESTUDIANTE, safeFileName, inscripcionActual);
+                informe = new Informe(TipoEmisor.ESTUDIANTE, rutaArchivo, inscripcionActual);
             }
             Informe saved = informeRepository.save(informe);
 

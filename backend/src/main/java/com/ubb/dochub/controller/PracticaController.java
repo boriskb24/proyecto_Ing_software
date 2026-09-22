@@ -206,6 +206,12 @@ public class PracticaController {
                         path = Paths.get("backend").resolve(rutaArchivo.startsWith("/") ? rutaArchivo.substring(1) : rutaArchivo);
                     }
                     if (!Files.exists(path)) {
+                        path = Paths.get("uploads/informes").resolve(rutaArchivo);
+                    }
+                    if (!Files.exists(path)) {
+                        path = Paths.get("backend/uploads/informes").resolve(rutaArchivo);
+                    }
+                    if (!Files.exists(path)) {
                         path = Paths.get("uploads/informes/Ejemplo_Informe.pdf");
                     }
                     if (!Files.exists(path)) {
@@ -251,13 +257,19 @@ public class PracticaController {
                     path = Paths.get("backend").resolve(rutaArchivo.startsWith("/") ? rutaArchivo.substring(1) : rutaArchivo);
                 }
                 if (!Files.exists(path)) {
+                    path = Paths.get("uploads/evaluaciones").resolve(rutaArchivo);
+                }
+                if (!Files.exists(path)) {
+                    path = Paths.get("backend/uploads/evaluaciones").resolve(rutaArchivo);
+                }
+                if (!Files.exists(path)) {
                     path = Paths.get("uploads/evaluaciones/Pauta_Ev_Ejemplo.pdf");
-                    if (!Files.exists(path)) {
-                        path = Paths.get("backend/uploads/evaluaciones/Pauta_Ev_Ejemplo.pdf");
-                    }
-                    if (!Files.exists(path)) {
-                        path = Paths.get("Pauta_Ev_Ejemplo.pdf");
-                    }
+                }
+                if (!Files.exists(path)) {
+                    path = Paths.get("backend/uploads/evaluaciones/Pauta_Ev_Ejemplo.pdf");
+                }
+                if (!Files.exists(path)) {
+                    path = Paths.get("Pauta_Ev_Ejemplo.pdf");
                 }
             }
 
@@ -511,7 +523,8 @@ public class PracticaController {
             String rawArchivo = ultimo.getArchivo();
             String nombreArchivo = "informe.pdf";
             if (rawArchivo != null) {
-                nombreArchivo = rawArchivo.substring(rawArchivo.lastIndexOf("/") + 1);
+                String cleanPath = rawArchivo.replace('\\', '/');
+                nombreArchivo = cleanPath.substring(cleanPath.lastIndexOf("/") + 1);
                 nombreArchivo = nombreArchivo.replaceFirst("^[a-f0-9\\-]{36}_", "");
             }
             String archivoUrl = "/api/practicas/informes/" + ultimo.getId() + "/archivo";

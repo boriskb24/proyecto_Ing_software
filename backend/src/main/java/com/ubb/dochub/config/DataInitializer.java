@@ -65,7 +65,7 @@ public class DataInitializer implements CommandLineRunner {
 
         // 2. Semillas de Profesores
         Profesor profBoris = crearProfesor("33333333-3", "Boris", "Alejandro", "Arenas", "Quezada",
-                "boris.profe@ubiobio.cl", "Ingeniero Civil Informático");
+                "boris.profe@ubiobio.cl", "Profesor Guía de Práctica");
         Profesor profJuan = crearProfesor("11111111-1", "Juan", "Carlos", "Perez", "Gomez", "profesor@ubiobio.cl",
                 "Profesor Guía de Práctica");
         Profesor profMaria = crearProfesor("12345678-9", "Maria", "Jose", "Gonzalez", "Soto",
@@ -183,7 +183,7 @@ public class DataInitializer implements CommandLineRunner {
         crearEvaluacionSemestral(asigDiego, "Práctica Profesional I");
 
         // 11. Informes (Diego y Valentina tienen informe entregado; Sebastián, Camila y Carla sin informe)
-        crearInforme(TipoEmisor.PROFESOR, "uploads/informes/Ejemplo_Informe.pdf", inscDiego);
+        // crearInforme(TipoEmisor.PROFESOR, "uploads/informes/Ejemplo_Informe.pdf", inscDiego);
         crearInforme(TipoEmisor.PROFESOR, "uploads/informes/Ejemplo_Informe.pdf", inscVal);
 
         entityManager.flush();
