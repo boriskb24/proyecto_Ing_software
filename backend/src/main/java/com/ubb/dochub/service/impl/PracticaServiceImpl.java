@@ -14,6 +14,7 @@ import com.ubb.dochub.entity.Inscripcion;
 import com.ubb.dochub.entity.Oferta;
 import com.ubb.dochub.entity.TipoEmisor;
 import com.ubb.dochub.entity.User;
+import com.ubb.dochub.repository.EstudianteRepository;
 import com.ubb.dochub.repository.EvaluacionClaseRepository;
 import com.ubb.dochub.repository.EvaluacionSemestralRepository;
 import com.ubb.dochub.repository.InformeRepository;
@@ -34,6 +35,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -42,6 +44,9 @@ public class PracticaServiceImpl implements PracticaService {
     private static final String UPLOAD_DIR = "uploads/informes";
     private final InscripcionRepository inscripcionRepository;
     private final InformeRepository informeRepository;
+
+    @Autowired
+    private EstudianteRepository estudianteRepository;
 
     @Autowired
     private EvaluacionClaseRepository evaluacionClaseRepository;
@@ -394,6 +399,81 @@ public class PracticaServiceImpl implements PracticaService {
                 "Error al procesar y guardar el archivo: " + e.getMessage()
             );
         }
+    }
+
+    @Override
+    public InformeEntregaResponse obtenerUltimoInformeEstudiante(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return null;
+        }
+
+        Optional<Estudiante> estOpt = estudianteRepository.findByCorreo(email.trim().toLowerCase());
+        if (estOpt.isEmpty()) {
+            return null;
+        }
+
+        List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteRutWithOferta(estOpt.get().getRut());
+        if (inscripciones.isEmpty()) {
+            return null;
+        }
+
+        // Priorizar la inscripción más reciente o activa del período 2026
+        Inscripcion inscripcion = inscripciones.stream()
+                .filter(i -> i.getOferta() != null && i.getOferta().getAnio() >= 2026)
+                .findFirst()
+                .orElse(inscripciones.get(0));
+
+        List<Informe> informes = informeRepository.findByInscripcionIdAndEmisorOrderByIdDesc(inscripcion.getId(), TipoEmisor.ESTUDIANTE);
+        if (informes.isEmpty()) {
+            informes = informeRepository.findByInscripcionIdOrderByIdDesc(inscripcion.getId());
+        }
+
+        if (informes.isEmpty()) {
+            return null;
+        }
+
+        Informe ultimo = informes.get(0);
+        String rawArchivo = ultimo.getArchivo();
+        String displayNombre = "Informe_Final.pdf";
+        if (rawArchivo != null) {
+            String clean = rawArchivo.replace('\\', '/');
+            displayNombre = clean.substring(clean.lastIndexOf('/') + 1);
+            displayNombre = displayNombre.replaceFirst("^[a-f0-9\\-]{36}_", "");
+        }
+
+        long tamano = 0L;
+        try {
+            if (rawArchivo != null) {
+                Path filePath = Paths.get(rawArchivo);
+                if (!Files.exists(filePath)) {
+                    filePath = Paths.get("backend").resolve(rawArchivo);
+                }
+                if (!Files.exists(filePath)) {
+                    filePath = Paths.get(UPLOAD_DIR).resolve(rawArchivo);
+                }
+                if (!Files.exists(filePath)) {
+                    filePath = Paths.get("backend").resolve(UPLOAD_DIR).resolve(rawArchivo);
+                }
+                if (Files.exists(filePath)) {
+                    tamano = Files.size(filePath);
+                }
+            }
+        } catch (Exception ignored) {}
+
+        LocalDateTime fechaEntrega = ultimo.getFecha() != null 
+            ? ultimo.getFecha().atStartOfDay() 
+            : LocalDateTime.now();
+
+        InformeEntregaResponse resp = new InformeEntregaResponse(
+            "Último informe entregado encontrado",
+            displayNombre,
+            tamano,
+            "application/pdf",
+            fechaEntrega
+        );
+        resp.setId(ultimo.getId());
+        resp.setArchivoUrl("/api/practicas/informes/" + ultimo.getId() + "/archivo");
+        return resp;
     }
 
     @Override

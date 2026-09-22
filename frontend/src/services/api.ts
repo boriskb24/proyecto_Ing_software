@@ -59,16 +59,20 @@ export interface Planificacion {
 
 export const uploadInformeFinal = async (
   archivo: File,
-  userId?: number,
+  userIdOrEmail?: number | string,
   correo?: string
 ): Promise<InformeEntregaResponse> => {
   const formData = new FormData();
   formData.append('archivo', archivo);
-  if (userId) {
-    formData.append('userId', userId.toString());
+  if (typeof userIdOrEmail === 'number') {
+    formData.append('userId', userIdOrEmail.toString());
+  } else if (typeof userIdOrEmail === 'string') {
+    formData.append('email', userIdOrEmail);
+    formData.append('correo', userIdOrEmail);
   }
   if (correo) {
     formData.append('correo', correo);
+    formData.append('email', correo);
   }
 
   const response = await API.post<InformeEntregaResponse>('/practicas/informe-final', formData, {
@@ -78,6 +82,18 @@ export const uploadInformeFinal = async (
   });
 
   return response.data;
+};
+
+export const getMiInforme = async (email: string): Promise<InformeEntregaResponse | null> => {
+  try {
+    const response = await API.get<InformeEntregaResponse>(`/practicas/mi-informe?email=${encodeURIComponent(email)}`);
+    if (response.status === 204 || !response.data) {
+      return null;
+    }
+    return response.data;
+  } catch (error) {
+    return null;
+  }
 };
 
 export interface InscripcionDto {
@@ -256,6 +272,23 @@ export const uploadPlanificacion = async (file: File, userId?: number, fechaClas
   }
 
   const response = await API.post<Planificacion>('/planificaciones', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data;
+};
+
+// Reemplazar archivo de una planificación existente
+export const reemplazarPlanificacion = async (id: number, file: File, userId?: number): Promise<Planificacion> => {
+  const formData = new FormData();
+  formData.append('archivo', file);
+  if (userId) {
+    formData.append('userId', userId.toString());
+  }
+
+  const response = await API.post<Planificacion>(`/planificaciones/${id}/reemplazar`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

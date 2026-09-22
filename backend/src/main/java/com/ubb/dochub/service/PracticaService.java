@@ -15,6 +15,9 @@ public interface PracticaService {
     // Guardar informe final del estudiante (asociado automáticamente a su práctica activa)
     InformeEntregaResponse guardarInformeFinalEstudiante(MultipartFile archivo, String correoEstudiante, Long userId);
 
+    // Consultar el último informe entregado por un estudiante
+    InformeEntregaResponse obtenerUltimoInformeEstudiante(String email);
+
     // Evaluaciones de profesor (Pablo)
     default EvaluacionesResponseDto obtenerEvaluacionesPorProfesor(String rutProfesor, TipoFiltroEvaluacion tipo) {
         return obtenerEvaluacionesPorProfesor(rutProfesor, null, null, null, tipo);

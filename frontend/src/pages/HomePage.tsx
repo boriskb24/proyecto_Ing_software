@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Navbar } from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
-import { getPlanificaciones, Planificacion, getOfertasForProfesor, OfertaDto, getDetalleEstudianteByCorreo } from '../services/api'
+import { getPlanificaciones, Planificacion, getOfertasForProfesor, OfertaDto, getDetalleEstudianteByCorreo, getMiInforme } from '../services/api'
 import {
   Search,
   FileText,
@@ -180,6 +180,21 @@ export const HomePage: React.FC = () => {
         } catch (err) {
           console.error('Error fetching detalle estudiante:', err)
         }
+
+        try {
+          const miInf = await getMiInforme(user.email)
+          if (miInf) {
+            setInformeEntregado({
+              id: miInf.id,
+              nombreArchivo: miInf.nombreArchivo || 'Informe_Final.pdf',
+              fechaEntrega: miInf.fechaEntrega ? miInf.fechaEntrega.split('T')[0] : undefined,
+              archivoUrl: miInf.archivoUrl || (miInf.id ? `/api/practicas/informes/${miInf.id}/archivo` : undefined)
+            })
+            return
+          }
+        } catch (err) {
+          console.error('Error fetching mi informe:', err)
+        }
       }
 
       const rawUserInforme = user?.id ? localStorage.getItem(`ubb_informe_entrega_${user.id}`) : null
@@ -294,9 +309,9 @@ export const HomePage: React.FC = () => {
           ) : (
             <>
               <button onClick={() => navigate('/entrega-informe')} style={{ ...styles.quickCard, ...styles.quickCardBlue }}>
-                <Upload size={22} />
-                <div style={styles.quickCardTitle}>{tieneInformeFinal ? 'Mi Informe Final' : 'Entregar Informe Final'}</div>
-                <div style={styles.quickCardDesc}>{tieneInformeFinal ? 'Ver o actualizar archivo PDF' : 'Subir archivo PDF de Práctica'}</div>
+                {tieneInformeFinal ? <CheckCircle size={22} color="#10b981" /> : <Upload size={22} />}
+                <div style={styles.quickCardTitle}>{tieneInformeFinal ? 'Informe Entregado (1/1)' : 'Entregar Informe Final'}</div>
+                <div style={styles.quickCardDesc}>{tieneInformeFinal ? 'Ver o reemplazar entrega' : 'Subir archivo PDF de Práctica'}</div>
               </button>
               <button onClick={() => navigate('/planificaciones')} style={{ ...styles.quickCard, ...styles.quickCardGold }}>
                 <FileText size={22} />

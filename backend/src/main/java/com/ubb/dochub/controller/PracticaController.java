@@ -75,8 +75,21 @@ public class PracticaController {
     public ResponseEntity<InformeEntregaResponse> subirInformeFinal(
             @RequestParam("archivo") MultipartFile archivo,
             @RequestParam(value = "userId", required = false) Long userId,
-            @RequestParam(value = "correo", required = false) String correo) {
-        InformeEntregaResponse response = practicaService.guardarInformeFinalEstudiante(archivo, correo, userId);
+            @RequestParam(value = "correo", required = false) String correo,
+            @RequestParam(value = "email", required = false) String email) {
+        String effectiveEmail = (correo != null && !correo.isBlank()) ? correo : email;
+        InformeEntregaResponse response = practicaService.guardarInformeFinalEstudiante(archivo, effectiveEmail, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    // 1.1 Consultar última entrega del estudiante
+    @GetMapping("/mi-informe")
+    public ResponseEntity<InformeEntregaResponse> obtenerMiInforme(
+            @RequestParam("email") String email) {
+        InformeEntregaResponse response = practicaService.obtenerUltimoInformeEstudiante(email);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
         return ResponseEntity.ok(response);
     }
 
