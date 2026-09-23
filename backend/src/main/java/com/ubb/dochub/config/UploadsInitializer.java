@@ -40,12 +40,22 @@ public class UploadsInitializer {
                 "Pauta_Ev_Ejemplo.pdf"
         );
 
-        // 2. Planificación de Ejemplo
-        asegurarArchivo(
+        // 2. Planificaciones de Ejemplo (Independientes por Estudiante)
+        List<String> planificacionesMuestra = List.of(
                 "uploads/planificaciones/Ejemplo_Planificacion.pdf",
-                "/samples/Ejemplo_Planificacion.pdf",
-                "Ejemplo_Planificacion.pdf"
+                "uploads/planificaciones/Planificacion_Diego_Martinez.pdf",
+                "uploads/planificaciones/Planificacion_Valentina_Rojas.pdf",
+                "uploads/planificaciones/Planificacion_Sebastian_Fuentes.pdf",
+                "uploads/planificaciones/Planificacion_Ana_Perez.pdf",
+                "uploads/planificaciones/Planificacion_Bruno_Munoz.pdf"
         );
+        for (String rutaPlan : planificacionesMuestra) {
+            asegurarArchivo(
+                    rutaPlan,
+                    "/samples/Ejemplo_Planificacion.pdf",
+                    "Ejemplo_Planificacion.pdf"
+            );
+        }
 
         // 3. Informe Final de Ejemplo
         asegurarArchivo(

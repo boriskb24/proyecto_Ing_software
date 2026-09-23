@@ -390,17 +390,19 @@ export const HomePage: React.FC = () => {
                         <tbody>
                           {ofertas.slice(0, 4).map((of) => (
                             <tr key={of.id} style={styles.trBody}>
-                              <td style={styles.td}>
-                                <div style={{ fontWeight: '600', color: '#ffffff' }}>{of.asignaturaNombre}</div>
+                              <td style={{ ...styles.td, minWidth: '160px' }}>
+                                <div style={{ fontWeight: '600', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }} title={of.asignaturaNombre}>
+                                  {of.asignaturaNombre}
+                                </div>
                                 <div style={{ fontSize: '11px', color: '#94a3b8' }}>Código: {of.asignaturaCodigo}</div>
                               </td>
-                              <td style={styles.td}>
+                              <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
                                 <span style={styles.periodBadge}>{of.anio} - Semestre {of.periodo}</span>
                               </td>
-                              <td style={styles.td}>
+                              <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
                                 <span style={{ color: '#60a5fa', fontWeight: '600' }}>{of.inscritosCount || 0} estudiantes</span>
                               </td>
-                              <td style={{ ...styles.td, textAlign: 'right' }}>
+                              <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                                 <button
                                   onClick={() => navigate(`/practicas/${of.id}`)}
                                   style={{
@@ -468,21 +470,28 @@ export const HomePage: React.FC = () => {
                         <tbody>
                           {userPlanificaciones.slice(0, 4).map((p) => {
                             const rawName = p.nombreArchivo || p.archivo?.split('/').pop() || `Planificación #${p.id}`
+                            const cleanName = rawName.replace(/^[a-f0-9\-]{36}_/, '')
                             return (
                               <tr key={p.id} style={styles.trBody}>
-                                <td style={styles.td}>
-                                  <div style={{ fontWeight: '600', color: '#ffffff' }}>{p.usuario?.fullName || 'Estudiante'}</div>
-                                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>{p.usuario?.email || ''}</div>
+                                <td style={{ ...styles.td, minWidth: '140px', maxWidth: '200px' }}>
+                                  <div style={{ fontWeight: '600', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.usuario?.fullName || 'Estudiante'}>
+                                    {p.usuario?.fullName || 'Estudiante'}
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.usuario?.email || ''}>
+                                    {p.usuario?.email || ''}
+                                  </div>
                                 </td>
-                                <td style={styles.td}>
-                                  <span style={{ color: '#cbd5e1', fontSize: '12px' }}>{rawName}</span>
+                                <td style={{ ...styles.td, minWidth: '130px', maxWidth: '200px' }}>
+                                  <span style={{ color: '#cbd5e1', fontSize: '12px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={cleanName}>
+                                    {cleanName}
+                                  </span>
                                 </td>
-                                <td style={{ ...styles.td, textAlign: 'center' }}>
+                                <td style={{ ...styles.td, textAlign: 'center', whiteSpace: 'nowrap' }}>
                                   <span style={p.estado === 'APROBADA' ? styles.statusApproved : p.estado === 'RECHAZADA' ? styles.statusReview : styles.statusPending}>
                                     {p.estado || 'PENDIENTE'}
                                   </span>
                                 </td>
-                                <td style={{ ...styles.td, textAlign: 'right' }}>
+                                <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                                   <button
                                     onClick={() => navigate('/planificaciones')}
                                     style={{
@@ -607,7 +616,7 @@ export const HomePage: React.FC = () => {
             {isDocenteOrAdmin ? (
               <>
                 {/* Stats Administrativas */}
-                <div style={{ ...styles.statGrid, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <div style={{ ...styles.statGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                   <div style={styles.statCard}>
                     <div style={styles.statIcon}><Briefcase size={18} color="#60a5fa" /></div>
                     <div style={styles.statValue}>{totalOfertas}</div>
@@ -977,20 +986,27 @@ const styles: Record<string, React.CSSProperties> = {
   },
   dashboardGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 340px',
+    gridTemplateColumns: 'minmax(0, 1fr) 340px',
     gap: '24px',
+    alignItems: 'start',
   },
-  dashboardMain: {},
+  dashboardMain: {
+    minWidth: 0,
+    width: '100%',
+  },
   dashboardSidebar: {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+    minWidth: 0,
+    width: '100%',
   },
   card: {
     backgroundColor: '#101d3a',
     borderRadius: '16px',
     border: '1px solid rgba(255, 255, 255, 0.08)',
     overflow: 'hidden',
+    width: '100%',
   },
   cardHeader: {
     padding: '18px 20px',
@@ -1012,6 +1028,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardBody: {
     padding: '0',
+    overflowX: 'auto',
+    width: '100%',
   },
   badgeBlue: {
     backgroundColor: 'rgba(59, 130, 246, 0.2)',
@@ -1111,27 +1129,30 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: '12px',
   },
   statCard: {
     backgroundColor: '#101d3a',
     borderRadius: '14px',
-    padding: '14px',
+    padding: '12px 10px',
     border: '1px solid rgba(255, 255, 255, 0.08)',
+    minWidth: 0,
   },
   statIcon: {
     marginBottom: '8px',
   },
   statValue: {
-    fontSize: '20px',
+    fontSize: '18px',
     fontWeight: '800',
     color: '#ffffff',
   },
   statLabel: {
-    fontSize: '11px',
+    fontSize: '10.5px',
     color: '#94a3b8',
     marginTop: '2px',
+    lineHeight: 1.25,
+    wordBreak: 'break-word',
   },
   recentDocItem: {
     padding: '12px 16px',

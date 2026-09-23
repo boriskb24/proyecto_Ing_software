@@ -141,10 +141,15 @@ export const PlanificacionesView: React.FC = () => {
         user?.email
       );
       setPlanificaciones((prev) =>
-        prev.map((item) => (item.id === planificacionAEvaluar.id ? actualizada : item))
+        prev.map((item) =>
+          item.id === planificacionAEvaluar.id
+            ? { ...item, estado: actualizada.estado, retroalimentacion: actualizada.retroalimentacion }
+            : item
+        )
       );
       setSuccessMessage(`Planificación #${planificacionAEvaluar.id} marcada como ${nuevoEstado} con su retroalimentación.`);
       cerrarModalEvaluar();
+      await cargarPlanificaciones();
     } catch (err: any) {
       setErrorMessage('Error al registrar la evaluación y observaciones.');
     } finally {

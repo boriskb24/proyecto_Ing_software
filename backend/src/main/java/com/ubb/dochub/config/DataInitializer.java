@@ -145,16 +145,16 @@ public class DataInitializer implements CommandLineRunner {
         Asignacion asigAna = crearAsignacion(inscAna, evalEmpresa, "Colegio Santa María");
         Asignacion asigBruno = crearAsignacion(inscBruno, evalEmpresa, "Colegio Santa María");
 
-        // 9. Planificaciones y Clases
-        Planificacion plan1 = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
+        // 9. Planificaciones y Clases (Independientes por cada estudiante)
+        Planificacion plan1 = crearPlanificacion("uploads/planificaciones/Planificacion_Diego_Martinez.pdf",
                 EstadoPlanificacion.APROBADA, "Planificación de clase de ecuaciones cuadráticas.");
-        Planificacion plan2 = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
+        Planificacion plan2 = crearPlanificacion("uploads/planificaciones/Planificacion_Valentina_Rojas.pdf",
                 EstadoPlanificacion.PENDIENTE, null);
-        Planificacion plan3 = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
+        Planificacion plan3 = crearPlanificacion("uploads/planificaciones/Planificacion_Sebastian_Fuentes.pdf",
                 EstadoPlanificacion.RECHAZADA, "Debe incorporar una actividad de cierre.");
-        Planificacion planAna = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
+        Planificacion planAna = crearPlanificacion("uploads/planificaciones/Planificacion_Ana_Perez.pdf",
                 EstadoPlanificacion.APROBADA, "Excelente desarrollo metodológico.");
-        Planificacion planBruno = crearPlanificacion("uploads/planificaciones/Ejemplo_Planificacion.pdf",
+        Planificacion planBruno = crearPlanificacion("uploads/planificaciones/Planificacion_Bruno_Munoz.pdf",
                 EstadoPlanificacion.APROBADA, "Aprobada.");
 
         Clase clase1 = crearClase("Matemática", "Ecuaciones cuadráticas", plan1, inscDiego, LocalDate.of(2026, 9, 10),
@@ -334,8 +334,14 @@ public class DataInitializer implements CommandLineRunner {
                 .setParameter("insId", inscripcion.getId())
                 .setParameter("tema", tema)
                 .getResultList();
-        if (!existentes.isEmpty())
-            return existentes.get(0);
+        if (!existentes.isEmpty()) {
+            Clase c = existentes.get(0);
+            if (planificacion != null && (c.getPlanificacion() == null || !c.getPlanificacion().getId().equals(planificacion.getId()))) {
+                c.setPlanificacion(planificacion);
+                entityManager.merge(c);
+            }
+            return c;
+        }
 
         Clase clase = new Clase(asignatura, tema, planificacion, inscripcion, horaInicio);
         clase.setFecha(fecha);
