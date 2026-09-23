@@ -22,10 +22,13 @@ export const EntregaInformeForm: React.FC = () => {
       setIsLoadingInitial(true)
       let found: InformeEntregaResponse | null = null
 
+      let backendResponded = false
+
       // 1. Intentar desde el backend con el correo del estudiante
       if (user?.email) {
         try {
           found = await getMiInforme(user.email)
+          backendResponded = true
         } catch (err) {
           console.error('Error al consultar informe en backend:', err)
         }
@@ -40,9 +43,15 @@ export const EntregaInformeForm: React.FC = () => {
         }
       }
 
-      // 2. Fallback desde localStorage
-      if (!found && user?.id) {
-        const local = localStorage.getItem(`ubb_informe_entrega_${user.id}`) || localStorage.getItem('ubb_ultimo_informe_entregado')
+      // Si el backend respondió y el estudiante no tiene informe registrado, limpiar datos residuales
+      if (backendResponded && !found && user?.id) {
+        localStorage.removeItem(`ubb_informe_entrega_${user.id}`)
+        localStorage.removeItem('ubb_ultimo_informe_entregado')
+      }
+
+      // 2. Fallback desde localStorage SOLO si el backend no pudo responder (sin conexión)
+      if (!backendResponded && !found && user?.id) {
+        const local = localStorage.getItem(`ubb_informe_entrega_${user.id}`)
         if (local) {
           try {
             found = JSON.parse(local)
@@ -56,6 +65,7 @@ export const EntregaInformeForm: React.FC = () => {
         setExistingSubmission(found)
         setIsReplacing(false)
       } else {
+        setExistingSubmission(null)
         setIsReplacing(true)
       }
       setIsLoadingInitial(false)
@@ -106,12 +116,12 @@ export const EntregaInformeForm: React.FC = () => {
     try {
       const response = await uploadInformeFinal(selectedFile, user?.id, user?.email)
 
-      // Guardar y sincronizar
+      // Guardar y sincronizar por usuario
       setExistingSubmission(response)
       if (user?.id) {
         localStorage.setItem(`ubb_informe_entrega_${user.id}`, JSON.stringify(response))
       }
-      localStorage.setItem('ubb_ultimo_informe_entregado', JSON.stringify(response))
+      localStorage.removeItem('ubb_ultimo_informe_entregado')
 
       setSuccessMessage(response.mensaje || '¡Informe final de práctica entregado con éxito!')
       setSelectedFile(null)

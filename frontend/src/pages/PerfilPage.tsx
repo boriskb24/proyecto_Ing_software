@@ -52,7 +52,19 @@ export const PerfilPage: React.FC = () => {
       if (isEstudiante && user.email) {
         setIsLoadingDetalle(true)
         getDetalleEstudianteByCorreo(user.email, user.email)
-          .then((det) => setEstudianteDetalle(det))
+          .then((det) => {
+            setEstudianteDetalle(det)
+            if (det?.informeActual) {
+              setInformeFinal({
+                nombreArchivo: det.informeActual.nombreArchivo,
+                fechaEntrega: det.informeActual.fecha
+              })
+            } else {
+              setInformeFinal(null)
+              localStorage.removeItem(`ubb_informe_entrega_${user.id}`)
+              localStorage.removeItem('ubb_ultimo_informe_entregado')
+            }
+          })
           .catch((err) => {
             console.error('Error cargando detalle estudiante:', err)
           })

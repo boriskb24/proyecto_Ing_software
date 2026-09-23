@@ -195,13 +195,20 @@ export const HomePage: React.FC = () => {
         } catch (err) {
           console.error('Error fetching mi informe:', err)
         }
+
+        // Si el estudiante consultó el backend y no tiene informe registrado, limpiar datos residuales
+        if (user?.id) {
+          localStorage.removeItem(`ubb_informe_entrega_${user.id}`)
+          localStorage.removeItem('ubb_ultimo_informe_entregado')
+        }
+        setInformeEntregado(null)
+        return
       }
 
       const rawUserInforme = user?.id ? localStorage.getItem(`ubb_informe_entrega_${user.id}`) : null
-      const rawInforme = rawUserInforme || localStorage.getItem('ubb_ultimo_informe_entregado')
-      if (rawInforme) {
+      if (rawUserInforme) {
         try {
-          setInformeEntregado(JSON.parse(rawInforme))
+          setInformeEntregado(JSON.parse(rawUserInforme))
         } catch {}
       }
     }
