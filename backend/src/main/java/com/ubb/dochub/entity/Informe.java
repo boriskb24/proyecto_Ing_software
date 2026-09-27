@@ -4,7 +4,11 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "informe")
+@Table(name = "informe", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {
+        "id_inscripcion", "emisor" // sólo puede haber un informe por estudiante y un informe por profesor para cada inscripcion
+    })
+})
 public class Informe {
     public Informe() {
     }
