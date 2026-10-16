@@ -45,6 +45,8 @@ yarn-error.log
 # Docker
 docker-data/
 
+# Local databases
+*.mv.db
 
 backend/.classpath
 backend/.factorypath
@@ -53,9 +55,4 @@ backend/.settings/
 
 *.zip
 *.sql
-*.pdf
-!backend/src/main/resources/samples/*.pdf
-*.log
-*.jpg
-*.jpeg
-*.png
+!backend/src/main/resources/db/migratio
