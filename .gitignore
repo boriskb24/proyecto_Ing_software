@@ -44,3 +44,15 @@ yarn-error.log
 
 # Docker
 docker-data/
+
+# Local databases
+*.mv.db
+
+backend/.classpath
+backend/.factorypath
+backend/.project
+backend/.settings/
+
+*.zip
+*.sql
+!backend/src/main/resources/db/migratio

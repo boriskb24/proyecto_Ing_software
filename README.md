@@ -1,87 +1,96 @@
 # 🎓 Centro de Centralización de Documentos (UBB)
 Sistema de gestión de syllabus, convenios de prácticas y documentación académica para el Departamento de Matemáticas de la Universidad del Bío-Bío.
 
-**Pila Tecnológica Objetivo (Migración Completada):**
-- **Backend:** Java 17 + Spring Boot 3 (REST API, Spring Security, Spring Data JPA, Lombok)
-- **Frontend:** React 19 + Vite SPA (Axios, React Router DOM, TypeScript)
-- **Base de Datos:** MySQL 8 / H2 Database
+---
+
+## 📋 Requisitos
+
+- Java 17 o superior (el proyecto fue probado con Java 21)
+- Node 22 o superior (se recomienda Node 24, ver `frontend/.nvmrc`)
+- Docker Desktop (para MySQL 8.0)
+- Git
+---
+
+## ⚙️ Configuración (una sola vez)
+
+Desde la raíz del proyecto, en PowerShell:
+
+1. Copiar las variables de entorno del backend y la base de datos:
+```
+   Copy-Item .env.example .env
+```
+Abrir `.env` y escribir una contraseña en `DB_PASSWORD` y otra en `DB_ROOT_PASSWORD` (inventarlas; no se suben a Git).
+
+2. Copiar las variables del frontend:
+```
+   Copy-Item frontend\.env.example frontend\.env
+```
+
+3. Levantar la base de datos MySQL:
+```
+   docker compose up -d db
+   docker compose ps
+```
+Esperar hasta que el estado diga `healthy` (unos 30 segundos). Las tablas se crean solas con Flyway la primera vez que arranca el backend.
 
 ---
 
-## 🚀 Estructura del Proyecto Migrado
+## ▶️ Ejecutar
 
+**Backend** (Spring Boot, puerto 8080):
 ```
-.
-├── backend/                  # REST API Spring Boot (Java 17)
-│   ├── pom.xml               # Dependencias Maven (Spring Web, Data JPA, Security, MySQL, H2)
-│   └── src/main/java/com/ubb/dochub/
-│       ├── DochubApplication.java
-│       ├── config/SecurityConfig.java
-│       ├── controller/AuthController.java
-│       ├── dto/ (LoginRequest, RegisterRequest, UserDto, AuthResponse)
-│       ├── entity/User.java
-│       ├── repository/UserRepository.java
-│       └── service/ (AuthService, AuthServiceImpl)
-│
-├── frontend/                 # Application SPA React (Vite)
-│   ├── package.json          # Vite, React 19, React Router, Axios, Lucide
-│   ├── vite.config.ts        # Configuración Vite con Proxy al Backend (:8080)
-│   └── src/
-│       ├── context/AuthContext.tsx
-│       ├── services/api.ts
-│       ├── pages/ (LoginPage, RegisterPage, HomePage)
-│       └── components/ (Navbar, ProtectedRoute)
-│
-└── MIGRATION_PLAN.md         # Documento guía de arquitectura
-```
-
----
-
-## 🐳 Ejecución con Docker (Recomendado)
-
-El proyecto está completamente contenerizado con soporte para propiedades **ACID** (transacciones `@Transactional` en Spring Boot) y comunicación interna de red Docker (`db:3306`):
-
-```bash
-# Levantar todos los servicios (MySQL 8, Spring Boot Backend y React Frontend)
-docker compose up --build
-
-# Para detener los contenedores
-docker compose down
-```
-
-### 🌐 Servicios Disponibles en Docker:
-- **Frontend (React + Vite + Nginx):** `http://localhost:80` y `http://localhost:5173`
-- **Backend (Spring Boot REST API):** `http://localhost:8080/api`
-- **Base de Datos (MySQL 8):** `localhost:3306` (internamente `db:3306` en red `dochub-network`)
-
----
-
-## 📋 Guía de Inicio Local (Sin Docker)
-
-### 1. Iniciar el Backend (Spring Boot REST API)
-
-```bash
 cd backend
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
-*El backend se ejecutará en **http://localhost:8080**.*
+En macOS o Linux: `./mvnw spring-boot:run`.
 
-#### 🔑 Endpoints REST API Disponibles:
+**Frontend** (React + Vite, puerto 5173), en otra terminal:
+```
+cd frontend
+npm ci
+npm run dev
+```
+La aplicación se abre en **http://localhost:5173**.
+
+> Si el puerto 8080 está ocupado por otro programa, el backend no arranca. Cerrar ese programa o ejecutar con otro puerto: `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=8082"` (y cambiar `VITE_API_URL` en `frontend\.env`).
+
+---
+
+## 🐳 Alternativa: todo con Docker
+
+Con el `.env` de la sección Configuración ya creado:
+
+```
+docker compose up --build
+```
+
+Para detener: `docker compose down`.
+
+- **Frontend:** `http://localhost:5173`
+- **Backend (REST API):** `http://localhost:8080/api`
+- **Base de datos (MySQL 8.0):** `localhost:3306`
+- **phpMyAdmin:** `http://localhost:8081`
+
+---
+
+## 🧪 Pruebas
+
+Desde `backend/`:
+```
+.\mvnw.cmd test
+```
+Las pruebas usan una base H2 en memoria, no necesitan MySQL.
+
+Para compilar y probar todo: `.\mvnw.cmd verify`.
+
+---
+
+## 🔑 Endpoints REST API principales
+
 - `POST http://localhost:8080/api/auth/register`
 - `POST http://localhost:8080/api/auth/login`
 - `GET http://localhost:8080/api/auth/me?email=admin@ubiobio.cl`
 - `POST http://localhost:8080/api/auth/logout`
-
----
-
-### 2. Iniciar el Frontend (React Vite SPA)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*La aplicación SPA se abrirá en **http://localhost:5173**.*
 
 ---
 
@@ -92,3 +101,29 @@ npm run dev
 | **Administrador** | `admin@ubiobio.cl` | `12345678b` |
 | **Estudiante** | *Crear desde formulario `/register`* | *Mínimo 8 caracteres* |
 
+---
+
+## 🗂️ Estructura del Proyecto
+
+```
+.
+├── backend/                  # REST API Spring Boot (Java 17)
+│   ├── pom.xml               # Dependencias Maven
+│   └── src/main/
+│       ├── java/com/ubb/dochub/
+│       └── resources/db/migration/   # Scripts Flyway (V1__esquema_inicial.sql)
+│
+├── frontend/                 # SPA React (Vite)
+│   ├── package.json          # Dependencias fijadas con package-lock.json
+│   ├── vite.config.ts        # Proxy al backend (URL en VITE_API_URL)
+│   └── src/
+│
+├── docker-compose.yml        # MySQL, backend, frontend y phpMyAdmin
+└── .env.example              # Variables de entorno (copiar como .env)
+```
+
+---
+
+## 🏷️ Versiones entregadas
+
+Ver la sección **Tags** del repositorio en GitHub.

@@ -20,6 +20,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "role")
+    private String role;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -98,10 +101,17 @@ public class User {
     }
 
     public String getRole() {
+        if (this.role != null && !this.role.trim().isEmpty()) {
+            return this.role;
+        }
         if (this.email != null && "admin@ubiobio.cl".equalsIgnoreCase(this.email.trim())) {
             return "Administrador";
         }
         return "Estudiante";
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getInitials() {

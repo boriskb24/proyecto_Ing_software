@@ -3,24 +3,24 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>4.0.0</version>
         <relativePath/>
     </parent>
-    
+
     <groupId>com.ubb</groupId>
     <artifactId>dochub</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>dochub</name>
     <description>Centro de Centralizacion de Documentos UBB - Backend Spring Boot</description>
-    
+
     <properties>
         <java.version>17</java.version>
     </properties>
-    
+
     <dependencies>
         <!-- Spring Boot Web -->
         <dependency>
@@ -53,6 +53,16 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Flyway: migraciones de base de datos (Punto 6) -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
         <!-- H2 Database for local development / fallback -->
         <dependency>
             <groupId>com.h2database</groupId>
@@ -77,6 +87,16 @@
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Para el punto 6 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
         </dependency>
     </dependencies>
 

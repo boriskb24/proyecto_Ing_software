@@ -40,6 +40,131 @@ button {
   font-family: var(--font-family);
 }
 
+.evaluaciones-page {
+  padding: 28px clamp(16px, 4vw, 48px);
+}
+
+.evaluaciones-page h2 {
+  margin-bottom: 22px;
+}
+
+.evaluaciones-page h3 {
+  margin-bottom: 14px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.evaluaciones-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.evaluaciones-toolbar select,
+.rut-search input {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #0b1329;
+  color: #ffffff;
+  font: inherit;
+}
+
+.evaluaciones-toolbar select {
+  padding: 9px 32px 9px 12px;
+}
+
+.rut-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #0b1329;
+  color: #94a3b8;
+}
+
+.rut-search input {
+  width: min(280px, 58vw);
+  padding: 9px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: #131e3a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.evaluaciones-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.evaluaciones-table th {
+  padding: 14px 18px;
+  background: #18274d;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.evaluaciones-table td {
+  padding: 14px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  vertical-align: middle;
+}
+
+.evaluaciones-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.evaluaciones-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.empty-state {
+  color: var(--text-muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .rut-search {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .rut-search input {
+    width: 100%;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

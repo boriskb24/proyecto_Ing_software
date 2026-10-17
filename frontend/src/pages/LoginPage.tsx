@@ -19,8 +19,14 @@ export const LoginPage: React.FC = () => {
     setLoading(true)
 
     try {
-      await login(email, password)
-      navigate('/dashboard')
+      const resp = await login(email, password)
+      const role = resp?.user?.role ?? null
+      if (role && role.toLowerCase().includes('profesor')) {
+        // navigate('/profesor/ofertas')
+        navigate('/dashboard')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err: any) {
       if (err.response?.data?.message) {
         setErrorMessage(err.response.data.message)

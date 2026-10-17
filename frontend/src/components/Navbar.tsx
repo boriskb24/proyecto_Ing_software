@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { 
   Home, 
@@ -10,15 +10,18 @@ import {
   LogOut, 
   Shield, 
   ChevronDown, 
-  Settings,
+  GraduationCap,
   User as UserIcon 
 } from 'lucide-react'
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const isProfesorOrAdmin = user?.role === 'Administrador' || user?.role === 'Profesor'
 
   const displayName = user?.fullName || (user?.email ? user.email.split('@')[0] : 'Usuario')
   const userEmail = user?.email || ''
@@ -50,6 +53,8 @@ export const Navbar: React.FC = () => {
     navigate('/login')
   }
 
+  const isActive = (path: string) => location.pathname === path
+
   return (
     <nav style={styles.navbar}>
       <div style={styles.inner}>
@@ -57,7 +62,7 @@ export const Navbar: React.FC = () => {
         <Link to="/dashboard" style={styles.brand}>
           <div style={styles.logo}>UBB</div>
           <div style={styles.brandText}>
-            <span style={styles.brandTitle}>Depto. Matemáticas</span>
+            <span style={styles.brandTitle}>Facultad de Educación y Humanidades</span>
             <span style={styles.brandSubtitle}>Universidad del Bío-Bío</span>
           </div>
         </Link>
@@ -65,25 +70,32 @@ export const Navbar: React.FC = () => {
         {/* Navigation links */}
         <ul style={styles.navList}>
           <li>
-            <Link to="/dashboard" style={{ ...styles.navLink, ...styles.navLinkActive }}>
+            <Link to="/dashboard" style={{ ...styles.navLink, ...(isActive('/dashboard') ? styles.navLinkActive : {}) }}>
               <Home size={16} /> Inicio
             </Link>
           </li>
           <li>
-            <a href="#documentos" style={styles.navLink}>
-              <FileText size={16} /> Documentos
-            </a>
+            <Link to="/planificaciones" style={{ ...styles.navLink, ...(isActive('/planificaciones') ? styles.navLinkActive : {}) }}>
+              <FileText size={16} /> Planificaciones
+            </Link>
           </li>
           <li>
-            <a href="#practicas" style={styles.navLink}>
+            <Link to="/evaluaciones" style={{ ...styles.navLink, ...(isActive('/evaluaciones') ? styles.navLinkActive : {}) }}>
+              <GraduationCap size={16} /> Evaluaciones
+            </Link>
+          </li>
+          <li>
+            <Link to="/practicas" style={{ ...styles.navLink, ...(isActive('/practicas') ? styles.navLinkActive : {}) }}>
               <Briefcase size={16} /> Prácticas
-            </a>
+            </Link>
           </li>
-          <li>
-            <a href="#profesores" style={styles.navLink}>
-              <Users size={16} /> Profesores
-            </a>
-          </li>
+          {isProfesorOrAdmin && (
+            <li>
+              <Link to="/alumnos" style={{ ...styles.navLink, ...(isActive('/alumnos') ? styles.navLinkActive : {}) }}>
+                <Users size={16} /> Alumnos
+              </Link>
+            </li>
+          )}
         </ul>
 
         {/* Actions & Profile Dropdown */}
@@ -129,15 +141,60 @@ export const Navbar: React.FC = () => {
                 <div style={styles.divider} />
 
                 <div style={{ padding: '6px' }}>
-                  <a href="#perfil" style={styles.menuItem}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate('/perfil')
+                    }}
+                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
                     <UserIcon size={16} /> Mi Perfil Académico
-                  </a>
-                  <a href="#documentos" style={styles.menuItem}>
-                    <FileText size={16} /> Mis Documentos
-                  </a>
-                  <a href="#config" style={styles.menuItem}>
-                    <Settings size={16} /> Configuración
-                  </a>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate('/planificaciones')
+                    }}
+                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    <FileText size={16} /> Mis Planificaciones
+                  </button>
+                  {isProfesorOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false)
+                        navigate('/evaluaciones')
+                      }}
+                      style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <GraduationCap size={16} /> Evaluaciones de Práctica
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false)
+                      navigate('/practicas')
+                    }}
+                    style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    <Briefcase size={16} /> Gestión de Prácticas
+                  </button>
+                  {isProfesorOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false)
+                        navigate('/alumnos')
+                      }}
+                      style={{ ...styles.menuItem, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <Users size={16} /> Directorio de Alumnos
+                    </button>
+                  )}
                 </div>
 
                 <div style={styles.divider} />
@@ -208,7 +265,7 @@ const styles: Record<string, React.CSSProperties> = {
   navList: {
     display: 'flex',
     alignItems: 'center',
-    gap: '24px',
+    gap: '14px',
     listStyle: 'none',
   },
   navLink: {
