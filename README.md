@@ -1,39 +1,13 @@
 # 🎓 Centro de Centralización de Documentos (UBB)
 Sistema de gestión de syllabus, convenios de prácticas y documentación académica para el Departamento de Matemáticas de la Universidad del Bío-Bío.
 
-**Pila Tecnológica Objetivo (Migración Completada):**
-- **Backend:** Java 17 + Spring Boot 3 (REST API, Spring Security, Spring Data JPA, Lombok)
-- **Frontend:** React 19 + Vite SPA (Axios, React Router DOM, TypeScript)
-- **Base de Datos:** MySQL 8 / H2 Database
+
+## Requisitos:
+
+- **Backend:** Java 17
+- **Base de Datos:** MySQL 8.4
 
 ---
-
-## 🚀 Estructura del Proyecto Migrado
-
-```
-.
-├── backend/                  # REST API Spring Boot (Java 17)
-│   ├── pom.xml               # Dependencias Maven (Spring Web, Data JPA, Security, MySQL, H2)
-│   └── src/main/java/com/ubb/dochub/
-│       ├── DochubApplication.java
-│       ├── config/SecurityConfig.java
-│       ├── controller/AuthController.java
-│       ├── dto/ (LoginRequest, RegisterRequest, UserDto, AuthResponse)
-│       ├── entity/User.java
-│       ├── repository/UserRepository.java
-│       └── service/ (AuthService, AuthServiceImpl)
-│
-├── frontend/                 # Application SPA React (Vite)
-│   ├── package.json          # Vite, React 19, React Router, Axios, Lucide
-│   ├── vite.config.ts        # Configuración Vite con Proxy al Backend (:8080)
-│   └── src/
-│       ├── context/AuthContext.tsx
-│       ├── services/api.ts
-│       ├── pages/ (LoginPage, RegisterPage, HomePage)
-│       └── components/ (Navbar, ProtectedRoute)
-│
-└── MIGRATION_PLAN.md         # Documento guía de arquitectura
-```
 
 ---
 
