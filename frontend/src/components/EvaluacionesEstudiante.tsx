@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getEvaluacionesEstudiante } from '../services/practicaService';
-import { getOfertasForProfesor, OfertaDto } from '../services/api';
+import { getOfertasForProfesor, OfertaDto, getAuthFileUrl } from '../services/api';
 import { EvaluacionesResponse, EvaluacionCLA, EvaluacionSEM } from '../types/evaluacion';
 import {
   Award,
@@ -604,12 +604,12 @@ export const EvaluacionesEstudiante: React.FC = () => {
                     </div>
 
                     <a
-                      href={
+                      href={getAuthFileUrl(
                         ev.archivoUrl ||
                         (isClase
                           ? `/api/practicas/evaluaciones/clase/${ev.id}/archivo`
                           : `/api/practicas/evaluaciones/semestral/${ev.id}/archivo`)
-                      }
+                      )}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{

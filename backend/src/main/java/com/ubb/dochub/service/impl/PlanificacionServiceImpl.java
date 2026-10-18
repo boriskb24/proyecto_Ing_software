@@ -8,50 +8,63 @@ import com.ubb.dochub.entity.Inscripcion;
 import com.ubb.dochub.entity.Planificacion;
 import com.ubb.dochub.entity.User;
 import com.ubb.dochub.repository.ClaseRepository;
+import com.ubb.dochub.repository.EstudianteRepository;
 import com.ubb.dochub.repository.InscripcionRepository;
 import com.ubb.dochub.repository.PlanificacionRepository;
 import com.ubb.dochub.repository.UserRepository;
+import com.ubb.dochub.security.SecurityUtil;
 import com.ubb.dochub.service.PlanificacionService;
+import com.ubb.dochub.service.StorageService;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Service
+@Transactional
 public class PlanificacionServiceImpl implements PlanificacionService {
 
-    private static final String UPLOAD_DIR = "uploads/planificaciones";
+    private static final String PLANIFICACIONES_DIR = "uploads/planificaciones";
+
     private final PlanificacionRepository planificacionRepository;
     private final UserRepository userRepository;
     private final ClaseRepository claseRepository;
     private final InscripcionRepository inscripcionRepository;
+    private final EstudianteRepository estudianteRepository;
+    private final StorageService storageService;
 
     public PlanificacionServiceImpl(
             PlanificacionRepository planificacionRepository,
             UserRepository userRepository,
             ClaseRepository claseRepository,
-            InscripcionRepository inscripcionRepository) {
+            InscripcionRepository inscripcionRepository,
+            EstudianteRepository estudianteRepository,
+            StorageService storageService) {
         this.planificacionRepository = planificacionRepository;
         this.userRepository = userRepository;
         this.claseRepository = claseRepository;
         this.inscripcionRepository = inscripcionRepository;
+        this.estudianteRepository = estudianteRepository;
+        this.storageService = storageService;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PlanificacionResponseDto> obtenerHistorialPorRol(Long userId, String userRole, String email, Long inscripcionId) {
-        // Resolver correo efectivo
-        String emailEfectivo = (email != null && !email.trim().isEmpty()) ? email.trim().toLowerCase() : null;
+        String emailEfectivo = SecurityUtil.getCurrentUserEmail().orElse(email);
+        if (emailEfectivo != null) {
+            emailEfectivo = emailEfectivo.trim().toLowerCase();
+        }
+
         if (emailEfectivo == null && userId != null) {
             User u = userRepository.findById(userId).orElse(null);
             if (u != null) {
@@ -64,7 +77,7 @@ public class PlanificacionServiceImpl implements PlanificacionService {
 
         // 1. Si se solicita específicamente por inscripción (Ficha del Alumno)
         if (inscripcionId != null) {
-            if (emailEfectivo != null && !"admin@ubiobio.cl".equalsIgnoreCase(emailEfectivo)) {
+            if (emailEfectivo != null && !SecurityUtil.isAdminOrCoordinator() && !"admin@ubiobio.cl".equalsIgnoreCase(emailEfectivo)) {
                 Inscripcion insc = inscripcionRepository.findByIdWithDetails(inscripcionId).orElse(null);
                 if (insc != null) {
                     boolean esSuProfesor = insc.getOferta() != null && insc.getOferta().getProfesor() != null
@@ -87,8 +100,8 @@ public class PlanificacionServiceImpl implements PlanificacionService {
             return resultado;
         }
 
-        // 2. Administrador: supervisión global
-        if ("Administrador".equalsIgnoreCase(userRole)) {
+        // 2. Administrador / Coordinador: supervisión global para auditoría
+        if (SecurityUtil.isAdminOrCoordinator() || "Administrador".equalsIgnoreCase(userRole)) {
             List<Clase> todas = claseRepository.findAllClasesWithPlanificacion();
             List<PlanificacionResponseDto> resultado = new ArrayList<>();
             for (Clase c : todas) {
@@ -99,8 +112,8 @@ public class PlanificacionServiceImpl implements PlanificacionService {
             return resultado;
         }
 
-        // 3. Profesor de Asignatura: ÚNICAMENTE planificaciones de estudiantes en sus prácticas
-        if ("Profesor".equalsIgnoreCase(userRole) || "Evaluador".equalsIgnoreCase(userRole)) {
+        // 3. Profesor de Asignatura: ÚNICAMENTE planificaciones de estudiantes en sus prácticas (RN-02)
+        if ("Profesor".equalsIgnoreCase(userRole) || SecurityUtil.hasRole("PROFESOR")) {
             if (emailEfectivo != null) {
                 List<Clase> clasesProfesor = claseRepository.findClasesWithPlanificacionByProfesorCorreo(emailEfectivo.trim());
                 List<PlanificacionResponseDto> resultado = new ArrayList<>();
@@ -114,7 +127,7 @@ public class PlanificacionServiceImpl implements PlanificacionService {
             return List.of();
         }
 
-        // 4. Estudiante: ÚNICAMENTE sus propias planificaciones
+        // 4. Estudiante: ÚNICAMENTE sus propias planificaciones (RN-05)
         if (emailEfectivo != null) {
             List<Clase> clasesEstudiante = claseRepository.findClasesWithPlanificacionByEstudianteCorreo(emailEfectivo.trim());
             List<PlanificacionResponseDto> resultado = new ArrayList<>();
@@ -130,91 +143,136 @@ public class PlanificacionServiceImpl implements PlanificacionService {
     }
 
     @Override
-    @Transactional
     public PlanificacionResponseDto guardarPlanificacion(MultipartFile archivo, Long userId) {
         return guardarPlanificacion(archivo, userId, null);
     }
 
     @Override
-    @Transactional
     public PlanificacionResponseDto guardarPlanificacion(MultipartFile archivo, Long userId, LocalDate fechaClase) {
-        // 1. Validar que el archivo exista y no esté vacío
-        if (archivo == null || archivo.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar un archivo válido para subir.");
+        // RN-13: El Coordinador de Práctica tiene permisos de solo lectura para auditoría y no puede subir planificaciones
+        String callerEmail = SecurityUtil.getCurrentUserEmail().orElse(null);
+        if (SecurityUtil.isAdminOrCoordinator() || (callerEmail != null && "admin@ubiobio.cl".equalsIgnoreCase(callerEmail))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: El Coordinador de Práctica tiene permisos de solo lectura para auditoría y no puede subir planificaciones (RN-13).");
         }
 
-        String originalFilename = archivo.getOriginalFilename();
-        String contentType = archivo.getContentType();
+        String targetLocation = storageService.storeFile(archivo, PLANIFICACIONES_DIR);
 
-        // 2. Validación estricta de formato PDF
-        boolean isPdfMime = "application/pdf".equalsIgnoreCase(contentType);
-        boolean hasPdfExtension = originalFilename != null && originalFilename.toLowerCase().endsWith(".pdf");
+        Planificacion planificacion = new Planificacion();
+        planificacion.setArchivo(targetLocation);
+        planificacion.setEstado(EstadoPlanificacion.PENDIENTE);
+        planificacion.setFecha(LocalDate.now());
 
-        if (!isPdfMime || !hasPdfExtension) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-                    "Formato no válido. Solo se admiten archivos en formato PDF (.pdf).");
-        }
+        Planificacion guardada = planificacionRepository.save(planificacion);
 
-        try {
-            // 3. Crear el directorio físico si no existe
-            Path uploadPath = Paths.get(UPLOAD_DIR);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
+        Clase claseGuardada = null;
+        String emailToUse = callerEmail;
+        if (emailToUse == null && userId != null) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null) {
+                emailToUse = user.getEmail();
             }
+        }
 
-            // 4. Generar nombre único para evitar colisiones
-            String cleanName = (originalFilename != null) ? originalFilename.replaceAll("\\s+", "_") : "plan.pdf";
-            String uniqueFileName = UUID.randomUUID() + "_" + cleanName;
-            Path targetLocation = uploadPath.resolve(uniqueFileName);
+        if (emailToUse != null) {
+            List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteCorreoWithOferta(emailToUse.trim().toLowerCase());
+            if (!inscripciones.isEmpty()) {
+                Inscripcion inscripcion = inscripciones.get(0);
+                LocalDate targetFecha = (fechaClase != null) ? fechaClase : LocalDate.now();
+                LocalTime targetHoraInicio = LocalTime.of(8, 30);
+                LocalTime targetHoraFin = LocalTime.of(10, 0);
 
-            // 5. Guardar archivo físico en disco
-            Files.copy(archivo.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
-            // 6. Crear y persistir el registro de Planificación puro (según MER)
-            Planificacion planificacion = new Planificacion();
-            planificacion.setArchivo(targetLocation.toString());
-            planificacion.setEstado(EstadoPlanificacion.PENDIENTE);
-            planificacion.setFecha(LocalDate.now());
-
-            Planificacion guardada = planificacionRepository.save(planificacion);
-
-            // 7. Conectar la relación canónica mediante la entidad Clase (FK id_planificacion e id_inscripcion)
-            Clase claseGuardada = null;
-            if (userId != null) {
-                User user = userRepository.findById(userId).orElse(null);
-                if (user != null && user.getEmail() != null) {
-                    List<Inscripcion> inscripciones = inscripcionRepository.findByEstudianteCorreoWithOferta(user.getEmail());
-                    if (!inscripciones.isEmpty()) {
-                        Inscripcion inscripcion = inscripciones.get(0);
-                        Clase clase = new Clase();
-                        clase.setFecha(fechaClase != null ? fechaClase : LocalDate.now());
-                        clase.setPlanificacion(guardada);
-                        clase.setInscripcion(inscripcion);
-                        String asig = (inscripcion.getOferta() != null && inscripcion.getOferta().getAsignaturaPractica() != null)
-                                ? inscripcion.getOferta().getAsignaturaPractica().getNombre()
-                                : "Práctica Profesional";
-                        clase.setAsignatura(asig);
-                        clase.setTema("Planificación: " + guardada.getNombreArchivo());
-                        clase.setHoraInicio(LocalTime.of(8, 30));
-                        clase.setHoraFin(LocalTime.of(10, 0));
-                        claseGuardada = claseRepository.save(clase);
+                // RN-11: Verificar unicidad y solapamiento horario en clases para la misma fecha e inscripción
+                List<Clase> clasesExistentes = claseRepository.findByInscripcionIdAndFecha(inscripcion.getId(), targetFecha);
+                Clase claseConflicto = null;
+                for (Clase c : clasesExistentes) {
+                    if (c.getHoraInicio() != null) {
+                        boolean mismaHoraInicio = c.getHoraInicio().equals(targetHoraInicio);
+                        boolean solapaDentro = c.getHoraFin() != null
+                                && !targetHoraInicio.isBefore(c.getHoraInicio())
+                                && targetHoraInicio.isBefore(c.getHoraFin());
+                        if (mismaHoraInicio || solapaDentro) {
+                            claseConflicto = c;
+                            break;
+                        }
                     }
                 }
+
+                if (claseConflicto != null) {
+                    // RN-11: El sistema evita la inserción de nuevo registro y mantiene la clase ya registrada
+                    if (claseConflicto.getPlanificacion() == null) {
+                        claseConflicto.setPlanificacion(guardada);
+                        claseGuardada = claseRepository.save(claseConflicto);
+                    } else {
+                        claseGuardada = claseConflicto;
+                    }
+                } else {
+                    Clase clase = new Clase();
+                    clase.setFecha(targetFecha);
+                    clase.setPlanificacion(guardada);
+                    clase.setInscripcion(inscripcion);
+                    String asig = (inscripcion.getOferta() != null && inscripcion.getOferta().getAsignaturaPractica() != null)
+                            ? inscripcion.getOferta().getAsignaturaPractica().getNombre()
+                            : "Práctica Profesional";
+                    clase.setAsignatura(asig);
+                    clase.setTema("Planificación: " + guardada.getNombreArchivo());
+                    clase.setHoraInicio(targetHoraInicio);
+                    clase.setHoraFin(targetHoraFin);
+                    claseGuardada = claseRepository.save(clase);
+                }
             }
-
-            return mapToDto(guardada, claseGuardada);
-
-        } catch (IOException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Error al guardar el archivo en el servidor: " + e.getMessage());
         }
+
+        return mapToDto(guardada, claseGuardada);
     }
 
     @Override
-    @Transactional
     public PlanificacionResponseDto evaluarPlanificacion(Long id, EstadoPlanificacion nuevoEstado, String retroalimentacion) {
+        return evaluarPlanificacion(id, nuevoEstado, retroalimentacion, null);
+    }
+
+    @Override
+    public PlanificacionResponseDto evaluarPlanificacion(Long id, EstadoPlanificacion nuevoEstado, String retroalimentacion, String userEmail) {
+        String effectiveEmail = SecurityUtil.getCurrentUserEmail().orElse(userEmail);
+        if (effectiveEmail == null || effectiveEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Se requiere identificación docente para evaluar planificaciones.");
+        }
+
+        String emailNorm = effectiveEmail.trim().toLowerCase();
+
+        // RN-13: El Coordinador de Práctica tiene permisos de solo lectura para auditoría y tiene estrictamente prohibido evaluar planificaciones
+        if (SecurityUtil.isAdminOrCoordinator() || "admin@ubiobio.cl".equalsIgnoreCase(emailNorm)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: El Coordinador de Práctica tiene permisos de solo lectura para auditoría y no puede evaluar planificaciones (RN-13).");
+        }
+
+        userRepository.findByEmail(emailNorm).ifPresent(u -> {
+            if ("Administrador".equalsIgnoreCase(u.getRole())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: El Coordinador de Práctica tiene permisos de solo lectura para auditoría y no puede evaluar planificaciones (RN-13).");
+            }
+            if ("Evaluador".equalsIgnoreCase(u.getRole())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Los evaluadores no tienen permisos para calificar o evaluar planificaciones de clase (RN-13 / RN-14).");
+            }
+            if ("Estudiante".equalsIgnoreCase(u.getRole())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Los estudiantes no tienen permisos para calificar o evaluar planificaciones.");
+            }
+        });
+
+        if (estudianteRepository.findByCorreo(emailNorm).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Los estudiantes no tienen permisos para calificar o evaluar planificaciones.");
+        }
+
+        // RN-02: Un profesor no puede evaluar planificaciones de estudiantes no inscritos con él
+        List<Clase> clases = claseRepository.findByPlanificacionId(id);
+        if (!clases.isEmpty()) {
+            boolean esProfesorDeClase = clases.stream().anyMatch(c ->
+                    c.getInscripcion() != null
+                            && c.getInscripcion().getOferta() != null
+                            && c.getInscripcion().getOferta().getProfesor() != null
+                            && emailNorm.equalsIgnoreCase(c.getInscripcion().getOferta().getProfesor().getCorreo()));
+            if (!esProfesorDeClase) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Un profesor no puede evaluar planificaciones de alumnos no inscritos con él (RN-02).");
+            }
+        }
+
         Planificacion planificacion = planificacionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planificación no encontrada con id: " + id));
 
@@ -224,10 +282,43 @@ public class PlanificacionServiceImpl implements PlanificacionService {
         }
 
         Planificacion guardada = planificacionRepository.save(planificacion);
-        List<Clase> clases = claseRepository.findByPlanificacionId(guardada.getId());
         Clase clase = clases.isEmpty() ? null : clases.get(0);
 
         return mapToDto(guardada, clase);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> verArchivoPlanificacion(Long id, String userEmail) {
+        String effectiveEmail = SecurityUtil.getCurrentUserEmail().orElse(userEmail);
+        if (effectiveEmail == null || effectiveEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: Se requiere identificación de usuario para visualizar la planificación.");
+        }
+
+        Planificacion p = planificacionRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planificación no encontrada con id: " + id));
+
+        String emailNorm = effectiveEmail.trim().toLowerCase();
+        if (!SecurityUtil.isAdminOrCoordinator() && !"admin@ubiobio.cl".equalsIgnoreCase(emailNorm)) {
+            List<Clase> clases = claseRepository.findByPlanificacionId(id);
+            boolean autorizado = false;
+            for (Clase clase : clases) {
+                Inscripcion insc = clase.getInscripcion();
+                boolean esEstudiante = insc != null && insc.getEstudiante() != null
+                        && emailNorm.equalsIgnoreCase(insc.getEstudiante().getCorreo());
+                boolean esProfesor = insc != null && insc.getOferta() != null && insc.getOferta().getProfesor() != null
+                        && emailNorm.equalsIgnoreCase(insc.getOferta().getProfesor().getCorreo());
+                if (esEstudiante || esProfesor) {
+                    autorizado = true;
+                    break;
+                }
+            }
+            if (!clases.isEmpty() && !autorizado) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: No tiene permisos para visualizar este archivo de planificación fuera de su dominio.");
+            }
+        }
+
+        return storageService.servePdf(p.getArchivo(), "samples/Ejemplo_Planificacion.pdf", "Planificacion_" + id + ".pdf");
     }
 
     private PlanificacionResponseDto mapToDto(Planificacion p, Clase c) {

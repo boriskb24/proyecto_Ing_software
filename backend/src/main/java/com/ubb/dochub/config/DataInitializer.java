@@ -122,7 +122,7 @@ public class DataInitializer implements CommandLineRunner {
         AsignaturaPractica asigMat = crearAsignatura("MAT-PRA", "Matemática Aplicada");
 
         // 6. Ofertas
-        Oferta ofBoris1 = crearOferta(2026, 1, asig1, profBoris);
+        Oferta ofBoris1 = crearOferta(2026, 1, asig1, profJuan);
         Oferta ofBoris2 = crearOferta(2026, 1, asig2, profBoris);
         Oferta ofJuan1 = crearOferta(2025, 2, asig1, profJuan);
         Oferta ofMariaMat = crearOferta(2026, 2, asigMat, profMaria);
@@ -142,6 +142,7 @@ public class DataInitializer implements CommandLineRunner {
         Asignacion asigDiego = crearAsignacion(inscDiego, evalCarlos, "Liceo Bicentenario San Nicolás");
         Asignacion asigVal = crearAsignacion(inscVal, evalCarlos, "Liceo Bicentenario San Nicolás");
         Asignacion asigSeb = crearAsignacion(inscSeb, evalMaria, "Colegio Concepción");
+        Asignacion asigCam = crearAsignacion(inscCam, evalCarlos, "Colegio Concepción");
         Asignacion asigAna = crearAsignacion(inscAna, evalEmpresa, "Colegio Santa María");
         Asignacion asigBruno = crearAsignacion(inscBruno, evalEmpresa, "Colegio Santa María");
 
@@ -181,6 +182,7 @@ public class DataInitializer implements CommandLineRunner {
         crearEvaluacionSemestral(asigAna, "Matematica");
         crearEvaluacionSemestral(asigBruno, "Orientacion");
         crearEvaluacionSemestral(asigDiego, "Práctica Profesional I");
+        crearEvaluacionSemestral(asigCam, "Práctica Profesional II");
 
         // 11. Informes (Diego y Valentina tienen informe entregado; Sebastián, Camila y Carla sin informe)
         // crearInforme(TipoEmisor.PROFESOR, "uploads/informes/Ejemplo_Informe.pdf", inscDiego);

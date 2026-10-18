@@ -2,6 +2,8 @@ package com.ubb.dochub.service;
 
 import com.ubb.dochub.dto.PlanificacionResponseDto;
 import com.ubb.dochub.entity.EstadoPlanificacion;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -20,4 +22,8 @@ public interface PlanificacionService {
     List<PlanificacionResponseDto> obtenerHistorialPorRol(Long userId, String userRole, String email, Long inscripcionId);
 
     PlanificacionResponseDto evaluarPlanificacion(Long id, EstadoPlanificacion nuevoEstado, String retroalimentacion);
+
+    PlanificacionResponseDto evaluarPlanificacion(Long id, EstadoPlanificacion nuevoEstado, String retroalimentacion, String userEmail);
+
+    ResponseEntity<Resource> verArchivoPlanificacion(Long id, String userEmail);
 }
