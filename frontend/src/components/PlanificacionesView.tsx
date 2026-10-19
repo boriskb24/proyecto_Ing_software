@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { uploadPlanificacion, getPlanificaciones, evaluarPlanificacion, Planificacion, getAuthFileUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Search, Users, Filter, X, ExternalLink } from 'lucide-react';
+import { Search, Users, Filter, X, ExternalLink, Sparkles } from 'lucide-react';
+import { RetroPlaniChatDrawer } from './RetroPlaniChatDrawer';
 
 export const PlanificacionesView: React.FC = () => {
   const { user } = useAuth();
@@ -31,6 +32,9 @@ export const PlanificacionesView: React.FC = () => {
   const [nuevoEstado, setNuevoEstado] = useState<'APROBADA' | 'RECHAZADA'>('APROBADA');
   const [observacionTexto, setObservacionTexto] = useState<string>('');
   const [isSubmittingEval, setIsSubmittingEval] = useState<boolean>(false);
+
+  // Estado para el drawer de Tutoría Pedagógica IA RetroPlani Mate V3
+  const [chatPlanificacion, setChatPlanificacion] = useState<Planificacion | null>(null);
 
   // Cargar historial con filtro RBAC (userId, role y email)
   const cargarPlanificaciones = async () => {
@@ -497,7 +501,7 @@ export const PlanificacionesView: React.FC = () => {
                   <th style={{ ...styles.th, width: '135px' }}>Fecha de Clase</th>
                   <th style={{ ...styles.th, width: '130px' }}>Fecha de Subida</th>
                   <th style={{ ...styles.th, minWidth: esDocente ? '240px' : '200px' }}>Retroalimentación</th>
-                  {esDocente && <th style={{ ...styles.th, width: '100px', textAlign: 'center' }}>Acción</th>}
+                  <th style={{ ...styles.th, width: esDocente ? '190px' : '120px', textAlign: 'center' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -618,23 +622,41 @@ export const PlanificacionesView: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Botón de acción único para Profesor / Evaluador */}
-                      {esDocente && (
-                        <td style={{ ...styles.td, textAlign: 'center' }}>
+                      {/* Acciones: Tutor IA disponible para todos los roles, y botón Evaluar para Docente */}
+                      <td style={{ ...styles.td, textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
                           <button
                             type="button"
-                            onClick={() => abrirModalEvaluar(item)}
+                            onClick={() => setChatPlanificacion(item)}
                             style={{
                               ...styles.actionBtn,
-                              backgroundColor: '#2563eb',
-                              padding: '6px 14px',
+                              backgroundColor: '#6366f1',
+                              padding: '6px 12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
                             }}
-                            title="Revisar, ingresar observaciones y evaluar planificación"
+                            title="Consultar retroalimentación con el Tutor Pedagógico IA RetroPlani Mate V3"
                           >
-                            Evaluar
+                            <Sparkles size={13} color="#ffffff" />
+                            <span>Tutor IA</span>
                           </button>
-                        </td>
-                      )}
+                          {esDocente && (
+                            <button
+                              type="button"
+                              onClick={() => abrirModalEvaluar(item)}
+                              style={{
+                                ...styles.actionBtn,
+                                backgroundColor: '#2563eb',
+                                padding: '6px 14px',
+                              }}
+                              title="Revisar, ingresar observaciones y evaluar planificación"
+                            >
+                              Evaluar
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -806,6 +828,14 @@ export const PlanificacionesView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Drawer de Tutoría Pedagógica IA RetroPlani Mate V3 */}
+      {chatPlanificacion && (
+        <RetroPlaniChatDrawer
+          planificacion={chatPlanificacion}
+          onClose={() => setChatPlanificacion(null)}
+        />
       )}
     </div>
   );
