@@ -12,6 +12,8 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, Long> 
 
     Optional<ChatSession> findFirstByPlanificacionIdAndUserEmailOrderByCreatedAtDesc(Long planificacionId, String userEmail);
 
+    List<ChatSession> findByPlanificacionIdOrderByCreatedAtDesc(Long planificacionId);
+
     List<ChatSession> findByUserEmailOrderByCreatedAtDesc(String userEmail);
 
     Optional<ChatSession> findByIdAndUserEmail(Long id, String userEmail);

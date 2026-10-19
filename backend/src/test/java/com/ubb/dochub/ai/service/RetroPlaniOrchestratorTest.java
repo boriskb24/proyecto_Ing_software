@@ -175,8 +175,8 @@ class RetroPlaniOrchestratorTest {
     @Test
     @DisplayName("Debe lanzar excepción si el usuario intenta acceder a una sesión ajena")
     void unauthorizedAccessThrowsException() {
-        when(sessionRepository.findByIdAndUserEmail(99L, "hacker@test.cl"))
-                .thenReturn(Optional.empty());
+        when(sessionRepository.findById(99L))
+                .thenReturn(Optional.of(new ChatSession(null, "owner@test.cl", "ESTUDIANTE", 1)));
 
         assertThrows(IllegalArgumentException.class, () ->
                 orchestrator.getSessionHistory(99L, "hacker@test.cl")

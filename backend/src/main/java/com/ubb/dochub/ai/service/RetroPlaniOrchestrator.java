@@ -74,6 +74,17 @@ public class RetroPlaniOrchestrator {
             return mapToDto(existingSession.get());
         }
 
+        // HU-P4 y HU-P5: Si quien consulta es un PROFESOR o COORDINADOR y no tiene sesión propia,
+        // permitimos acceder al registro de reflexiones pedagógicas del estudiante en esa planificación.
+        if ("PROFESOR".equalsIgnoreCase(rol) || "ADMINISTRADOR".equalsIgnoreCase(rol)) {
+            var sesionesPrevias = sessionRepository.findByPlanificacionIdOrderByCreatedAtDesc(planificacionId);
+            if (!sesionesPrevias.isEmpty()) {
+                log.info("Profesor/Auditor {} accediendo a la sesión del estudiante (ID {}) para planificación {}",
+                        userEmail, sesionesPrevias.get(0).getId(), planificacionId);
+                return mapToDto(sesionesPrevias.get(0));
+            }
+        }
+
         // 2. Si es nueva, buscamos la planificación y leemos el PDF
         Planificacion planificacion = planificacionRepository.findById(planificacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la planificación con ID " + planificacionId));
@@ -156,8 +167,16 @@ public class RetroPlaniOrchestrator {
      */
     @Transactional(readOnly = true)
     public ChatSessionDto getSessionHistory(Long sessionId, String userEmail) {
-        ChatSession session = sessionRepository.findByIdAndUserEmail(sessionId, userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Sesión de chat no encontrada o no autorizada."));
+        ChatSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Sesión de chat no encontrada."));
+
+        boolean esDuenio = session.getUserEmail().equalsIgnoreCase(userEmail);
+        boolean esProfesorOAdmin = com.ubb.dochub.security.SecurityUtil.hasRole("PROFESOR")
+                || com.ubb.dochub.security.SecurityUtil.isAdminOrCoordinator();
+
+        if (!esDuenio && !esProfesorOAdmin) {
+            throw new IllegalArgumentException("Acceso no autorizado a la sesión de chat ID " + sessionId);
+        }
         return mapToDto(session);
     }
 
