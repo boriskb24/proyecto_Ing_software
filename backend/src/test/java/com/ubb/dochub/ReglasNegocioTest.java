@@ -194,7 +194,7 @@ class ReglasNegocioTest {
         assertNotNull(resp);
 
         // 1. Estado actualizado a RECHAZADA
-        assertEquals("RECHAZADA", resp.getEstado());
+        assertEquals(EstadoPlanificacion.RECHAZADA, resp.getEstado());
 
         // 2. Registro no eliminado físicamente
         Planificacion plan = planificacionRepository.findById(1L).orElse(null);
