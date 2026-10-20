@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   initChatSession,
   sendChatMessage,
+  formalizarPlanificacion,
   ChatSessionDto,
   ChatMessageDto,
   Planificacion,
@@ -15,7 +16,6 @@ import {
   Bot,
   User,
   Lightbulb,
-  FileText,
   Clock,
   ShieldCheck,
 } from 'lucide-react';
@@ -23,6 +23,7 @@ import {
 interface RetroPlaniChatDrawerProps {
   planificacion: Planificacion | null;
   onClose: () => void;
+  onFormalizar?: (planificacion: Planificacion) => void;
 }
 
 const SUGGESTED_PROMPTS = [
@@ -36,11 +37,14 @@ const SUGGESTED_PROMPTS = [
 export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
   planificacion,
   onClose,
+  onFormalizar,
 }) => {
+  const [currentPlan, setCurrentPlan] = useState<Planificacion | null>(planificacion);
   const [session, setSession] = useState<ChatSessionDto | null>(null);
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [isLoadingSession, setIsLoadingSession] = useState<boolean>(true);
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isFormalizing, setIsFormalizing] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBusyLimit, setIsBusyLimit] = useState<boolean>(false);
@@ -91,6 +95,7 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
   };
 
   useEffect(() => {
+    setCurrentPlan(planificacion);
     if (planificacion) {
       inicializarSesion();
     } else {
@@ -101,6 +106,38 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
       setIsBusyLimit(false);
     }
   }, [planificacion?.id]);
+
+  // Formalizar entrega de planificación al profesor (Filtro Pre-Entrega)
+  const handleFormalizar = async () => {
+    if (!currentPlan || isFormalizing) return;
+    setIsFormalizing(true);
+    setErrorMessage(null);
+    try {
+      const userStr = localStorage.getItem('user');
+      let userEmail: string | undefined = undefined;
+      if (userStr) {
+        try {
+          userEmail = JSON.parse(userStr).email;
+        } catch (e) {
+          // ignore
+        }
+      }
+      const formalizada = await formalizarPlanificacion(currentPlan.id, userEmail);
+      setCurrentPlan(formalizada);
+      if (onFormalizar) {
+        onFormalizar(formalizada);
+      }
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        (typeof err.response?.data === 'string' ? err.response?.data : null) ||
+        err.message ||
+        'Error al formalizar la entrega de la planificación.';
+      setErrorMessage(msg);
+    } finally {
+      setIsFormalizing(false);
+    }
+  };
 
   // Enviar mensaje al backend
   const handleSendMessage = async (textToSend?: string) => {
@@ -156,11 +193,6 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
 
   if (!planificacion) return null;
 
-  const planName =
-    planificacion.nombreArchivo ||
-    planificacion.archivo?.split('/').pop() ||
-    `Planificación #${planificacion.id}`;
-
   return (
     <div style={styles.backdrop} onClick={onClose}>
       <aside
@@ -194,28 +226,55 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
               <X size={20} />
             </button>
           </div>
+        </header>
 
-          {/* Ficha contextual del documento analizado */}
-          <div style={styles.docContextCard}>
-            <div style={styles.docContextRow}>
-              <FileText size={15} color="#4338ca" />
-              <span style={styles.docName} title={planName}>
-                {planName}
-              </span>
-              {session?.totalPaginas ? (
-                <span style={styles.pageBadge}>
-                  📄 {session.totalPaginas} {session.totalPaginas === 1 ? 'pág.' : 'págs.'} analizadas
-                </span>
-              ) : null}
+        {/* Banner de Estado y Filtro Pre-Entrega */}
+        {currentPlan?.estado === 'EN_REVISION_IA' && (
+          <div style={styles.preSubmissionBanner}>
+            <div style={styles.preSubmissionHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+                <strong style={styles.preSubmissionTitle}>Filtro Pre-Entrega: En Revisión IA</strong>
+              </div>
+              <span style={styles.preSubmissionBadge}>Aún no visible para profesor</span>
             </div>
-            <div style={styles.dimensionPillsRow}>
-              <span style={styles.dimensionPill}>🎯 Coherencia Curricular</span>
-              <span style={styles.dimensionPill}>⚙️ Metodología Activa</span>
-              <span style={styles.dimensionPill}>🤝 DUA / Decreto 83</span>
-              <span style={styles.dimensionPill}>📊 Eval. Formativa</span>
+            <p style={styles.preSubmissionText}>
+              Esta planificación se encuentra en evaluación con el Tutor IA. Revisa las sugerencias didácticas y, cuando estés conforme con tu clase, formaliza la entrega al docente.
+            </p>
+            <button
+              type="button"
+              onClick={handleFormalizar}
+              disabled={isFormalizing || isLoadingSession}
+              style={{
+                ...styles.formalizarBtn,
+                opacity: isFormalizing || isLoadingSession ? 0.65 : 1,
+                cursor: isFormalizing || isLoadingSession ? 'not-allowed' : 'pointer',
+              }}
+              title="Formalizar entrega para que sea revisada y evaluada por tu profesor"
+            >
+              {isFormalizing ? (
+                <>
+                  <div style={styles.miniSpinner} />
+                  <span>Formalizando entrega al profesor...</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: '1rem' }}>🚀</span>
+                  <span>Confirmar y Formalizar Entrega al Profesor</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {currentPlan?.estado === 'PENDIENTE' && (
+          <div style={styles.formalizadoBanner}>
+            <ShieldCheck size={18} color="#15803d" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '0.8rem', color: '#166534' }}>
+              <strong>Entrega formalizada:</strong> Tu documento ya está en la bandeja del profesor en estado <strong>PENDIENTE</strong> de evaluación. Puedes continuar interactuando con el tutor.
             </div>
           </div>
-        </header>
+        )}
 
         {/* Cuerpo de Mensajes */}
         <div style={styles.messagesContainer}>
@@ -677,52 +736,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'center',
     transition: 'background-color 0.15s ease',
   },
-  docContextCard: {
-    backgroundColor: '#ffffff',
-    border: '1px solid #e0e7ff',
-    borderRadius: '10px',
-    padding: '10px 12px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  docContextRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  docName: {
-    fontSize: '0.82rem',
-    fontWeight: 650,
-    color: '#1e293b',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    maxWidth: '300px',
-  },
-  pageBadge: {
-    marginLeft: 'auto',
-    fontSize: '0.72rem',
-    fontWeight: 600,
-    color: '#4338ca',
-    backgroundColor: '#e0e7ff',
-    padding: '2px 8px',
-    borderRadius: '6px',
-    whiteSpace: 'nowrap',
-  },
-  dimensionPillsRow: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '5px',
-  },
-  dimensionPill: {
-    fontSize: '0.68rem',
-    fontWeight: 600,
-    color: '#475569',
-    backgroundColor: '#f1f5f9',
-    padding: '2px 7px',
-    borderRadius: '5px',
-  },
   messagesContainer: {
     flex: 1,
     overflowY: 'auto',
@@ -962,5 +975,71 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'space-between',
     fontSize: '0.68rem',
     color: '#94a3b8',
+  },
+  preSubmissionBanner: {
+    padding: '12px 18px',
+    backgroundColor: '#f5f3ff',
+    borderBottom: '1px solid #ddd6fe',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  preSubmissionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+  },
+  preSubmissionTitle: {
+    fontSize: '0.86rem',
+    color: '#5b21b6',
+    fontWeight: 700,
+  },
+  preSubmissionBadge: {
+    fontSize: '0.7rem',
+    fontWeight: 600,
+    color: '#7c3aed',
+    backgroundColor: '#ede9fe',
+    border: '1px solid #c4b5fd',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    whiteSpace: 'nowrap',
+  },
+  preSubmissionText: {
+    margin: 0,
+    fontSize: '0.78rem',
+    color: '#4c1d95',
+    lineHeight: '1.4',
+  },
+  formalizarBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    backgroundColor: '#7c3aed',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '0.83rem',
+    fontWeight: 650,
+    boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
+    transition: 'background-color 0.15s ease',
+  },
+  formalizadoBanner: {
+    padding: '10px 18px',
+    backgroundColor: '#f0fdf4',
+    borderBottom: '1px solid #bbf7d0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  miniSpinner: {
+    width: '14px',
+    height: '14px',
+    borderRadius: '50%',
+    border: '2px solid rgba(255, 255, 255, 0.4)',
+    borderTopColor: '#ffffff',
+    animation: 'spin 0.8s linear infinite',
   },
 };

@@ -3,5 +3,6 @@ package com.ubb.dochub.entity;
 public enum EstadoPlanificacion {
     APROBADA,
     RECHAZADA,
-    PENDIENTE
+    PENDIENTE,
+    EN_REVISION_IA
 }

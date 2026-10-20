@@ -69,6 +69,15 @@ public class PlanificacionController {
         return ResponseEntity.ok(actualizada);
     }
 
+    @PatchMapping("/{id}/formalizar")
+    public ResponseEntity<PlanificacionResponseDto> formalizarEntrega(
+            @PathVariable Long id,
+            @RequestParam(value = "userEmail", required = false) String userEmail) {
+        String email = com.ubb.dochub.security.SecurityUtil.getCurrentUserEmail().orElse(userEmail);
+        PlanificacionResponseDto formalizada = planificacionService.formalizarEntrega(id, email);
+        return ResponseEntity.ok(formalizada);
+    }
+
     @GetMapping("/{id}/archivo")
     public ResponseEntity<Resource> verArchivoPlanificacion(
             @PathVariable Long id,

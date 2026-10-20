@@ -330,6 +330,14 @@ export const evaluarPlanificacion = async (
   return response.data;
 };
 
+// Formalizar entrega de planificación tras revisión con chatbot IA
+export const formalizarPlanificacion = async (id: number, userEmail?: string): Promise<Planificacion> => {
+  const response = await API.patch<Planificacion>(`/planificaciones/${id}/formalizar`, null, {
+    params: { userEmail },
+  });
+  return response.data;
+};
+
 /**
  * Genera una URL de acceso a un archivo adjuntando de forma segura los parámetros de autenticación
  * para permitir la apertura en una nueva pestaña (target="_blank") sin que el navegador bloquee la petición por 403.

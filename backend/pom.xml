@@ -85,6 +85,13 @@
             <artifactId>pdfbox</artifactId>
             <version>3.0.1</version>
         </dependency>
+
+        <!-- Dotenv Java (Carga automática de .env en desarrollo local) -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

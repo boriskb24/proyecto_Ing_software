@@ -94,7 +94,6 @@ export const PlanificacionesView: React.FC = () => {
 
     try {
       const nuevaPlanificacion = await uploadPlanificacion(selectedFile, user?.id, fechaClase);
-      setSuccessMessage(`¡Planificación "${nuevaPlanificacion.nombreArchivo || 'PDF'}" subida con éxito!`);
       setSelectedFile(null);
       setFechaClase('');
       if (fileInputRef.current) {
@@ -103,6 +102,12 @@ export const PlanificacionesView: React.FC = () => {
 
       // Actualización automática e inmediata de la UI
       setPlanificaciones((prev) => [nuevaPlanificacion, ...prev]);
+
+      // Abrir automáticamente el Tutor IA para el filtro previo de pre-entrega
+      setChatPlanificacion(nuevaPlanificacion);
+      setSuccessMessage(
+        `¡Planificación subida! Iniciando análisis con el Tutor IA RetroPlani Mate V3 antes de formalizar la entrega.`
+      );
     } catch (err: any) {
       const msg = err.response?.data?.message ||
         (typeof err.response?.data === 'string' ? err.response?.data : null) ||
@@ -363,12 +368,21 @@ export const PlanificacionesView: React.FC = () => {
               disabled={!selectedFile || !fechaClase || isUploading}
               style={{
                 ...styles.submitBtn,
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
                 opacity: !selectedFile || !fechaClase || isUploading ? 0.6 : 1,
                 cursor: !selectedFile || !fechaClase || isUploading ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
               }}
             >
-              {isUploading ? 'Subiendo archivo...' : 'Subir Planificación'}
+              <Sparkles size={18} />
+              {isUploading ? 'Subiendo y preparando Tutor IA...' : '✨ Analizar con Tutor IA antes de entregar'}
             </button>
+            <div style={{ fontSize: '0.78rem', color: '#6366f1', textAlign: 'center', marginTop: '6px', fontWeight: 500 }}>
+              🛡️ Filtro pedagógico: El documento pasará primero por la evaluación del Tutor IA antes de ser enviado a tu profesor.
+            </div>
           </form>
         </section>
       )}
@@ -432,6 +446,7 @@ export const PlanificacionesView: React.FC = () => {
                 style={styles.selectInput}
               >
                 <option value="TODOS">Todos los Estados</option>
+                {esEstudiante && <option value="EN_REVISION_IA">🛡️ En Revisión IA</option>}
                 <option value="PENDIENTE">⏳ Pendientes</option>
                 <option value="APROBADA">✅ Aprobadas</option>
                 <option value="RECHAZADA">❌ Rechazadas</option>
@@ -570,10 +585,28 @@ export const PlanificacionesView: React.FC = () => {
                       <td style={{ ...styles.td, textAlign: 'center' }}>
                         <span style={{
                           ...styles.statusBadge,
-                          backgroundColor: item.estado === 'APROBADA' ? '#dcfce7' : item.estado === 'RECHAZADA' ? '#fee2e2' : '#fef3c7',
-                          color: item.estado === 'APROBADA' ? '#166534' : item.estado === 'RECHAZADA' ? '#991b1b' : '#92400e',
+                          backgroundColor:
+                            item.estado === 'APROBADA'
+                              ? '#dcfce7'
+                              : item.estado === 'RECHAZADA'
+                              ? '#fee2e2'
+                              : item.estado === 'EN_REVISION_IA'
+                              ? '#ede9fe'
+                              : '#fef3c7',
+                          color:
+                            item.estado === 'APROBADA'
+                              ? '#166534'
+                              : item.estado === 'RECHAZADA'
+                              ? '#991b1b'
+                              : item.estado === 'EN_REVISION_IA'
+                              ? '#5b21b6'
+                              : '#92400e',
+                          border:
+                            item.estado === 'EN_REVISION_IA'
+                              ? '1px solid #ddd6fe'
+                              : 'none',
                         }}>
-                          {item.estado || 'PENDIENTE'}
+                          {item.estado === 'EN_REVISION_IA' ? 'EN REVISIÓN IA' : (item.estado || 'PENDIENTE')}
                         </span>
                       </td>
                       <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
@@ -630,16 +663,20 @@ export const PlanificacionesView: React.FC = () => {
                             onClick={() => setChatPlanificacion(item)}
                             style={{
                               ...styles.actionBtn,
-                              backgroundColor: '#6366f1',
+                              backgroundColor: item.estado === 'EN_REVISION_IA' ? '#7c3aed' : '#6366f1',
                               padding: '6px 12px',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '5px',
                             }}
-                            title="Consultar retroalimentación con el Tutor Pedagógico IA RetroPlani Mate V3"
+                            title={
+                              item.estado === 'EN_REVISION_IA'
+                                ? 'Filtro pedagógico activo: interactúa con el Tutor IA y formaliza tu entrega'
+                                : 'Consultar retroalimentación con el Tutor Pedagógico IA RetroPlani Mate V3'
+                            }
                           >
                             <Sparkles size={13} color="#ffffff" />
-                            <span>Tutor IA</span>
+                            <span>{item.estado === 'EN_REVISION_IA' ? 'Revisión IA' : 'Tutor IA'}</span>
                           </button>
                           {esDocente && (
                             <button
@@ -835,6 +872,15 @@ export const PlanificacionesView: React.FC = () => {
         <RetroPlaniChatDrawer
           planificacion={chatPlanificacion}
           onClose={() => setChatPlanificacion(null)}
+          onFormalizar={(formalizada) => {
+            setPlanificaciones((prev) =>
+              prev.map((item) => (item.id === formalizada.id ? formalizada : item))
+            );
+            setChatPlanificacion(formalizada);
+            setSuccessMessage(
+              `¡Planificación #${formalizada.id} formalizada con éxito! Ahora se encuentra en estado PENDIENTE en la bandeja de tu profesor.`
+            );
+          }}
         />
       )}
     </div>
