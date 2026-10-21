@@ -1201,63 +1201,346 @@ export const PlanificacionesWorkspace: React.FC = () => {
 };
 
 // ========================================================
-// COMPONENTE AUXILIAR PARA FORMATO DE TEXTO MARKDOWN
+// COMPONENTE AUXILIAR PARA FORMATO DE TEXTO MARKDOWN (CON SOPORTE DE TABLAS Y ENLACES)
 // ========================================================
+
+type ContentBlock =
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'bullet'; text: string }
+  | { type: 'numbered'; num: string; text: string }
+  | { type: 'quote'; text: string }
+  | { type: 'table'; headers: string[]; rows: string[][] }
+  | { type: 'paragraph'; text: string }
+  | { type: 'spacer' };
+
+function parseTableRow(line: string): string[] {
+  let cleaned = line.trim();
+  if (cleaned.startsWith('|')) cleaned = cleaned.substring(1);
+  if (cleaned.endsWith('|')) cleaned = cleaned.substring(0, cleaned.length - 1);
+  return cleaned.split('|').map((c) => c.trim());
+}
+
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('|')) return false;
+  const pipes = (trimmed.match(/\|/g) || []).length;
+  return pipes >= 2;
+}
+
+function isTableSeparator(line: string): boolean {
+  const cells = parseTableRow(line);
+  return cells.length > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c.trim()));
+}
+
+function parseContentToBlocks(content: string): ContentBlock[] {
+  const rawLines = content.split(/\r?\n/);
+  const blocks: ContentBlock[] = [];
+  let i = 0;
+
+  while (i < rawLines.length) {
+    const line = rawLines[i];
+    const trimmed = line.trim();
+
+    // Detección de tablas Markdown (incluyendo tablas con líneas intermedias vacías)
+    if (isTableRow(trimmed)) {
+      const tableLines: string[] = [trimmed];
+      let j = i + 1;
+
+      while (j < rawLines.length) {
+        const nextTrimmed = rawLines[j].trim();
+        if (isTableRow(nextTrimmed)) {
+          tableLines.push(nextTrimmed);
+          j++;
+        } else if (nextTrimmed === '') {
+          // Si hay una línea vacía intermedia, revisamos si la siguiente línea no vacía sigue siendo tabla
+          let k = j + 1;
+          while (k < rawLines.length && rawLines[k].trim() === '') {
+            k++;
+          }
+          if (k < rawLines.length && isTableRow(rawLines[k].trim())) {
+            j = k; // Saltamos los espacios en blanco intermedios y continuamos la tabla
+          } else {
+            break;
+          }
+        } else {
+          break;
+        }
+      }
+
+      let headers: string[] = [];
+      const rows: string[][] = [];
+
+      if (tableLines.length >= 2 && isTableSeparator(tableLines[1])) {
+        headers = parseTableRow(tableLines[0]);
+        for (let r = 2; r < tableLines.length; r++) {
+          if (!isTableSeparator(tableLines[r])) {
+            rows.push(parseTableRow(tableLines[r]));
+          }
+        }
+      } else if (tableLines.length >= 1) {
+        const nonSep = tableLines.filter((l) => !isTableSeparator(l));
+        if (nonSep.length > 0) {
+          headers = parseTableRow(nonSep[0]);
+          for (let r = 1; r < nonSep.length; r++) {
+            rows.push(parseTableRow(nonSep[r]));
+          }
+        }
+      }
+
+      if (headers.length > 0 || rows.length > 0) {
+        blocks.push({ type: 'table', headers, rows });
+      }
+
+      i = j;
+      continue;
+    }
+
+    if (!trimmed) {
+      // Evitar acumular espaciadores vacíos consecutivos
+      if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'spacer') {
+        blocks.push({ type: 'spacer' });
+      }
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('### ')) {
+      blocks.push({ type: 'heading', level: 3, text: trimmed.replace(/^###\s+/, '') });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('## ')) {
+      blocks.push({ type: 'heading', level: 2, text: trimmed.replace(/^##\s+/, '') });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('# ')) {
+      blocks.push({ type: 'heading', level: 1, text: trimmed.replace(/^#\s+/, '') });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      blocks.push({ type: 'bullet', text: trimmed.replace(/^[-*]\s+/, '') });
+      i++;
+      continue;
+    }
+
+    const matchNum = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (matchNum) {
+      blocks.push({ type: 'numbered', num: matchNum[1], text: matchNum[2] });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('> ')) {
+      blocks.push({ type: 'quote', text: trimmed.replace(/^>\s+/, '') });
+      i++;
+      continue;
+    }
+
+    blocks.push({ type: 'paragraph', text: trimmed });
+    i++;
+  }
+
+  return blocks;
+}
+
 const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content, isUser }) => {
-  const lines = content.split('\n');
+  const blocks = parseContentToBlocks(content);
 
   return (
     <div style={{ lineHeight: '1.6', fontSize: '13.5px' }}>
-      {lines.map((line, idx) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <div key={idx} style={{ height: '6px' }} />;
-
-        if (trimmed.startsWith('### ')) {
-          return (
-            <h4 key={idx} style={{ fontSize: '14.5px', fontWeight: 700, color: isUser ? '#ffffff' : '#93c5fd', margin: '10px 0 3px 0' }}>
-              {renderInlineStyles(trimmed.replace(/^###\s+/, ''))}
-            </h4>
-          );
+      {blocks.map((block, idx) => {
+        if (block.type === 'spacer') {
+          return <div key={idx} style={{ height: '6px' }} />;
         }
 
-        if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+        if (block.type === 'heading') {
+          if (block.level === 3) {
+            return (
+              <h4
+                key={idx}
+                style={{
+                  fontSize: '14.5px',
+                  fontWeight: 700,
+                  color: isUser ? '#ffffff' : '#93c5fd',
+                  margin: '12px 0 4px 0',
+                }}
+              >
+                {renderInlineStyles(block.text, isUser)}
+              </h4>
+            );
+          }
           return (
-            <h3 key={idx} style={{ fontSize: '15px', fontWeight: 700, color: isUser ? '#ffffff' : '#60a5fa', margin: '12px 0 4px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '3px' }}>
-              {renderInlineStyles(trimmed.replace(/^#{1,2}\s+/, ''))}
+            <h3
+              key={idx}
+              style={{
+                fontSize: '15px',
+                fontWeight: 700,
+                color: isUser ? '#ffffff' : '#60a5fa',
+                margin: '14px 0 6px 0',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                paddingBottom: '4px',
+              }}
+            >
+              {renderInlineStyles(block.text, isUser)}
             </h3>
           );
         }
 
-        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        if (block.type === 'bullet') {
           return (
-            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', margin: '2px 0 2px 4px' }}>
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                margin: '2px 0 2px 4px',
+              }}
+            >
               <span style={{ color: isUser ? '#ffffff' : '#818cf8', fontSize: '14px', lineHeight: '1.4' }}>•</span>
-              <span style={{ flex: 1 }}>{renderInlineStyles(trimmed.replace(/^[-*]\s+/, ''))}</span>
+              <span style={{ flex: 1 }}>{renderInlineStyles(block.text, isUser)}</span>
             </div>
           );
         }
 
-        const matchNum = trimmed.match(/^(\d+)\.\s+(.*)$/);
-        if (matchNum) {
+        if (block.type === 'numbered') {
           return (
-            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', margin: '3px 0 3px 4px' }}>
-              <span style={{ fontWeight: 700, color: isUser ? '#ffffff' : '#818cf8', minWidth: '16px' }}>{matchNum[1]}.</span>
-              <span style={{ flex: 1 }}>{renderInlineStyles(matchNum[2])}</span>
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                margin: '3px 0 3px 4px',
+              }}
+            >
+              <span style={{ fontWeight: 700, color: isUser ? '#ffffff' : '#818cf8', minWidth: '18px' }}>
+                {block.num}.
+              </span>
+              <span style={{ flex: 1 }}>{renderInlineStyles(block.text, isUser)}</span>
             </div>
           );
         }
 
-        if (trimmed.startsWith('> ')) {
+        if (block.type === 'quote') {
           return (
-            <div key={idx} style={{ borderLeft: '3px solid #818cf8', paddingLeft: '8px', color: isUser ? '#e0e7ff' : '#cbd5e1', fontStyle: 'italic', margin: '6px 0', backgroundColor: 'rgba(99, 102, 241, 0.1)', borderRadius: '0 4px 4px 0' }}>
-              {renderInlineStyles(trimmed.replace(/^>\s+/, ''))}
+            <div
+              key={idx}
+              style={{
+                borderLeft: '3px solid #818cf8',
+                paddingLeft: '10px',
+                color: isUser ? '#e0e7ff' : '#cbd5e1',
+                fontStyle: 'italic',
+                margin: '8px 0',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                borderRadius: '0 4px 4px 0',
+                padding: '4px 8px',
+              }}
+            >
+              {renderInlineStyles(block.text, isUser)}
             </div>
           );
         }
 
+        if (block.type === 'table') {
+          const colCount = Math.max(
+            block.headers.length,
+            ...block.rows.map((r) => r.length)
+          );
+
+          return (
+            <div
+              key={idx}
+              style={{
+                margin: '12px 0',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                overflowX: 'auto',
+                backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+                maxWidth: '100%',
+              }}
+            >
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  textAlign: 'left',
+                  fontSize: '13px',
+                }}
+              >
+                {block.headers.length > 0 && (
+                  <thead>
+                    <tr
+                      style={{
+                        backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                        borderBottom: '2px solid rgba(96, 165, 250, 0.35)',
+                      }}
+                    >
+                      {block.headers.map((h, hIdx) => (
+                        <th
+                          key={hIdx}
+                          style={{
+                            padding: '10px 14px',
+                            fontWeight: 650,
+                            color: '#93c5fd',
+                            whiteSpace: 'nowrap',
+                            fontSize: '12.5px',
+                            letterSpacing: '0.3px',
+                          }}
+                        >
+                          {renderInlineStyles(h, isUser)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                )}
+                <tbody>
+                  {block.rows.map((row, rIdx) => (
+                    <tr
+                      key={rIdx}
+                      style={{
+                        borderBottom:
+                          rIdx < block.rows.length - 1 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                        backgroundColor: rIdx % 2 === 1 ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+                      }}
+                    >
+                      {Array.from({ length: colCount }).map((_, cIdx) => {
+                        const cell = row[cIdx] || '';
+                        const isOk = cell.includes('✔️') || cell.includes('Disponible') || cell.includes('Existe');
+                        const isFail = cell.includes('❌') || cell.includes('Falta') || cell.includes('Ausente');
+
+                        return (
+                          <td
+                            key={cIdx}
+                            style={{
+                              padding: '9px 14px',
+                              color: isFail ? '#fca5a5' : isOk ? '#86efac' : isUser ? '#ffffff' : '#e2e8f0',
+                              verticalAlign: 'middle',
+                              lineHeight: '1.45',
+                            }}
+                          >
+                            {renderInlineStyles(cell, isUser)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+
+        // Párrafo normal
         return (
           <p key={idx} style={{ margin: '3px 0', color: isUser ? '#ffffff' : '#e2e8f0' }}>
-            {renderInlineStyles(trimmed)}
+            {renderInlineStyles(block.text, isUser)}
           </p>
         );
       })}
@@ -1265,23 +1548,112 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
   );
 };
 
-function renderInlineStyles(text: string) {
-  return text.split(/(\*\*.*?\*\*|`.*?`)/g).map((part, i) => {
+function renderInlineStyles(text: string, isUser = false): React.ReactNode {
+  // Regex para enlaces Markdown, URLs directas, negrita (**...**) y código (`...`)
+  const regex = /(\[.*?\]\(https?:\/\/[^\s\)]+\)|https?:\/\/[^\s)\]<>"']+|\*\*.*?\*\*|`.*?`)/g;
+  const parts = text.split(regex);
+
+  return parts.map((part, i) => {
+    if (!part) return null;
+
+    // Enlace Markdown [Texto](url)
+    const mdLinkMatch = part.match(/^\[(.*?)\]\((https?:\/\/[^\s\)]+)\)$/);
+    if (mdLinkMatch) {
+      const linkText = mdLinkMatch[1];
+      const linkUrl = mdLinkMatch[2];
+      return (
+        <a
+          key={i}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={linkUrl}
+          style={{
+            color: '#60a5fa',
+            textDecoration: 'underline',
+            fontWeight: 500,
+            wordBreak: 'break-all',
+          }}
+        >
+          {linkText} <span style={{ fontSize: '10px' }}>↗</span>
+        </a>
+      );
+    }
+
+    // URL Directa (Google Docs, Drive u otras)
+    if (part.startsWith('http://') || part.startsWith('https://')) {
+      let label = part;
+      if (part.includes('docs.google.com/document')) {
+        label = '📄 Ver Google Doc';
+      } else if (part.includes('docs.google.com/spreadsheets')) {
+        label = '📊 Ver Hoja de Cálculo';
+      } else if (part.includes('docs.google.com/presentation')) {
+        label = '📽️ Ver Google Slides';
+      } else if (part.includes('drive.google.com')) {
+        label = '📁 Ver Archivo Drive';
+      } else if (part.length > 38) {
+        label = `${part.substring(0, 35)}...`;
+      }
+
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={part}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            border: '1px solid rgba(96, 165, 250, 0.3)',
+            color: '#93c5fd',
+            fontSize: '11.5px',
+            fontWeight: 500,
+            textDecoration: 'none',
+            verticalAlign: 'middle',
+            margin: '1px 2px',
+            cursor: 'pointer',
+          }}
+        >
+          <span>{label}</span>
+          <span style={{ fontSize: '9px' }}>↗</span>
+        </a>
+      );
+    }
+
+    // Negrita
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={i} style={{ fontWeight: 700, color: '#f8fafc' }}>
+        <strong key={i} style={{ fontWeight: 700, color: isUser ? '#ffffff' : '#f8fafc' }}>
           {part.slice(2, -2)}
         </strong>
       );
     }
+
+    // Código inline
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
-        <code key={i} style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.9em', color: '#93c5fd' }}>
+        <code
+          key={i}
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            padding: '1px 5px',
+            borderRadius: '4px',
+            fontSize: '0.9em',
+            color: '#93c5fd',
+          }}
+        >
           {part.slice(1, -1)}
         </code>
       );
     }
-    return part;
+
+    // Texto normal
+    return <React.Fragment key={i}>{part}</React.Fragment>;
   });
 }
 
