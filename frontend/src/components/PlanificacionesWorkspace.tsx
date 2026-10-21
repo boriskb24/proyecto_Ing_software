@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getPlanificaciones,
@@ -16,8 +17,6 @@ import {
   Sparkles,
   Send,
   Paperclip,
-  PanelRightClose,
-  PanelRightOpen,
   PanelLeftClose,
   PanelLeftOpen,
   FileText,
@@ -33,13 +32,17 @@ import {
   Lightbulb,
   RefreshCw,
   Search,
-  Filter,
   X,
   Plus,
   BookOpen,
   Target,
   Award,
   Layers,
+  Copy,
+  Check,
+  ArrowLeft,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 const SUGGESTED_PROMPTS = [
@@ -51,6 +54,7 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export const PlanificacionesWorkspace: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const esDocente = user?.role === 'Profesor' || user?.role === 'Administrador' || user?.role === 'Evaluador';
   const esEstudiante = !esDocente;
@@ -66,10 +70,70 @@ export const PlanificacionesWorkspace: React.FC = () => {
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS');
   const [filtroEstudiante, setFiltroEstudiante] = useState<string>('TODOS');
 
-  // Control de paneles colapsables
+  // Control de paneles: Sidebar izquierda y Drawer flotante derecho para PDF
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
-  const [docPanelOpen, setDocPanelOpen] = useState<boolean>(true);
+  const [docPanelOpen, setDocPanelOpen] = useState<boolean>(false); // En ChatGPT puro, el visor es bajo demanda
   const [docActiveTab, setDocActiveTab] = useState<'pdf' | 'dictamen' | 'dimensiones'>('pdf');
+
+  // Control de tamaño y arrastre manual del Drawer de PDF
+  const [drawerWidth, setDrawerWidth] = useState<number>(580);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isMaximized, setIsMaximized] = useState<boolean>(false);
+  const prevWidthRef = useRef<number>(580);
+
+  const handleMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const prevUserSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      const minW = 380;
+      const maxW = Math.max(window.innerWidth - 60, 500);
+      const clamped = Math.min(Math.max(newWidth, minW), maxW);
+      setDrawerWidth(clamped);
+      if (clamped >= maxW - 20) {
+        setIsMaximized(true);
+      } else {
+        setIsMaximized(false);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+    };
+  }, [isDragging]);
+
+  const toggleMaximizeDrawer = () => {
+    if (isMaximized) {
+      setDrawerWidth(prevWidthRef.current || 580);
+      setIsMaximized(false);
+    } else {
+      prevWidthRef.current = drawerWidth;
+      setDrawerWidth(Math.min(window.innerWidth - 60, 1280));
+      setIsMaximized(true);
+    }
+  };
 
   // Estado de subida de nueva planificación
   const [newFile, setNewFile] = useState<File | null>(null);
@@ -87,13 +151,14 @@ export const PlanificacionesWorkspace: React.FC = () => {
   const [chatInput, setChatInput] = useState<string>('');
   const [chatError, setChatError] = useState<string | null>(null);
   const [isBusyLimit, setIsBusyLimit] = useState<boolean>(false);
+  const [copiedMsgId, setCopiedMsgId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Formalización de entrega
   const [isFormalizing, setIsFormalizing] = useState<boolean>(false);
 
-  // Evaluación docente
+  // Evaluación docente (si un docente accede a la vista)
   const [evalNuevoEstado, setEvalNuevoEstado] = useState<'APROBADA' | 'RECHAZADA'>('APROBADA');
   const [evalRetroalimentacion, setEvalRetroalimentacion] = useState<string>('');
   const [isSubmittingEval, setIsSubmittingEval] = useState<boolean>(false);
@@ -111,7 +176,6 @@ export const PlanificacionesWorkspace: React.FC = () => {
         if (selectIdToFocus) {
           setSelectedPlanId(selectIdToFocus);
         } else if (selectedPlanId === null || selectedPlanId === 'NEW') {
-          // Mantener o seleccionar la primera
           setSelectedPlanId((prev) => (prev === 'NEW' ? 'NEW' : data[0].id));
         }
       } else {
@@ -179,6 +243,15 @@ export const PlanificacionesWorkspace: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isSendingMsg]);
 
+  // Manejo del cambio de texto con auto-expand en textarea
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setChatInput(e.target.value);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
+    }
+  };
+
   // Enviar mensaje al bot
   const handleSendMessage = async (textCustom?: string) => {
     const text = (textCustom !== undefined ? textCustom : chatInput).trim();
@@ -196,6 +269,9 @@ export const PlanificacionesWorkspace: React.FC = () => {
 
     setChatMessages((prev) => [...prev, optimisticMsg]);
     setChatInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     setIsSendingMsg(true);
 
     try {
@@ -218,6 +294,13 @@ export const PlanificacionesWorkspace: React.FC = () => {
       setIsSendingMsg(false);
       setTimeout(() => textareaRef.current?.focus(), 80);
     }
+  };
+
+  // Copiar respuesta del bot
+  const handleCopyMessage = (id: number, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMsgId(id);
+    setTimeout(() => setCopiedMsgId(null), 2000);
   };
 
   // Subir nueva planificación
@@ -284,13 +367,17 @@ export const PlanificacionesWorkspace: React.FC = () => {
   // Formalizar entrega
   const handleFormalizar = async () => {
     if (!planificacionActiva || isFormalizing) return;
+    if (!window.confirm('¿Deseas enviar esta planificación a revisión de tu profesor guía? Una vez confirmada, quedará en estado de entrega formal.')) {
+      return;
+    }
+
     setIsFormalizing(true);
     try {
       const formalizada = await formalizarPlanificacion(planificacionActiva.id, user?.email);
       setPlanificaciones((prev) =>
         prev.map((p) => (p.id === formalizada.id ? formalizada : p))
       );
-      alert('¡Planificación formalizada! Ahora se encuentra en revisión docente.');
+      alert('¡Planificación formalizada! Ahora se encuentra disponible para evaluación docente.');
     } catch (err: any) {
       alert('Error al formalizar: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -331,7 +418,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
     }
   };
 
-  // Filtro de lista
+  // Filtros de búsqueda
   const estudiantesUnicos = Array.from(
     new Set(planificaciones.map((p) => p.usuario?.fullName).filter(Boolean))
   ) as string[];
@@ -363,31 +450,23 @@ export const PlanificacionesWorkspace: React.FC = () => {
     }
   };
 
+  const primerNombre = user?.fullName ? user.fullName.split(' ')[0] : 'Profesor(a) en Formación';
+
   return (
     <div style={styles.workspaceContainer}>
       {/* ======================================================== */}
-      {/* 1. SIDEBAR IZQUIERDA: HISTORIAL DE PLANIFICACIONES */}
+      {/* 1. SIDEBAR IZQUIERDA: HISTORIAL DE CLASES ESTILO CHATGPT */}
       {/* ======================================================== */}
       <aside
         style={{
           ...styles.sidebar,
-          width: sidebarOpen ? '300px' : '0px',
+          width: sidebarOpen ? '280px' : '0px',
           opacity: sidebarOpen ? 1 : 0,
           pointerEvents: sidebarOpen ? 'auto' : 'none',
         }}
       >
         <div style={styles.sidebarHeader}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={18} color="#60a5fa" />
-              <h2 style={styles.sidebarTitle}>
-                {esDocente ? 'Planificaciones' : 'Mis Clases'}
-              </h2>
-            </div>
-            <span style={styles.countBadge}>{planificacionesFiltradas.length}</span>
-          </div>
-
-          {/* Botón Nueva Planificación (Solo estudiante) */}
+          {/* Botón Principal: Nueva Planificación */}
           {esEstudiante && (
             <button
               onClick={() => setSelectedPlanId('NEW')}
@@ -397,7 +476,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
               }}
             >
               <Plus size={16} />
-              <span>Subir Nueva Planificación</span>
+              <span>Nueva Planificación</span>
             </button>
           )}
 
@@ -406,7 +485,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
             <Search size={14} color="#94a3b8" />
             <input
               type="text"
-              placeholder={esDocente ? 'Buscar por alumno o tema...' : 'Buscar planificación...'}
+              placeholder={esDocente ? 'Buscar por alumno o tema...' : 'Buscar en mis clases...'}
               value={busquedaTexto}
               onChange={(e) => setBusquedaTexto(e.target.value)}
               style={styles.searchInput}
@@ -454,7 +533,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
           </div>
         </div>
 
-        {/* Lista de Tarjetas */}
+        {/* Lista de Clases / Sesiones */}
         <div style={styles.sidebarList}>
           {isLoadingList ? (
             <div style={styles.sidebarEmpty}>Cargando planificaciones...</div>
@@ -473,11 +552,11 @@ export const PlanificacionesWorkspace: React.FC = () => {
                   onClick={() => setSelectedPlanId(item.id)}
                   style={{
                     ...styles.planifCard,
-                    backgroundColor: isSelected ? '#1e293b' : 'rgba(19, 30, 58, 0.6)',
-                    borderColor: isSelected ? '#3b82f6' : 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: isSelected ? 'rgba(37, 99, 235, 0.18)' : 'transparent',
+                    borderColor: isSelected ? '#3b82f6' : 'transparent',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                     <span style={styles.planifCardTitle}>{tema}</span>
                     <span
                       style={{
@@ -515,19 +594,40 @@ export const PlanificacionesWorkspace: React.FC = () => {
             })
           )}
         </div>
+
+        {/* Footer del Sidebar: Perfil y Dashboard */}
+        <div style={styles.sidebarFooter}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <div style={styles.userAvatarMini}>
+              {user?.fullName?.charAt(0) || 'U'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={styles.userNameMini}>{user?.fullName || 'Estudiante'}</div>
+              <div style={styles.userEmailMini}>{user?.email}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            style={styles.btnVolverDashboard}
+            title="Volver al Dashboard principal"
+          >
+            <ArrowLeft size={14} />
+            <span>Volver al Dashboard</span>
+          </button>
+        </div>
       </aside>
 
       {/* ======================================================== */}
-      {/* 2. PANEL CENTRAL: CHAT CON RETROPLANI MATE (CHATGPT-STYLE) */}
+      {/* 2. ÁREA CENTRAL: CANVAS CONVERSACIONAL PURO (CHATGPT-STYLE) */}
       {/* ======================================================== */}
       <main style={styles.chatPanel}>
-        {/* Header superior del chat */}
+        {/* Header Superior Flotante y Limpio */}
         <header style={styles.chatHeader}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               onClick={() => setSidebarOpen((prev) => !prev)}
               style={styles.iconToggleBtn}
-              title={sidebarOpen ? 'Ocultar historial' : 'Mostrar historial'}
+              title={sidebarOpen ? 'Ocultar barra lateral' : 'Mostrar historial de clases'}
             >
               {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
             </button>
@@ -539,10 +639,10 @@ export const PlanificacionesWorkspace: React.FC = () => {
                 </div>
                 <h1 style={styles.chatTitle}>
                   {selectedPlanId === 'NEW'
-                    ? 'Nueva Planificación de Clase'
+                    ? 'Nueva Planificación'
                     : planificacionActiva
                     ? planificacionActiva.nombreArchivo || planificacionActiva.archivo?.split('/').pop() || `Planificación #${planificacionActiva.id}`
-                    : 'Selecciona una Planificación'}
+                    : 'RetroPlani Mate V3'}
                 </h1>
 
                 {planificacionActiva && (
@@ -559,80 +659,71 @@ export const PlanificacionesWorkspace: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p style={styles.chatSubtitle}>
-                RetroPlani Mate V3 • Tutoría Socrática en Didáctica de la Matemática UBB
-              </p>
             </div>
           </div>
 
-          {/* Acciones del Header */}
+          {/* Acciones del Header Superior */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Si está en revisión IA y es estudiante: Botón de Formalizar */}
+            {/* Si está en revisión formativa: Botón de Formalizar Entrega */}
             {esEstudiante && planificacionActiva?.estado === 'EN_REVISION_IA' && (
               <button
                 onClick={handleFormalizar}
                 disabled={isFormalizing}
                 style={styles.btnFormalizarHeader}
-                title="Formalizar entrega para que tu profesor la evalúe"
+                title="Confirmar entrega para que tu profesor la evalúe formalmente"
               >
                 <Sparkles size={14} />
                 <span>{isFormalizing ? 'Formalizando...' : 'Confirmar Entrega al Profesor'}</span>
               </button>
             )}
 
-            {/* Alternador de Panel Derecho (Visor PDF / Dictamen) */}
+            {/* Botón para abrir el Visor de Documento PDF en Drawer Deslizante */}
             {planificacionActiva && (
               <button
-                onClick={() => setDocPanelOpen((prev) => !prev)}
-                style={{
-                  ...styles.btnToggleDocPanel,
-                  backgroundColor: docPanelOpen ? '#1e293b' : 'rgba(255,255,255,0.06)',
-                  color: docPanelOpen ? '#60a5fa' : '#94a3b8',
-                }}
-                title={docPanelOpen ? 'Ocultar visor de documento' : 'Abrir visor de documento'}
+                onClick={() => setDocPanelOpen(true)}
+                style={styles.btnVerDocumento}
+                title="Abrir visor de planificación PDF y dictamen"
               >
-                {docPanelOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                  {docPanelOpen ? 'Ocultar Documento' : 'Ver Documento & Dictamen'}
-                </span>
+                <FileText size={16} color="#60a5fa" />
+                <span>Ver Documento PDF</span>
               </button>
             )}
           </div>
         </header>
 
-        {/* Banner de estado pedagógico */}
+        {/* Banner de Estado Pedagógico (si está en revisión IA) */}
         {planificacionActiva?.estado === 'EN_REVISION_IA' && (
           <div style={styles.aiReviewBanner}>
-            <Sparkles size={16} color="#a855f7" style={{ flexShrink: 0 }} />
-            <div style={{ flex: 1, fontSize: '13px', color: '#c084fc' }}>
-              <strong>Modo Revisión Formativa:</strong> Esta versión aún no es visible para tu profesor. Reflexiona con el bot, realiza las mejoras pedagógicas pertinentes y pulsa <strong>"Confirmar Entrega al Profesor"</strong> cuando estés listo.
+            <Sparkles size={15} color="#a855f7" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1, fontSize: '12.5px', color: '#c084fc' }}>
+              <strong>Modo Revisión Formativa:</strong> Tu clase está siendo retroalimentada por RetroPlani Mate V3. Dialoga con el bot, revisa tus anexos y pulsa <strong>"Confirmar Entrega al Profesor"</strong> cuando desees que el docente la califique.
             </div>
           </div>
         )}
 
-        {/* Área scrolleable de mensajes */}
+        {/* Contenedor Scrolleable de Mensajes */}
         <div style={styles.chatMessagesArea}>
           {selectedPlanId === 'NEW' ? (
             /* ======================================================== */
-            /* PANTALLA INICIAL: SUBIDA CHATGPT-LIKE */
+            /* PANTALLA INICIAL: BIENVENIDA Y CARGA DE CLASE (CHATGPT) */
             /* ======================================================== */
             <div style={styles.newPlanifWelcome}>
               <div style={styles.welcomeHero}>
                 <div style={styles.heroSparkle}>
-                  <Sparkles size={32} color="#ffffff" />
+                  <Sparkles size={30} color="#ffffff" />
                 </div>
-                <h2 style={styles.heroTitle}>Sube tu Planificación de Clase</h2>
+                <h2 style={styles.heroTitle}>Hola, {primerNombre}</h2>
                 <p style={styles.heroSubtitle}>
-                  El Tutor IA RetroPlani Mate analizará tu documento en los 4 ejes pedagógicos UBB (Inicio, Desarrollo, Cierre, DUA y Evaluación) y te entregará retroalimentación formativa en tiempo real.
+                  ¿Qué clase de matemática prepararemos hoy? Sube tu planificación en PDF y RetroPlani Mate V3 analizará tu Inicio, Desarrollo, Cierre, DUA y Evaluación Formativa.
                 </p>
               </div>
 
-              {/* Formulario de Subida Integrado */}
+              {/* Tarjeta de Subida Centrada */}
               <form onSubmit={handleUploadNew} style={styles.uploadCard}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
                   <label style={styles.inputLabel}>
                     <Calendar size={14} color="#60a5fa" />
-                    <span>Fecha en que realizarás la clase:</span>
+                    <span>Fecha programada de la clase:</span>
                     <span style={{ color: '#f87171', fontSize: '11px' }}>* Obligatorio</span>
                   </label>
                   <input
@@ -648,7 +739,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
                 <div
                   style={{
                     ...styles.dropzoneBox,
-                    borderColor: newFile ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)',
+                    borderColor: newFile ? '#3b82f6' : 'rgba(255, 255, 255, 0.18)',
                     backgroundColor: newFile ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.02)',
                   }}
                   onClick={() => fileInputRef.current?.click()}
@@ -671,22 +762,22 @@ export const PlanificacionesWorkspace: React.FC = () => {
                     }}
                   />
                   <div style={styles.dropzoneIconWrap}>
-                    <Upload size={24} color={newFile ? '#60a5fa' : '#94a3b8'} />
+                    <Upload size={22} color={newFile ? '#60a5fa' : '#94a3b8'} />
                   </div>
                   {newFile ? (
                     <div>
                       <p style={{ margin: '0 0 4px 0', fontWeight: 700, color: '#60a5fa', fontSize: '14px' }}>
                         📄 {newFile.name}
                       </p>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>Clic para cambiar archivo PDF</span>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>Clic para cambiar archivo</span>
                     </div>
                   ) : (
                     <div>
                       <p style={{ margin: '0 0 4px 0', fontWeight: 650, color: '#f8fafc', fontSize: '14px' }}>
-                        Arrastra tu archivo PDF o haz clic aquí para seleccionarlo
+                        Arrastra tu archivo PDF o haz clic aquí
                       </p>
                       <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        Formatos soportados: Documentos de planificación en PDF (Máx 50MB)
+                        Formatos soportados: Planificación pedagógica en PDF (Máx 50MB)
                       </span>
                     </div>
                   )}
@@ -710,18 +801,18 @@ export const PlanificacionesWorkspace: React.FC = () => {
                   {isUploading ? (
                     <>
                       <RefreshCw size={16} className="spin" />
-                      <span>Subiendo y activando análisis IA...</span>
+                      <span>Analizando planificación didáctica...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles size={16} />
-                      <span>Subir Planificación y Comenzar Tutoría IA</span>
+                      <span>Comenzar Tutoría Didáctica</span>
                     </>
                   )}
                 </button>
               </form>
 
-              {/* 4 Ejes Didácticos Informativos */}
+              {/* 4 Ejes Didácticos UBB */}
               <div style={styles.gridEjesInfo}>
                 <div style={styles.cardEjeMini}>
                   <Target size={16} color="#60a5fa" />
@@ -731,23 +822,23 @@ export const PlanificacionesWorkspace: React.FC = () => {
                 <div style={styles.cardEjeMini}>
                   <Layers size={16} color="#34d399" />
                   <strong>Metodología Activa</strong>
-                  <p>Didáctica de la matemática, problematización y razonamiento.</p>
+                  <p>Didáctica de la matemática, problematización y razonamiento activo.</p>
                 </div>
                 <div style={styles.cardEjeMini}>
                   <Award size={16} color="#fbbf24" />
                   <strong>DUA (Decreto 83)</strong>
-                  <p>Múltiples formas de representación, expresión y motivación.</p>
+                  <p>Múltiples formas de representación, expresión y motivación escolar.</p>
                 </div>
                 <div style={styles.cardEjeMini}>
                   <CheckCircle2 size={16} color="#c084fc" />
                   <strong>Evaluación Formativa</strong>
-                  <p>Instrumentos para verificar el aprendizaje clase a clase.</p>
+                  <p>Instrumentos para verificar el aprendizaje clase a clase y anticipar errores.</p>
                 </div>
               </div>
             </div>
           ) : (
             /* ======================================================== */
-            /* CONVERSACIÓN CON EL ASISTENTE PEDAGÓGICO */
+            /* HISTORIAL DE DIÁLOGO PEDAGÓGICO CENTRADO (CHATGPT) */
             /* ======================================================== */
             <div style={styles.messagesContainer}>
               {isLoadingChat ? (
@@ -757,7 +848,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
                     Recuperando sesión pedagógica...
                   </h3>
                   <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>
-                    Sincronizando observaciones con el motor de inferencia UBB
+                    Sincronizando observaciones formativas con el motor de inferencia UBB
                   </p>
                 </div>
               ) : chatMessages.length === 0 ? (
@@ -794,7 +885,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
                         }}
                       >
                         <div style={styles.bubbleHeader}>
-                          <span style={styles.senderName}>{isUser ? 'Tú' : 'RetroPlani Mate'}</span>
+                          <span style={styles.senderName}>{isUser ? 'Tú' : 'RetroPlani Mate V3'}</span>
                           {msg.createdAt && (
                             <span style={styles.timestamp}>
                               <Clock size={11} style={{ marginRight: '3px' }} />
@@ -803,10 +894,33 @@ export const PlanificacionesWorkspace: React.FC = () => {
                           )}
                         </div>
 
-                        {/* Renderizado formateado de texto */}
+                        {/* Renderizado formateado con tablas y enlaces limpios */}
                         <div style={styles.bubbleContent}>
                           <FormattedText content={msg.content} isUser={isUser} />
                         </div>
+
+                        {/* Botón Copiar al pie de la respuesta del bot */}
+                        {!isUser && (
+                          <div style={styles.msgFooterActions}>
+                            <button
+                              onClick={() => handleCopyMessage(msg.id || idx, msg.content)}
+                              style={styles.copyBtn}
+                              title="Copiar respuesta pedagógica"
+                            >
+                              {copiedMsgId === (msg.id || idx) ? (
+                                <>
+                                  <Check size={12} color="#4ade80" />
+                                  <span style={{ color: '#4ade80', fontSize: '11px' }}>Copiado</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={12} color="#94a3b8" />
+                                  <span style={{ color: '#94a3b8', fontSize: '11px' }}>Copiar</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {isUser && (
@@ -819,7 +933,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
                 })
               )}
 
-              {/* Indicador de typing */}
+              {/* Indicador de reflexión activa */}
               {isSendingMsg && (
                 <div style={{ ...styles.messageRow, justifyContent: 'flex-start' }}>
                   <div style={styles.avatarBot}>
@@ -857,7 +971,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
           </div>
         )}
 
-        {/* Sugerencias Rápidas (Chips) */}
+        {/* Sugerencias Rápidas (Chips Socráticos) */}
         {selectedPlanId !== 'NEW' && (
           <div style={styles.chipsSection}>
             <div style={styles.chipsScroll}>
@@ -876,11 +990,13 @@ export const PlanificacionesWorkspace: React.FC = () => {
           </div>
         )}
 
-        {/* Barra de Entrada Inferior Flotante (ChatGPT Style) */}
+        {/* ======================================================== */}
+        {/* BARRA DE ENTRADA INFERIOR FLOTANTE (ESTILO CHATGPT PURO) */}
+        {/* ======================================================== */}
         {selectedPlanId !== 'NEW' && (
           <div style={styles.chatInputWrapper}>
             <div style={styles.chatInputBox}>
-              {/* Botón para subir nueva versión de PDF */}
+              {/* Botón de Adjuntar Versión PDF */}
               {esEstudiante && (
                 <>
                   <input
@@ -904,7 +1020,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
               <textarea
                 ref={textareaRef}
                 value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
+                onChange={handleTextareaChange}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -926,30 +1042,72 @@ export const PlanificacionesWorkspace: React.FC = () => {
                 disabled={!chatInput.trim() || isSendingMsg}
                 style={{
                   ...styles.sendBtn,
-                  opacity: !chatInput.trim() || isSendingMsg ? 0.5 : 1,
+                  opacity: !chatInput.trim() || isSendingMsg ? 0.4 : 1,
                 }}
                 title="Enviar mensaje (Enter)"
               >
-                <Send size={16} />
+                <Send size={15} />
               </button>
+            </div>
+
+            {/* Disclaimer pedagógico al pie */}
+            <div style={styles.disclaimerText}>
+              RetroPlani Mate V3 apoya tu diseño didáctico. Valida siempre las propuestas con tu Profesor Guía y las Bases Curriculares.
             </div>
           </div>
         )}
       </main>
 
       {/* ======================================================== */}
-      {/* 3. PANEL DERECHO: VISOR DE DOCUMENTO & DICTAMEN DOCENTE */}
+      {/* 3. SLIDE-OVER DRAWER: VISOR PDF & DICTAMEN (BAJO DEMANDA) */}
       {/* ======================================================== */}
+      {docPanelOpen && (
+        <div
+          onClick={() => setDocPanelOpen(false)}
+          style={styles.drawerBackdrop}
+        />
+      )}
+
       {planificacionActiva && (
         <aside
           style={{
-            ...styles.docPanel,
-            width: docPanelOpen ? '440px' : '0px',
-            opacity: docPanelOpen ? 1 : 0,
-            pointerEvents: docPanelOpen ? 'auto' : 'none',
+            ...styles.slideOverDrawer,
+            width: `${drawerWidth}px`,
+            maxWidth: '96vw',
+            transform: docPanelOpen ? 'translateX(0)' : 'translateX(100%)',
+            transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s ease',
           }}
         >
-          {/* Header con Pestañas */}
+          {/* Manija de Arrastre / Redimensionamiento Manual */}
+          <div
+            onMouseDown={handleMouseDownResize}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '10px',
+              cursor: 'col-resize',
+              zIndex: 60,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.4)' : 'transparent',
+              transition: 'background-color 0.15s ease',
+            }}
+            title="Arrastra horizontalmente para ajustar el ancho del visor"
+          >
+            <div
+              style={{
+                width: '3px',
+                height: '36px',
+                borderRadius: '2px',
+                backgroundColor: isDragging ? '#60a5fa' : 'rgba(255, 255, 255, 0.2)',
+              }}
+            />
+          </div>
+
+          {/* Header del Drawer */}
           <div style={styles.docPanelHeader}>
             <div style={styles.docTabsRow}>
               <button
@@ -989,16 +1147,27 @@ export const PlanificacionesWorkspace: React.FC = () => {
               </button>
             </div>
 
-            <button
-              onClick={() => setDocPanelOpen(false)}
-              style={styles.iconCloseDocBtn}
-              title="Cerrar panel"
-            >
-              <X size={16} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {/* Botón Maximizar / Restaurar */}
+              <button
+                onClick={toggleMaximizeDrawer}
+                style={styles.iconCloseDocBtn}
+                title={isMaximized ? 'Restaurar tamaño normal' : 'Maximizar ancho'}
+              >
+                {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+
+              <button
+                onClick={() => setDocPanelOpen(false)}
+                style={styles.iconCloseDocBtn}
+                title="Cerrar visor"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
-          {/* Contenido según pestaña */}
+          {/* Contenido del Drawer */}
           <div style={styles.docPanelContent}>
             {docActiveTab === 'pdf' && (
               <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1014,11 +1183,23 @@ export const PlanificacionesWorkspace: React.FC = () => {
                     title="Abrir en pestaña nueva"
                   >
                     <ExternalLink size={13} />
-                    <span>Abrir PDF</span>
+                    <span>Abrir PDF Completo</span>
                   </a>
                 </div>
 
-                <div style={styles.iframeWrapper}>
+                <div style={{ ...styles.iframeWrapper, position: 'relative' }}>
+                  {/* Escudo protector transparente para no perder eventos del mouse durante arrastre */}
+                  {isDragging && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 20,
+                        cursor: 'col-resize',
+                        backgroundColor: 'transparent',
+                      }}
+                    />
+                  )}
                   <iframe
                     src={getAuthFileUrl(planificacionActiva.archivoUrl || `/api/planificaciones/${planificacionActiva.id}/archivo`)}
                     title="Visor de Planificación PDF"
@@ -1030,7 +1211,6 @@ export const PlanificacionesWorkspace: React.FC = () => {
 
             {docActiveTab === 'dictamen' && (
               <div style={styles.dictamenTabContent}>
-                {/* Si es docente: Formulario de Evaluación */}
                 {esDocente ? (
                   <form onSubmit={handleEvaluarSubmit} style={styles.evalFormBox}>
                     <h3 style={styles.dictamenSectionTitle}>Resolución de la Planificación</h3>
@@ -1098,7 +1278,6 @@ export const PlanificacionesWorkspace: React.FC = () => {
                     </button>
                   </form>
                 ) : (
-                  /* Vista de estudiante del dictamen */
                   <div style={styles.studentDictamenCard}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                       <Award size={20} color="#fbbf24" />
@@ -1150,44 +1329,29 @@ export const PlanificacionesWorkspace: React.FC = () => {
                   Pauta de aseguramiento didáctico para la carrera de Pedagogía en Educación Matemática:
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
                   <div style={styles.ejeCard}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Target size={16} color="#60a5fa" />
-                      <strong style={{ fontSize: '13.5px', color: '#93c5fd' }}>1. Coherencia Curricular</strong>
-                    </div>
+                    <strong style={{ color: '#60a5fa' }}>1. Coherencia Curricular</strong>
                     <p style={styles.ejeCardText}>
-                      Alineación estricta entre el Objetivo de Aprendizaje (OA), los tres momentos de la clase (Inicio, Desarrollo, Cierre) y los tiempos programados.
+                      Alineación estricta entre Objetivos de Aprendizaje (OA), indicadores de logro y actividades de los tres momentos de la clase (Inicio, Desarrollo y Cierre).
                     </p>
                   </div>
-
                   <div style={styles.ejeCard}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Layers size={16} color="#34d399" />
-                      <strong style={{ fontSize: '13.5px', color: '#6ee7b7' }}>2. Metodología Activa</strong>
-                    </div>
+                    <strong style={{ color: '#34d399' }}>2. Metodología Activa</strong>
                     <p style={styles.ejeCardText}>
-                      Estrategias pedagógicas orientadas a la didáctica de la matemática, resolución de problemas y rol protagónico del estudiante.
+                      Enfoque centrado en la resolución de problemas, conjeturación, argumentación y rol protagónico del estudiante escolar.
                     </p>
                   </div>
-
                   <div style={styles.ejeCard}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Award size={16} color="#fbbf24" />
-                      <strong style={{ fontSize: '13.5px', color: '#fde047' }}>3. Diversificación DUA (Decreto 83)</strong>
-                    </div>
+                    <strong style={{ color: '#fbbf24' }}>3. DUA e Inclusión (Decreto 83)</strong>
                     <p style={styles.ejeCardText}>
-                      Principios del Diseño Universal para el Aprendizaje: múltiples formas de representación visual/simbólica, acción/expresión y motivación.
+                      Garantía de múltiples formas de representación (concreto, pictórico, simbólico), acción y expresión, y motivación.
                     </p>
                   </div>
-
                   <div style={styles.ejeCard}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CheckCircle2 size={16} color="#c084fc" />
-                      <strong style={{ fontSize: '13.5px', color: '#d8b4fe' }}>4. Evaluación Formativa</strong>
-                    </div>
+                    <strong style={{ color: '#c084fc' }}>4. Evaluación Formativa</strong>
                     <p style={styles.ejeCardText}>
-                      Estrategias clase a clase (ticket de salida, pauta de cotejo, preguntas socráticas) para monitorear el progreso del aprendizaje.
+                      Estrategias continuas de comprobación del aprendizaje (tickets de salida, rúbricas) y anticipación explícita de obstáculos didácticos.
                     </p>
                   </div>
                 </div>
@@ -1201,7 +1365,7 @@ export const PlanificacionesWorkspace: React.FC = () => {
 };
 
 // ========================================================
-// COMPONENTE AUXILIAR PARA FORMATO DE TEXTO MARKDOWN (CON SOPORTE DE TABLAS Y ENLACES)
+// COMPONENTE AUXILIAR PARA FORMATO MARKDOWN, TABLAS Y PILLS DE ENLACE
 // ========================================================
 
 type ContentBlock =
@@ -1241,7 +1405,7 @@ function parseContentToBlocks(content: string): ContentBlock[] {
     const line = rawLines[i];
     const trimmed = line.trim();
 
-    // Detección de tablas Markdown (incluyendo tablas con líneas intermedias vacías)
+    // Detección de tablas Markdown con tolerancia a saltos dobles
     if (isTableRow(trimmed)) {
       const tableLines: string[] = [trimmed];
       let j = i + 1;
@@ -1252,13 +1416,10 @@ function parseContentToBlocks(content: string): ContentBlock[] {
           tableLines.push(nextTrimmed);
           j++;
         } else if (nextTrimmed === '') {
-          // Si hay una línea vacía intermedia, revisamos si la siguiente línea no vacía sigue siendo tabla
           let k = j + 1;
-          while (k < rawLines.length && rawLines[k].trim() === '') {
-            k++;
-          }
+          while (k < rawLines.length && rawLines[k].trim() === '') k++;
           if (k < rawLines.length && isTableRow(rawLines[k].trim())) {
-            j = k; // Saltamos los espacios en blanco intermedios y continuamos la tabla
+            j = k;
           } else {
             break;
           }
@@ -1296,7 +1457,6 @@ function parseContentToBlocks(content: string): ContentBlock[] {
     }
 
     if (!trimmed) {
-      // Evitar acumular espaciadores vacíos consecutivos
       if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'spacer') {
         blocks.push({ type: 'spacer' });
       }
@@ -1352,10 +1512,10 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
   const blocks = parseContentToBlocks(content);
 
   return (
-    <div style={{ lineHeight: '1.6', fontSize: '13.5px' }}>
+    <div style={{ lineHeight: '1.65', fontSize: '14px' }}>
       {blocks.map((block, idx) => {
         if (block.type === 'spacer') {
-          return <div key={idx} style={{ height: '6px' }} />;
+          return <div key={idx} style={{ height: '8px' }} />;
         }
 
         if (block.type === 'heading') {
@@ -1364,10 +1524,10 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
               <h4
                 key={idx}
                 style={{
-                  fontSize: '14.5px',
+                  fontSize: '15px',
                   fontWeight: 700,
                   color: isUser ? '#ffffff' : '#93c5fd',
-                  margin: '12px 0 4px 0',
+                  margin: '14px 0 4px 0',
                 }}
               >
                 {renderInlineStyles(block.text, isUser)}
@@ -1378,10 +1538,10 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
             <h3
               key={idx}
               style={{
-                fontSize: '15px',
+                fontSize: '16px',
                 fontWeight: 700,
                 color: isUser ? '#ffffff' : '#60a5fa',
-                margin: '14px 0 6px 0',
+                margin: '16px 0 6px 0',
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
                 paddingBottom: '4px',
               }}
@@ -1399,10 +1559,10 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '8px',
-                margin: '2px 0 2px 4px',
+                margin: '3px 0 3px 6px',
               }}
             >
-              <span style={{ color: isUser ? '#ffffff' : '#818cf8', fontSize: '14px', lineHeight: '1.4' }}>•</span>
+              <span style={{ color: isUser ? '#ffffff' : '#818cf8', fontSize: '15px', lineHeight: '1.4' }}>•</span>
               <span style={{ flex: 1 }}>{renderInlineStyles(block.text, isUser)}</span>
             </div>
           );
@@ -1416,7 +1576,7 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '8px',
-                margin: '3px 0 3px 4px',
+                margin: '4px 0 4px 6px',
               }}
             >
               <span style={{ fontWeight: 700, color: isUser ? '#ffffff' : '#818cf8', minWidth: '18px' }}>
@@ -1433,13 +1593,13 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
               key={idx}
               style={{
                 borderLeft: '3px solid #818cf8',
-                paddingLeft: '10px',
+                paddingLeft: '12px',
                 color: isUser ? '#e0e7ff' : '#cbd5e1',
                 fontStyle: 'italic',
-                margin: '8px 0',
+                margin: '10px 0',
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                borderRadius: '0 4px 4px 0',
-                padding: '4px 8px',
+                borderRadius: '0 6px 6px 0',
+                padding: '6px 10px',
               }}
             >
               {renderInlineStyles(block.text, isUser)}
@@ -1457,12 +1617,12 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
             <div
               key={idx}
               style={{
-                margin: '12px 0',
+                margin: '14px 0',
                 borderRadius: '8px',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 overflowX: 'auto',
-                backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.3)',
                 maxWidth: '100%',
               }}
             >
@@ -1537,9 +1697,8 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
           );
         }
 
-        // Párrafo normal
         return (
-          <p key={idx} style={{ margin: '3px 0', color: isUser ? '#ffffff' : '#e2e8f0' }}>
+          <p key={idx} style={{ margin: '4px 0', color: isUser ? '#ffffff' : '#e2e8f0' }}>
             {renderInlineStyles(block.text, isUser)}
           </p>
         );
@@ -1549,14 +1708,12 @@ const FormattedText: React.FC<{ content: string; isUser: boolean }> = ({ content
 };
 
 function renderInlineStyles(text: string, isUser = false): React.ReactNode {
-  // Regex para enlaces Markdown, URLs directas, negrita (**...**) y código (`...`)
   const regex = /(\[.*?\]\(https?:\/\/[^\s\)]+\)|https?:\/\/[^\s)\]<>"']+|\*\*.*?\*\*|`.*?`)/g;
   const parts = text.split(regex);
 
   return parts.map((part, i) => {
     if (!part) return null;
 
-    // Enlace Markdown [Texto](url)
     const mdLinkMatch = part.match(/^\[(.*?)\]\((https?:\/\/[^\s\)]+)\)$/);
     if (mdLinkMatch) {
       const linkText = mdLinkMatch[1];
@@ -1580,7 +1737,6 @@ function renderInlineStyles(text: string, isUser = false): React.ReactNode {
       );
     }
 
-    // URL Directa (Google Docs, Drive u otras)
     if (part.startsWith('http://') || part.startsWith('https://')) {
       let label = part;
       if (part.includes('docs.google.com/document')) {
@@ -1625,7 +1781,6 @@ function renderInlineStyles(text: string, isUser = false): React.ReactNode {
       );
     }
 
-    // Negrita
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
         <strong key={i} style={{ fontWeight: 700, color: isUser ? '#ffffff' : '#f8fafc' }}>
@@ -1634,7 +1789,6 @@ function renderInlineStyles(text: string, isUser = false): React.ReactNode {
       );
     }
 
-    // Código inline
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
         <code
@@ -1652,13 +1806,12 @@ function renderInlineStyles(text: string, isUser = false): React.ReactNode {
       );
     }
 
-    // Texto normal
     return <React.Fragment key={i}>{part}</React.Fragment>;
   });
 }
 
 // ========================================================
-// ESTILOS EN LÍNEA
+// ESTILOS EN LÍNEA (CHATGPT PURO CONVERGENCE)
 // ========================================================
 const styles: { [key: string]: React.CSSProperties } = {
   workspaceContainer: {
@@ -1667,33 +1820,23 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#0b1329',
     color: '#f8fafc',
     overflow: 'hidden',
+    position: 'relative',
   },
+
+  // 1. Sidebar Izquierda
   sidebar: {
     backgroundColor: '#0f172a',
     borderRight: '1px solid rgba(255, 255, 255, 0.08)',
     display: 'flex',
     flexDirection: 'column',
-    transition: 'width 0.25s ease, opacity 0.2s ease',
+    transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease',
     overflow: 'hidden',
     flexShrink: 0,
+    zIndex: 20,
   },
   sidebarHeader: {
     padding: '16px 14px 12px 14px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-  },
-  sidebarTitle: {
-    margin: 0,
-    fontSize: '15px',
-    fontWeight: 700,
-    color: '#ffffff',
-  },
-  countBadge: {
-    fontSize: '11px',
-    fontWeight: 700,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    color: '#94a3b8',
-    padding: '2px 7px',
-    borderRadius: '10px',
   },
   btnNuevaPlanif: {
     width: '100%',
@@ -1701,15 +1844,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '6px',
-    padding: '9px 12px',
-    borderRadius: '8px',
+    padding: '10px 12px',
+    borderRadius: '10px',
     border: 'none',
     color: '#ffffff',
-    fontSize: '13px',
+    fontSize: '13.5px',
     fontWeight: 650,
     cursor: 'pointer',
-    marginBottom: '10px',
-    transition: 'background-color 0.15s ease',
+    marginBottom: '12px',
+    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+    transition: 'all 0.15s ease',
   },
   searchBox: {
     display: 'flex',
@@ -1717,7 +1861,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '6px',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '7px',
+    borderRadius: '8px',
     padding: '6px 10px',
   },
   searchInput: {
@@ -1771,7 +1915,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '10px 8px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '4px',
   },
   sidebarEmpty: {
     textAlign: 'center',
@@ -1782,7 +1926,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   planifCard: {
     padding: '10px 12px',
     borderRadius: '8px',
-    border: '1px solid',
+    border: '1px solid transparent',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
   },
@@ -1791,7 +1935,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 650,
     color: '#f1f5f9',
     lineHeight: '1.3',
-    maxWidth: '180px',
+    maxWidth: '150px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -1833,8 +1977,56 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '1px solid',
     whiteSpace: 'nowrap',
   },
+  sidebarFooter: {
+    padding: '12px 14px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  userAvatarMini: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    backgroundColor: '#3b82f6',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 700,
+    fontSize: '13px',
+    flexShrink: 0,
+  },
+  userNameMini: {
+    fontSize: '12.5px',
+    fontWeight: 650,
+    color: '#f1f5f9',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  userEmailMini: {
+    fontSize: '11px',
+    color: '#94a3b8',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  btnVolverDashboard: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    background: 'none',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '6px',
+    color: '#94a3b8',
+    padding: '6px',
+    fontSize: '11.5px',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
 
-  // Panel Central del Chat
+  // 2. Área Central (Canvas ChatGPT Puro)
   chatPanel: {
     flex: 1,
     display: 'flex',
@@ -1846,24 +2038,24 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   chatHeader: {
     height: '56px',
-    padding: '0 16px',
+    padding: '0 20px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#0f172a',
     flexShrink: 0,
+    zIndex: 10,
   },
   chatTitle: {
     margin: 0,
-    fontSize: '14.5px',
+    fontSize: '15px',
     fontWeight: 700,
     color: '#ffffff',
-  },
-  chatSubtitle: {
-    margin: '1px 0 0 0',
-    fontSize: '11px',
-    color: '#94a3b8',
+    maxWidth: '340px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   sparkleWrap: {
     width: '26px',
@@ -1891,7 +2083,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '6px',
     padding: '6px 12px',
-    borderRadius: '7px',
+    borderRadius: '8px',
     backgroundColor: '#7c3aed',
     color: '#ffffff',
     border: 'none',
@@ -1900,83 +2092,90 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     boxShadow: '0 2px 6px rgba(124, 58, 237, 0.3)',
   },
-  btnToggleDocPanel: {
+  btnVerDocumento: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    padding: '6px 10px',
-    borderRadius: '7px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    border: '1px solid rgba(96, 165, 250, 0.3)',
+    color: '#93c5fd',
+    fontSize: '12.5px',
+    fontWeight: 600,
     cursor: 'pointer',
     transition: 'all 0.15s ease',
   },
   aiReviewBanner: {
     backgroundColor: 'rgba(124, 58, 237, 0.12)',
-    borderBottom: '1px solid rgba(124, 58, 237, 0.3)',
-    padding: '8px 16px',
+    borderBottom: '1px solid rgba(124, 58, 237, 0.25)',
+    padding: '8px 20px',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
     flexShrink: 0,
   },
 
-  // Área de Mensajes
+  // Área Scrolleable y Contenedor Centrado
   chatMessagesArea: {
     flex: 1,
     overflowY: 'auto',
-    padding: '16px 20px',
+    padding: '20px 20px 10px 20px',
   },
   messagesContainer: {
     maxWidth: '820px',
     margin: '0 auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
+    gap: '16px',
   },
   messageRow: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '10px',
+    gap: '12px',
   },
   avatarBot: {
     width: '32px',
     height: '32px',
-    borderRadius: '8px',
+    borderRadius: '50%',
     backgroundColor: '#6366f1',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
     boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)',
+    marginTop: '2px',
   },
   avatarUser: {
     width: '32px',
     height: '32px',
-    borderRadius: '8px',
+    borderRadius: '50%',
     backgroundColor: '#2563eb',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    marginTop: '2px',
   },
   bubble: {
     maxWidth: '85%',
-    padding: '10px 14px',
-    borderRadius: '12px',
+    padding: '12px 16px',
+    borderRadius: '14px',
   },
   bubbleBot: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#162036',
     border: '1px solid rgba(255, 255, 255, 0.08)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
   },
   bubbleUser: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#1d4ed8',
     color: '#ffffff',
   },
   bubbleHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    marginBottom: '4px',
+    marginBottom: '6px',
   },
   senderName: {
     fontSize: '12px',
@@ -1992,6 +2191,25 @@ const styles: { [key: string]: React.CSSProperties } = {
   bubbleContent: {
     wordBreak: 'break-word',
   },
+  msgFooterActions: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: '8px',
+    paddingTop: '6px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+  },
+  copyBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    transition: 'background-color 0.15s ease',
+  },
   typingDot: {
     width: '6px',
     height: '6px',
@@ -2004,7 +2222,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '40px',
+    padding: '60px 20px',
     textAlign: 'center',
   },
   spinner: {
@@ -2017,7 +2235,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   emptyPromptState: {
     textAlign: 'center',
-    padding: '40px 20px',
+    padding: '60px 20px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -2044,9 +2262,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
   },
 
-  // Chips de preguntas sugeridas
+  // Chips Socráticos
   chipsSection: {
-    padding: '4px 20px',
+    padding: '0 20px 8px 20px',
     maxWidth: '820px',
     width: '100%',
     margin: '0 auto',
@@ -2056,7 +2274,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     gap: '6px',
     overflowX: 'auto',
-    paddingBottom: '4px',
+    paddingBottom: '2px',
   },
   promptChip: {
     display: 'inline-flex',
@@ -2066,16 +2284,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '1px solid rgba(255, 255, 255, 0.1)',
     color: '#cbd5e1',
     borderRadius: '16px',
-    padding: '4px 10px',
-    fontSize: '11.5px',
+    padding: '5px 12px',
+    fontSize: '12px',
     fontWeight: 500,
     cursor: 'pointer',
     transition: 'all 0.15s ease',
   },
 
-  // Input Box Flotante ChatGPT-like
+  // Input Box Flotante ChatGPT Omnipresente
   chatInputWrapper: {
-    padding: '10px 20px 14px 20px',
+    padding: '0 20px 14px 20px',
     maxWidth: '860px',
     width: '100%',
     margin: '0 auto',
@@ -2085,12 +2303,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   chatInputBox: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    backgroundColor: '#131e3a',
-    border: '1px solid rgba(255, 255, 255, 0.12)',
-    borderRadius: '14px',
-    padding: '8px 12px',
-    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+    gap: '10px',
+    backgroundColor: '#162036',
+    border: '1px solid rgba(255, 255, 255, 0.14)',
+    borderRadius: '24px',
+    padding: '10px 14px',
+    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35)',
   },
   clipBtn: {
     background: 'none',
@@ -2098,7 +2316,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#94a3b8',
     cursor: 'pointer',
     padding: '6px',
-    borderRadius: '8px',
+    borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2110,15 +2328,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: 'none',
     outline: 'none',
     color: '#ffffff',
-    fontSize: '13.5px',
-    lineHeight: '1.4',
+    fontSize: '14px',
+    lineHeight: '1.45',
     resize: 'none',
-    maxHeight: '120px',
+    maxHeight: '150px',
   },
   sendBtn: {
     width: '32px',
     height: '32px',
-    borderRadius: '8px',
+    borderRadius: '50%',
     backgroundColor: '#2563eb',
     color: '#ffffff',
     border: 'none',
@@ -2127,15 +2345,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'background-color 0.15s ease',
+    flexShrink: 0,
+  },
+  disclaimerText: {
+    textAlign: 'center',
+    fontSize: '11px',
+    color: '#64748b',
+    marginTop: '6px',
   },
 
   // Pantalla Inicial "Nueva Planificación"
   newPlanifWelcome: {
     maxWidth: '720px',
-    margin: '20px auto',
+    margin: '30px auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '24px',
   },
   welcomeHero: {
     textAlign: 'center',
@@ -2144,34 +2369,34 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
   },
   heroSparkle: {
-    width: '54px',
-    height: '54px',
-    borderRadius: '14px',
+    width: '56px',
+    height: '56px',
+    borderRadius: '16px',
     background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '12px',
-    boxShadow: '0 6px 16px rgba(99, 102, 241, 0.35)',
+    marginBottom: '14px',
+    boxShadow: '0 6px 20px rgba(99, 102, 241, 0.4)',
   },
   heroTitle: {
     margin: '0 0 6px 0',
-    fontSize: '22px',
+    fontSize: '24px',
     fontWeight: 800,
     color: '#ffffff',
   },
   heroSubtitle: {
     margin: 0,
-    fontSize: '13.5px',
+    fontSize: '14px',
     color: '#94a3b8',
     lineHeight: '1.5',
-    maxWidth: '560px',
+    maxWidth: '580px',
   },
   uploadCard: {
     backgroundColor: '#131e3a',
     border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '14px',
-    padding: '20px',
+    padding: '22px',
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
   },
   inputLabel: {
@@ -2196,7 +2421,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   dropzoneBox: {
     border: '2px dashed',
     borderRadius: '12px',
-    padding: '24px',
+    padding: '26px',
     textAlign: 'center',
     cursor: 'pointer',
     margin: '12px 0 16px 0',
@@ -2255,24 +2480,38 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '4px',
   },
 
-  // Panel Derecho (NotebookLM style)
-  docPanel: {
+  // 3. Slide-Over Drawer para PDF & Dictamen
+  drawerBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backdropFilter: 'blur(3px)',
+    zIndex: 40,
+  },
+  slideOverDrawer: {
+    position: 'fixed',
+    top: '64px',
+    bottom: 0,
+    right: 0,
+    width: 'min(580px, 92vw)',
     backgroundColor: '#0f172a',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+    borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.65)',
+    zIndex: 50,
     display: 'flex',
     flexDirection: 'column',
-    transition: 'width 0.25s ease, opacity 0.2s ease',
+    transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
     overflow: 'hidden',
-    flexShrink: 0,
   },
   docPanelHeader: {
     height: '56px',
-    padding: '0 12px',
+    padding: '0 14px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexShrink: 0,
+    backgroundColor: '#0b1329',
   },
   docTabsRow: {
     display: 'flex',
@@ -2306,8 +2545,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     overflowY: 'auto',
   },
   pdfToolbar: {
-    padding: '8px 12px',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    padding: '8px 14px',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
     borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
     display: 'flex',
     alignItems: 'center',
@@ -2316,7 +2555,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   pdfFileName: {
     fontSize: '12px',
     color: '#cbd5e1',
-    maxWidth: '280px',
+    maxWidth: '320px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -2328,7 +2567,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '11px',
     color: '#60a5fa',
     textDecoration: 'none',
-    padding: '3px 7px',
+    padding: '3px 8px',
     borderRadius: '4px',
     backgroundColor: 'rgba(96, 165, 250, 0.1)',
   },
@@ -2343,9 +2582,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: 'none',
   },
 
-  // Dictamen Docente
+  // Dictamen y Ejes en Drawer
   dictamenTabContent: {
-    padding: '16px',
+    padding: '20px',
   },
   dictamenSectionTitle: {
     margin: '0 0 4px 0',
@@ -2432,10 +2671,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '12px',
     marginTop: '6px',
   },
-
-  // Ejes UBB
   dimensionesTabContent: {
-    padding: '16px',
+    padding: '20px',
   },
   ejeCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
