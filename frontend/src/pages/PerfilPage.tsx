@@ -138,23 +138,23 @@ export const PerfilPage: React.FC = () => {
 
                 <div style={styles.infoItem}>
                   <span style={styles.infoLabel}>Facultad</span>
-                  <span style={styles.infoValue}>Facultad de Ciencias Empresariales / Ingeniería</span>
+                  <span style={styles.infoValue}>Facultad de Educación y Humanidades</span>
                 </div>
 
                 <div style={styles.infoItem}>
                   <span style={styles.infoLabel}>Carrera / Departamento</span>
-                  <span style={styles.infoValue}>Ingeniería Civil en Informática</span>
+                  <span style={styles.infoValue}>Pedagogía en Educación Matemática</span>
                 </div>
 
                 <div style={styles.infoItem}>
                   <span style={styles.infoLabel}>Sede Universitaria</span>
-                  <span style={styles.infoValue}>Campus Concepción / Chillán</span>
+                  <span style={styles.infoValue}>Campus La Castilla / Chillán</span>
                 </div>
 
                 <div style={styles.infoItem}>
                   <span style={styles.infoLabel}>Estado Académico</span>
                   <span style={{ ...styles.infoValue, color: '#10b981', fontWeight: '600' }}>
-                    Alumno Regular • Práctica Profesional
+                    Alumno Regular • Formación Práctica
                   </span>
                 </div>
               </div>
@@ -178,7 +178,11 @@ export const PerfilPage: React.FC = () => {
                 <div style={styles.infoList}>
                   <div style={styles.infoItem}>
                     <span style={styles.infoLabel}>Modalidad de Práctica</span>
-                    <span style={styles.infoValue}>Práctica Profesional II (360 Horas)</span>
+                    <span style={styles.infoValue}>
+                      {estudianteDetalle?.asignaturaNombre
+                        ? `${estudianteDetalle.asignaturaNombre}${estudianteDetalle.asignaturaCodigo ? ` (${estudianteDetalle.asignaturaCodigo})` : ''}`
+                        : 'Práctica Pedagógica (PEM-801)'}
+                    </span>
                   </div>
 
                   <div style={styles.infoItem}>

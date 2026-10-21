@@ -572,7 +572,7 @@ export const EstudiantePerfilPracticaPage: React.FC = () => {
                       }}
                     >
                       <GraduationCap size={16} color="#d4af37" />
-                      <span>{detalle.carrera || 'Ingeniería Civil en Informática'}</span>
+                      <span>{detalle.carrera || 'Pedagogía en Educación Matemática'}</span>
                     </div>
                   </div>
 

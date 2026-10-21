@@ -20,6 +20,8 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
 
+    private final String DEFAULT_PASSWORD = "_algodoncito27"; // clave segura por defecto para TODOS los usuarios
+
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder,
             EntityManager entityManager) {
         this.userRepository = userRepository;
@@ -36,44 +38,51 @@ public class DataInitializer implements CommandLineRunner {
 
         // 1. Usuarios RBAC Base
         User admin = userRepository.findByEmail("admin@ubiobio.cl").orElse(new User());
-        admin.setFullName("Prof. Boris Arenas");
+        admin.setFullName("Administrador UBB");
         admin.setEmail("admin@ubiobio.cl");
         admin.setRole("Administrador");
-        admin.setPassword(passwordEncoder.encode("12345678b"));
+        admin.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
         userRepository.save(admin);
 
-        User evaluadorUser = userRepository.findByEmail("evaluador@empresa.cl").orElse(new User());
-        evaluadorUser.setFullName("Ing. Carlos Mendoza (Evaluador Empresa)");
-        evaluadorUser.setEmail("evaluador@empresa.cl");
+        User evaluadorUser = userRepository.findByEmail("carlos.mendoza@colegio.cl").orElse(new User());
+        evaluadorUser.setFullName("Carlos Mendoza");
+        evaluadorUser.setEmail("carlos.mendoza@colegio.cl");
         evaluadorUser.setRole("Evaluador");
-        evaluadorUser.setPassword(passwordEncoder.encode("password123"));
+        evaluadorUser.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
         userRepository.save(evaluadorUser);
 
-        User profesorUser = userRepository.findByEmail("profesor@ubiobio.cl").orElse(new User());
-        profesorUser.setFullName("Prof. Juan Pérez (Profesor Guía)");
-        profesorUser.setEmail("profesor@ubiobio.cl");
+        User profesorUser = userRepository.findByEmail("juan.perez@ubiobio.cl").orElse(new User());
+        profesorUser.setFullName("Juan Pérez");
+        profesorUser.setEmail("juan.perez@ubiobio.cl");
         profesorUser.setRole("Profesor");
-        profesorUser.setPassword(passwordEncoder.encode("password123"));
+        profesorUser.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
         userRepository.save(profesorUser);
 
-        User estudianteUser = userRepository.findByEmail("estudiante@alumnos.ubiobio.cl").orElse(new User());
+        User estudianteUser = userRepository.findByEmail("matias.gonzalez@alumnos.ubiobio.cl").orElse(new User());
         estudianteUser.setFullName("Matías González Silva");
-        estudianteUser.setEmail("estudiante@alumnos.ubiobio.cl");
+        estudianteUser.setEmail("matias.gonzalez@alumnos.ubiobio.cl");
         estudianteUser.setRole("Estudiante");
-        estudianteUser.setPassword(passwordEncoder.encode("password123"));
+        estudianteUser.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
         userRepository.save(estudianteUser);
 
-        // 2. Semillas de Profesores
+        // 2. Semillas de Profesores (Académicos PEM - UBB)
+        Profesor profVictor = crearProfesor("10101010-1", "Victor", "Hugo", "Parra", "Gonzalez",
+                "vparra@ubiobio.cl", "Dr. en Educación Matemática • Coordinador de Prácticas");
+        Profesor profMiguel = crearProfesor("20202020-2", "Miguel", "Angel", "Friz", "Carrillo",
+                "mfriz@ubiobio.cl", "Dr. en Ciencias de la Educación • Académico de Prácticas");
         Profesor profBoris = crearProfesor("33333333-3", "Boris", "Alejandro", "Arenas", "Quezada",
-                "boris.profe@ubiobio.cl", "Profesor Guía de Práctica");
-        Profesor profJuan = crearProfesor("11111111-1", "Juan", "Carlos", "Perez", "Gomez", "profesor@ubiobio.cl",
+                "boris.profe@ubiobio.cl", "Profesor de Matemática y Computación");
+        Profesor profJuan = crearProfesor("11111111-1", "Juan", "Carlos", "Perez", "Gomez", "juan.perez@ubiobio.cl",
                 "Profesor Guía de Práctica");
         Profesor profMaria = crearProfesor("12345678-9", "Maria", "Jose", "Gonzalez", "Soto",
-                "maria.gonzalez@ubiobio.cl", "Profesora de Educación Básica");
+                "maria.gonzalez@ubiobio.cl", "Profesor de Matemática");
 
         // Crear usuarios para estos profesores
+        crearUsuarioSiNoExiste("Dr. Víctor Parra González", "vparra@ubiobio.cl", "Profesor");
+        crearUsuarioSiNoExiste("Dr. Miguel Friz Carrillo", "mfriz@ubiobio.cl", "Profesor");
         crearUsuarioSiNoExiste("Prof. Boris Arenas", "boris.profe@ubiobio.cl", "Profesor");
-        crearUsuarioSiNoExiste("Prof. Maria Gonzalez", "maria.gonzalez@ubiobio.cl", "Profesor");
+        crearUsuarioSiNoExiste("Prof. Juan Pérez", "juan.perez@ubiobio.cl", "Profesor");
+        crearUsuarioSiNoExiste("Prof. María González", "maria.gonzalez@ubiobio.cl", "Profesor");
 
         // 3. Semillas de Evaluadores
         Evaluador evalCarlos = crearEvaluador("44444444-4", "Carlos", "Andres", "Munoz", "Vega",
@@ -81,24 +90,25 @@ public class DataInitializer implements CommandLineRunner {
         Evaluador evalMaria = crearEvaluador("55555555-5", "Maria", "Jose", "Contreras", "Rivas",
                 "maria.contreras@ubiobio.cl", TipoEvaluador.COLABORADOR);
         Evaluador evalEmpresa = crearEvaluador("66666666-6", "Carlos", "Alberto", "Mendoza", "Perez",
-                "evaluador@empresa.cl", TipoEvaluador.TUTOR);
+                "carlos.mendoza@colegio.cl", TipoEvaluador.TUTOR);
 
         crearUsuarioSiNoExiste("Carlos Muñoz (Tutor)", "carlos.munoz@ubiobio.cl", "Evaluador");
         crearUsuarioSiNoExiste("Maria Contreras (Colaborador)", "maria.contreras@ubiobio.cl", "Evaluador");
+        crearUsuarioSiNoExiste("Carlos Mendoza (Evaluador)", "carlos.mendoza@colegio.cl", "Evaluador");
 
         // 4. Semillas de Estudiantes
         Estudiante estDiego = crearEstudiante("20555555-5", "Diego", "Andres", "Martinez", "Soto",
                 "diego.martinez@ubiobio.cl");
         Estudiante estValentina = crearEstudiante("20666666-6", "Valentina", "Isabel", "Rojas", "Perez",
-                "valentina.rojas@ubiobio.cl");
+                "valentina.rojas@alumnos.ubiobio.cl");
         Estudiante estSebastian = crearEstudiante("20777777-7", "Sebastian", "Ignacio", "Fuentes", "Diaz",
-                "sebastian.fuentes@ubiobio.cl");
+                "sebastian.fuentes@alumnos.ubiobio.cl");
         Estudiante estCamila = crearEstudiante("20888888-8", "Camila", "Fernanda", "Navarro", "Silva",
-                "camila.navarro@ubiobio.cl");
-        Estudiante estMatiasVargas = crearEstudiante("20999999-9", "Matias", "Sebastian", "Vargas", "Paredes",
-                "matias.vargas@ubiobio.cl");
+                "camila.navarro@alumnos.ubiobio.cl");
+        Estudiante estMatias = crearEstudiante("20999999-9", "Matias", "Ignacio", "Gonzalez", "Silva",
+                "matias.gonzalez@alumnos.ubiobio.cl");
         Estudiante estLucas = crearEstudiante("21000000-0", "Lucas", "Ignacio", "Gonzalez", "Morales",
-                "lucas.gonzalez@ubiobio.cl");
+                "lucas.gonzalez@alumnos.ubiobio.cl");
         Estudiante estAna = crearEstudiante("21.111.111-1", "Ana", "Sofia", "Perez", "Rojas",
                 "ana.perez@alumnos.ubiobio.cl");
         Estudiante estBruno = crearEstudiante("21.222.222-2", "Bruno", "Andres", "Munoz", "Vega",
@@ -107,25 +117,29 @@ public class DataInitializer implements CommandLineRunner {
                 "carla.contreras@alumnos.ubiobio.cl");
 
         User userDiego = crearUsuarioSiNoExiste("Diego Martínez Soto", "diego.martinez@ubiobio.cl", "Estudiante");
-        User userVal = crearUsuarioSiNoExiste("Valentina Rojas Pérez", "valentina.rojas@ubiobio.cl", "Estudiante");
-        User userSeb = crearUsuarioSiNoExiste("Sebastián Fuentes Díaz", "sebastian.fuentes@ubiobio.cl", "Estudiante");
-        User userCam = crearUsuarioSiNoExiste("Camila Navarro Silva", "camila.navarro@ubiobio.cl", "Estudiante");
-        User userMat = crearUsuarioSiNoExiste("Matías Vargas Paredes", "matias.vargas@ubiobio.cl", "Estudiante");
-        User userLucas = crearUsuarioSiNoExiste("Lucas González Morales", "lucas.gonzalez@ubiobio.cl", "Estudiante");
+        User userVal = crearUsuarioSiNoExiste("Valentina Rojas Pérez", "valentina.rojas@alumnos.ubiobio.cl", "Estudiante");
+        User userSeb = crearUsuarioSiNoExiste("Sebastián Fuentes Díaz", "sebastian.fuentes@alumnos.ubiobio.cl", "Estudiante");
+        User userCam = crearUsuarioSiNoExiste("Camila Navarro Silva", "camila.navarro@alumnos.ubiobio.cl", "Estudiante");
+        User userMat = crearUsuarioSiNoExiste("Matías González Silva", "matias.gonzalez@alumnos.ubiobio.cl", "Estudiante");
+        User userLucas = crearUsuarioSiNoExiste("Lucas González Morales", "lucas.gonzalez@alumnos.ubiobio.cl", "Estudiante");
         User userAna = crearUsuarioSiNoExiste("Ana Pérez Rojas", "ana.perez@alumnos.ubiobio.cl", "Estudiante");
         User userBruno = crearUsuarioSiNoExiste("Bruno Muñoz Vega", "bruno.munoz@alumnos.ubiobio.cl", "Estudiante");
         User userCarla = crearUsuarioSiNoExiste("Carla Contreras Díaz", "carla.contreras@alumnos.ubiobio.cl", "Estudiante");
 
-        // 5. Asignaturas de Práctica
-        AsignaturaPractica asig1 = crearAsignatura("INF-403", "Práctica Profesional I");
-        AsignaturaPractica asig2 = crearAsignatura("INF-404", "Práctica Profesional II");
-        AsignaturaPractica asigMat = crearAsignatura("MAT-PRA", "Matemática Aplicada");
+        // 5. Asignaturas de Práctica (Línea Oficial de Formación Práctica PEM - UBB)
+        AsignaturaPractica asigAprox = crearAsignatura("PEM-401", "Aproximación al Sistema Escolar");
+        AsignaturaPractica asigAmb = crearAsignatura("PEM-501", "Ambientes de Aprendizaje");
+        AsignaturaPractica asigColab = crearAsignatura("PEM-601", "Trabajo Colaborativo en el Aula");
+        AsignaturaPractica asigInv = crearAsignatura("PEM-701", "Investigación en el Aula");
+        AsignaturaPractica asigPed = crearAsignatura("PEM-801", "Práctica Pedagógica");
+        AsignaturaPractica asigProf = crearAsignatura("PEM-901", "Práctica Profesional");
 
         // 6. Ofertas
-        Oferta ofBoris1 = crearOferta(2026, 1, asig1, profJuan);
-        Oferta ofBoris2 = crearOferta(2026, 1, asig2, profBoris);
-        Oferta ofJuan1 = crearOferta(2025, 2, asig1, profJuan);
-        Oferta ofMariaMat = crearOferta(2026, 2, asigMat, profMaria);
+        Oferta ofBoris1 = crearOferta(2026, 1, asigPed, profJuan);
+        Oferta ofBoris2 = crearOferta(2026, 1, asigProf, profBoris);
+        Oferta ofJuan1 = crearOferta(2025, 2, asigPed, profJuan);
+        Oferta ofMariaMat = crearOferta(2026, 2, asigColab, profMaria);
+        Oferta ofVictorInv = crearOferta(2026, 1, asigInv, profVictor);
 
         // 7. Inscripciones
         Inscripcion inscDiego = crearInscripcion(ofBoris1, estDiego);
@@ -133,7 +147,7 @@ public class DataInitializer implements CommandLineRunner {
         Inscripcion inscVal = crearInscripcion(ofBoris1, estValentina);
         Inscripcion inscSeb = crearInscripcion(ofBoris1, estSebastian);
         Inscripcion inscCam = crearInscripcion(ofBoris2, estCamila);
-        Inscripcion inscMat = crearInscripcion(ofBoris2, estMatiasVargas);
+        Inscripcion inscMat = crearInscripcion(ofBoris2, estMatias);
         Inscripcion inscAna = crearInscripcion(ofMariaMat, estAna);
         Inscripcion inscBruno = crearInscripcion(ofMariaMat, estBruno);
         Inscripcion inscCarla = crearInscripcion(ofMariaMat, estCarla);
@@ -179,10 +193,10 @@ public class DataInitializer implements CommandLineRunner {
         crearEvaluacionClase(claseAna, evalEmpresa);
         crearEvaluacionClase(claseBruno, evalEmpresa);
 
-        crearEvaluacionSemestral(asigAna, "Matematica");
-        crearEvaluacionSemestral(asigBruno, "Orientacion");
-        crearEvaluacionSemestral(asigDiego, "Práctica Profesional I");
-        crearEvaluacionSemestral(asigCam, "Práctica Profesional II");
+        crearEvaluacionSemestral(asigAna, "Matemática");
+        crearEvaluacionSemestral(asigBruno, "Orientación");
+        crearEvaluacionSemestral(asigDiego, "Práctica Pedagógica");
+        crearEvaluacionSemestral(asigCam, "Práctica Profesional");
 
         // 11. Informes (Diego y Valentina tienen informe entregado; Sebastián, Camila y Carla sin informe)
         // crearInforme(TipoEmisor.PROFESOR, "uploads/informes/Ejemplo_Informe.pdf", inscDiego);
@@ -197,13 +211,14 @@ public class DataInitializer implements CommandLineRunner {
     private User crearUsuarioSiNoExiste(String fullName, String email, String role) {
         return userRepository.findByEmail(email).map(u -> {
             u.setFullName(fullName);
+            u.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
             return userRepository.save(u);
         }).orElseGet(() -> {
             User u = new User();
             u.setFullName(fullName);
             u.setEmail(email);
             u.setRole(role);
-            u.setPassword(passwordEncoder.encode("password123"));
+            u.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
             return userRepository.save(u);
         });
     }

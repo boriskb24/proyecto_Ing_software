@@ -183,7 +183,7 @@ class ReglasNegocioTest {
     @Test
     @DisplayName("RN-15: Si el profesor rechaza la planificación, se preserva la retroalimentación en BD sin borrar el registro (HU-E6)")
     void testRN15_RechazoDocentePreservaRetroalimentacionSinBorrado() {
-        String profeEmail = "profesor@ubiobio.cl";
+        String profeEmail = "juan.perez@ubiobio.cl";
         Map<String, String> payload = Map.of(
                 "estado", "RECHAZADA",
                 "retroalimentacion", "Debes corregir la coherencia del momento de Inicio y articular con Decreto 83.",

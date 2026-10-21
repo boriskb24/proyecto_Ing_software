@@ -788,7 +788,7 @@ public class PracticaServiceImpl implements PracticaService {
                     est.getApellidoMaterno() != null ? est.getApellidoMaterno() : "").replaceAll("\\s+", " ").trim();
             resp.setEstudianteNombre(nombreCompleto);
             resp.setEstudianteCorreo(est.getCorreo());
-            resp.setCarrera("Ingeniería Civil Informática • Prácticas Profesionales");
+            resp.setCarrera("Pedagogía en Educación Matemática • Prácticas");
         }
 
         if (profActual != null) {
@@ -915,11 +915,11 @@ public class PracticaServiceImpl implements PracticaService {
                         est.getRut(),
                         nombreCompleto,
                         est.getCorreo(),
-                        "Ingeniería Civil en Informática",
+                        "Pedagogía en Educación Matemática",
                         i.getId(),
                         of != null ? of.getId() : null,
-                        ap != null ? ap.getNombre() : "Práctica Profesional",
-                        ap != null ? ap.getCodigo() : "INF-403",
+                        ap != null ? ap.getNombre() : "Práctica Pedagógica",
+                        ap != null ? ap.getCodigo() : "PEM-801",
                         anio,
                         periodo,
                         estado
@@ -958,7 +958,7 @@ public class PracticaServiceImpl implements PracticaService {
                 est.getApellidoMaterno() != null ? est.getApellidoMaterno() : "").replaceAll("\\s+", " ").trim();
         resp.setEstudianteNombre(nombre);
         resp.setEstudianteCorreo(est.getCorreo());
-        resp.setCarrera("Ingeniería Civil en Informática");
+        resp.setCarrera("Pedagogía en Educación Matemática");
         resp.setEstablecimiento("Sin asignación de centro");
         return resp;
     }
