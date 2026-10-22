@@ -18,12 +18,16 @@ import {
   Lightbulb,
   Clock,
   ShieldCheck,
+  Eye,
+  Lock,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface RetroPlaniChatDrawerProps {
   planificacion: Planificacion | null;
   onClose: () => void;
   onFormalizar?: (planificacion: Planificacion) => void;
+  readOnly?: boolean;
 }
 
 const SUGGESTED_PROMPTS = [
@@ -38,7 +42,12 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
   planificacion,
   onClose,
   onFormalizar,
+  readOnly,
 }) => {
+  const { user } = useAuth();
+  const esDocente = user?.role === 'Profesor' || user?.role === 'Administrador' || user?.role === 'Evaluador';
+  const isReadOnly = readOnly !== undefined ? readOnly : esDocente;
+
   const [currentPlan, setCurrentPlan] = useState<Planificacion | null>(planificacion);
   const [session, setSession] = useState<ChatSessionDto | null>(null);
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
@@ -205,15 +214,19 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
           <div style={styles.headerTitleRow}>
             <div style={styles.titleWithIcon}>
               <div style={styles.sparkleBadge}>
-                <Sparkles size={20} color="#ffffff" />
+                {isReadOnly ? <Eye size={20} color="#ffffff" /> : <Sparkles size={20} color="#ffffff" />}
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <h2 style={styles.title}>RetroPlani Mate V3</h2>
-                  <span style={styles.versionTag}>UBB IA</span>
+                  <span style={isReadOnly ? styles.readOnlyTag : styles.versionTag}>
+                    {isReadOnly ? 'Auditoría Docente' : 'UBB IA'}
+                  </span>
                 </div>
                 <p style={styles.subtitle}>
-                  Tutor Pedagógico Socrático • Didáctica de la Matemática
+                  {isReadOnly
+                    ? `Fiscalización Pedagógica • Estudiante: ${currentPlan?.usuario?.fullName || 'Docente en Formación'}`
+                    : 'Tutor Pedagógico Socrático • Didáctica de la Matemática'}
                 </p>
               </div>
             </div>
@@ -228,52 +241,77 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
           </div>
         </header>
 
-        {/* Banner de Estado y Filtro Pre-Entrega */}
-        {currentPlan?.estado === 'EN_REVISION_IA' && (
-          <div style={styles.preSubmissionBanner}>
-            <div style={styles.preSubmissionHeader}>
+        {/* Banner de Estado: Auditoría Docente (Solo Lectura) vs Filtro Estudiante */}
+        {isReadOnly ? (
+          <div style={styles.docenteAuditoriaBanner}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.1rem' }}>🛡️</span>
-                <strong style={styles.preSubmissionTitle}>Filtro Pre-Entrega: En Revisión IA</strong>
+                <Eye size={17} color="#4338ca" />
+                <strong style={styles.docenteAuditoriaTitle}>
+                  Supervisión de Sesión: {currentPlan?.usuario?.fullName || 'Docente en Formación'}
+                </strong>
               </div>
-              <span style={styles.preSubmissionBadge}>Aún no visible para profesor</span>
+              <span style={styles.docenteBadgeReadOnly}>
+                <Lock size={11} style={{ marginRight: '4px' }} />
+                Solo Lectura
+              </span>
             </div>
-            <p style={styles.preSubmissionText}>
-              Esta planificación se encuentra en evaluación con el Tutor IA. Revisa las sugerencias didácticas y, cuando estés conforme con tu clase, formaliza la entrega al docente.
+            <p style={styles.docenteAuditoriaText}>
+              {currentPlan?.estado === 'EN_REVISION_IA'
+                ? 'El estudiante se encuentra en etapa formativa interactuando con el Tutor IA antes de formalizar la entrega de su clase.'
+                : `Historial de diálogo formativo generado por el estudiante para la planificación #${currentPlan?.id}.`}
             </p>
-            <button
-              type="button"
-              onClick={handleFormalizar}
-              disabled={isFormalizing || isLoadingSession}
-              style={{
-                ...styles.formalizarBtn,
-                opacity: isFormalizing || isLoadingSession ? 0.65 : 1,
-                cursor: isFormalizing || isLoadingSession ? 'not-allowed' : 'pointer',
-              }}
-              title="Formalizar entrega para que sea revisada y evaluada por tu profesor"
-            >
-              {isFormalizing ? (
-                <>
-                  <div style={styles.miniSpinner} />
-                  <span>Formalizando entrega al profesor...</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize: '1rem' }}>🚀</span>
-                  <span>Confirmar y Formalizar Entrega al Profesor</span>
-                </>
-              )}
-            </button>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Banner de Estado y Filtro Pre-Entrega para Estudiantes */}
+            {currentPlan?.estado === 'EN_REVISION_IA' && (
+              <div style={styles.preSubmissionBanner}>
+                <div style={styles.preSubmissionHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+                    <strong style={styles.preSubmissionTitle}>Filtro Pre-Entrega: En Revisión IA</strong>
+                  </div>
+                  <span style={styles.preSubmissionBadge}>Aún no visible para profesor</span>
+                </div>
+                <p style={styles.preSubmissionText}>
+                  Esta planificación se encuentra en evaluación con el Tutor IA. Revisa las sugerencias didácticas y, cuando estés conforme con tu clase, formaliza la entrega al docente.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleFormalizar}
+                  disabled={isFormalizing || isLoadingSession}
+                  style={{
+                    ...styles.formalizarBtn,
+                    opacity: isFormalizing || isLoadingSession ? 0.65 : 1,
+                    cursor: isFormalizing || isLoadingSession ? 'not-allowed' : 'pointer',
+                  }}
+                  title="Formalizar entrega para que sea revisada y evaluada por tu profesor"
+                >
+                  {isFormalizing ? (
+                    <>
+                      <div style={styles.miniSpinner} />
+                      <span>Formalizando entrega al profesor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '1rem' }}>🚀</span>
+                      <span>Confirmar y Formalizar Entrega al Profesor</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
-        {currentPlan?.estado === 'PENDIENTE' && (
-          <div style={styles.formalizadoBanner}>
-            <ShieldCheck size={18} color="#15803d" style={{ flexShrink: 0 }} />
-            <div style={{ fontSize: '0.8rem', color: '#166534' }}>
-              <strong>Entrega formalizada:</strong> Tu documento ya está en la bandeja del profesor en estado <strong>PENDIENTE</strong> de evaluación. Puedes continuar interactuando con el tutor.
-            </div>
-          </div>
+            {currentPlan?.estado === 'PENDIENTE' && (
+              <div style={styles.formalizadoBanner}>
+                <ShieldCheck size={18} color="#15803d" style={{ flexShrink: 0 }} />
+                <div style={{ fontSize: '0.8rem', color: '#166534' }}>
+                  <strong>Entrega formalizada:</strong> Tu documento ya está en la bandeja del profesor en estado <strong>PENDIENTE</strong> de evaluación. Puedes continuar interactuando con el tutor.
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Cuerpo de Mensajes */}
@@ -324,7 +362,11 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
                         {/* Remitente y timestamp */}
                         <div style={styles.bubbleMeta}>
                           <span style={isUser ? styles.senderUser : styles.senderBot}>
-                            {isUser ? 'Tú (Docente en Formación)' : 'RetroPlani Mate (Tutor IA)'}
+                            {isUser
+                              ? isReadOnly
+                                ? `${currentPlan?.usuario?.fullName || 'Estudiante'} (Docente en Formación)`
+                                : 'Tú (Docente en Formación)'
+                              : 'RetroPlani Mate (Tutor IA)'}
                           </span>
                           {msg.createdAt && (
                             <span style={styles.timestamp}>
@@ -412,8 +454,8 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
           </div>
         )}
 
-        {/* Chips de Preguntas Pedagógicas Sugeridas */}
-        {!isLoadingSession && (
+        {/* Chips de Preguntas Pedagógicas Sugeridas (solo para estudiantes) */}
+        {!isLoadingSession && !isReadOnly && (
           <div style={styles.suggestionsContainer}>
             <div style={styles.suggestionsHeader}>
               <Lightbulb size={13} color="#4f46e5" />
@@ -435,42 +477,53 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
           </div>
         )}
 
-        {/* Área de Entrada del Chat */}
-        <footer style={styles.footer}>
-          <div style={styles.inputWrapper}>
-            <textarea
-              ref={textareaRef}
-              rows={2}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isLoadingSession || isSending}
-              placeholder={
-                isLoadingSession
-                  ? 'Iniciando sesión con el tutor...'
-                  : 'Formula una pregunta sobre tu clase, DUA o evaluación (Enter para enviar)...'
-              }
-              style={styles.textarea}
-            />
-            <button
-              type="button"
-              onClick={() => handleSendMessage()}
-              disabled={!inputValue.trim() || isSending || isLoadingSession}
-              style={{
-                ...styles.sendBtn,
-                opacity: !inputValue.trim() || isSending || isLoadingSession ? 0.45 : 1,
-                cursor: !inputValue.trim() || isSending || isLoadingSession ? 'not-allowed' : 'pointer',
-              }}
-              title="Enviar consulta (Enter)"
-            >
-              <Send size={18} color="#ffffff" />
-            </button>
-          </div>
-          <div style={styles.inputFooterText}>
-            <span>Shift + Enter para salto de línea • Enter para enviar</span>
-            <span>Dochub AI v3.2</span>
-          </div>
-        </footer>
+        {/* Área de Entrada del Chat (Estudiante) o Banner de Fiscalización (Docente) */}
+        {isReadOnly ? (
+          <footer style={styles.docenteFooterReadOnly}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#475569', fontSize: '0.85rem' }}>
+              <Lock size={16} color="#64748b" />
+              <span>
+                <strong>Modo Sólo Lectura:</strong> Como docente supervisor, estás auditando las consultas pedagógicas de <strong>{currentPlan?.usuario?.fullName || 'el estudiante'}</strong> con el Tutor IA.
+              </span>
+            </div>
+          </footer>
+        ) : (
+          <footer style={styles.footer}>
+            <div style={styles.inputWrapper}>
+              <textarea
+                ref={textareaRef}
+                rows={2}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoadingSession || isSending}
+                placeholder={
+                  isLoadingSession
+                    ? 'Iniciando sesión con el tutor...'
+                    : 'Formula una pregunta sobre tu clase, DUA o evaluación (Enter para enviar)...'
+                }
+                style={styles.textarea}
+              />
+              <button
+                type="button"
+                onClick={() => handleSendMessage()}
+                disabled={!inputValue.trim() || isSending || isLoadingSession}
+                style={{
+                  ...styles.sendBtn,
+                  opacity: !inputValue.trim() || isSending || isLoadingSession ? 0.45 : 1,
+                  cursor: !inputValue.trim() || isSending || isLoadingSession ? 'not-allowed' : 'pointer',
+                }}
+                title="Enviar consulta (Enter)"
+              >
+                <Send size={18} color="#ffffff" />
+              </button>
+            </div>
+            <div style={styles.inputFooterText}>
+              <span>Shift + Enter para salto de línea • Enter para enviar</span>
+              <span>Dochub AI v3.2</span>
+            </div>
+          </footer>
+        )}
       </aside>
     </div>
   );
@@ -1314,5 +1367,51 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '2px solid rgba(255, 255, 255, 0.4)',
     borderTopColor: '#ffffff',
     animation: 'spin 0.8s linear infinite',
+  },
+  readOnlyTag: {
+    fontSize: '0.68rem',
+    fontWeight: 700,
+    color: '#3730a3',
+    backgroundColor: '#e0e7ff',
+    padding: '2px 7px',
+    borderRadius: '10px',
+    textTransform: 'uppercase',
+  },
+  docenteAuditoriaBanner: {
+    padding: '12px 18px',
+    backgroundColor: '#eef2ff',
+    borderBottom: '1px solid #c7d2fe',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  docenteAuditoriaTitle: {
+    fontSize: '0.86rem',
+    color: '#312e81',
+    fontWeight: 700,
+  },
+  docenteBadgeReadOnly: {
+    fontSize: '0.7rem',
+    fontWeight: 650,
+    color: '#4338ca',
+    backgroundColor: '#e0e7ff',
+    border: '1px solid #a5b4fc',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    whiteSpace: 'nowrap',
+  },
+  docenteAuditoriaText: {
+    margin: 0,
+    fontSize: '0.78rem',
+    color: '#3730a3',
+    lineHeight: '1.4',
+  },
+  docenteFooterReadOnly: {
+    padding: '16px 20px',
+    borderTop: '1px solid #e2e8f0',
+    backgroundColor: '#f8fafc',
+    textAlign: 'center',
   },
 };

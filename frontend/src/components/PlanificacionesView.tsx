@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { uploadPlanificacion, getPlanificaciones, evaluarPlanificacion, Planificacion, getAuthFileUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Search, Users, Filter, X, ExternalLink, Sparkles } from 'lucide-react';
+import { Search, Users, Filter, X, ExternalLink, Sparkles, Eye } from 'lucide-react';
 import { RetroPlaniChatDrawer } from './RetroPlaniChatDrawer';
 
 export const PlanificacionesView: React.FC = () => {
@@ -663,20 +663,35 @@ export const PlanificacionesView: React.FC = () => {
                             onClick={() => setChatPlanificacion(item)}
                             style={{
                               ...styles.actionBtn,
-                              backgroundColor: item.estado === 'EN_REVISION_IA' ? '#7c3aed' : '#6366f1',
+                              backgroundColor: esDocente
+                                ? '#4338ca'
+                                : item.estado === 'EN_REVISION_IA'
+                                ? '#7c3aed'
+                                : '#6366f1',
                               padding: '6px 12px',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '5px',
                             }}
                             title={
-                              item.estado === 'EN_REVISION_IA'
+                              esDocente
+                                ? 'Fiscalizar y auditar la sesión del estudiante con el Tutor IA (Modo Sólo Lectura)'
+                                : item.estado === 'EN_REVISION_IA'
                                 ? 'Filtro pedagógico activo: interactúa con el Tutor IA y formaliza tu entrega'
                                 : 'Consultar retroalimentación con el Tutor Pedagógico IA RetroPlani Mate V3'
                             }
                           >
-                            <Sparkles size={13} color="#ffffff" />
-                            <span>{item.estado === 'EN_REVISION_IA' ? 'Revisión IA' : 'Tutor IA'}</span>
+                            {esDocente ? (
+                              <>
+                                <Eye size={13} color="#ffffff" />
+                                <span>Auditar Tutor IA</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles size={13} color="#ffffff" />
+                                <span>{item.estado === 'EN_REVISION_IA' ? 'Revisión IA' : 'Tutor IA'}</span>
+                              </>
+                            )}
                           </button>
                           {esDocente && (
                             <button
@@ -871,6 +886,7 @@ export const PlanificacionesView: React.FC = () => {
       {chatPlanificacion && (
         <RetroPlaniChatDrawer
           planificacion={chatPlanificacion}
+          readOnly={esDocente}
           onClose={() => setChatPlanificacion(null)}
           onFormalizar={(formalizada) => {
             setPlanificaciones((prev) =>
