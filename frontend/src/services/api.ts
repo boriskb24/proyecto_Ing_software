@@ -330,6 +330,14 @@ export const evaluarPlanificacion = async (
   return response.data;
 };
 
+// Formalizar entrega de planificación tras revisión con chatbot IA
+export const formalizarPlanificacion = async (id: number, userEmail?: string): Promise<Planificacion> => {
+  const response = await API.patch<Planificacion>(`/planificaciones/${id}/formalizar`, null, {
+    params: { userEmail },
+  });
+  return response.data;
+};
+
 /**
  * Genera una URL de acceso a un archivo adjuntando de forma segura los parámetros de autenticación
  * para permitir la apertura en una nueva pestaña (target="_blank") sin que el navegador bloquee la petición por 403.
@@ -360,6 +368,45 @@ export const getAuthFileUrl = (url?: string): string => {
   }
 
   return parts.length > 0 ? `${url}${separator}${parts.join('&')}` : url;
+};
+
+// ==========================================
+// Módulo Chatbot IA: RetroPlani Mate V3
+// ==========================================
+
+export interface ChatMessageDto {
+  id: number;
+  role: 'USER' | 'ASSISTANT' | 'SYSTEM' | string;
+  content: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  createdAt?: string;
+}
+
+export interface ChatSessionDto {
+  sessionId: number;
+  planificacionId: number;
+  userEmail: string;
+  rolUsuario: string;
+  totalPaginas: number;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessageDto[];
+}
+
+export const initChatSession = async (planificacionId: number): Promise<ChatSessionDto> => {
+  const response = await API.post<ChatSessionDto>('/ai/session/init', { planificacionId });
+  return response.data;
+};
+
+export const sendChatMessage = async (sessionId: number, message: string): Promise<ChatMessageDto> => {
+  const response = await API.post<ChatMessageDto>('/ai/chat', { sessionId, message });
+  return response.data;
+};
+
+export const getChatSession = async (sessionId: number): Promise<ChatSessionDto> => {
+  const response = await API.get<ChatSessionDto>(`/ai/session/${sessionId}`);
+  return response.data;
 };
 
 export default API

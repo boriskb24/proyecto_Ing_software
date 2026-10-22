@@ -119,7 +119,9 @@ public class PlanificacionServiceImpl implements PlanificacionService {
                 List<PlanificacionResponseDto> resultado = new ArrayList<>();
                 for (Clase c : clasesProfesor) {
                     if (c.getPlanificacion() != null) {
-                        resultado.add(mapToDto(c.getPlanificacion(), c));
+                        if (c.getPlanificacion().getEstado() != EstadoPlanificacion.EN_REVISION_IA) {
+                            resultado.add(mapToDto(c.getPlanificacion(), c));
+                        }
                     }
                 }
                 return resultado;
@@ -159,7 +161,7 @@ public class PlanificacionServiceImpl implements PlanificacionService {
 
         Planificacion planificacion = new Planificacion();
         planificacion.setArchivo(targetLocation);
-        planificacion.setEstado(EstadoPlanificacion.PENDIENTE);
+        planificacion.setEstado(EstadoPlanificacion.EN_REVISION_IA);
         planificacion.setFecha(LocalDate.now());
 
         Planificacion guardada = planificacionRepository.save(planificacion);
@@ -282,6 +284,21 @@ public class PlanificacionServiceImpl implements PlanificacionService {
         }
 
         Planificacion guardada = planificacionRepository.save(planificacion);
+        Clase clase = clases.isEmpty() ? null : clases.get(0);
+
+        return mapToDto(guardada, clase);
+    }
+
+    @Override
+    public PlanificacionResponseDto formalizarEntrega(Long id, String estudianteEmail) {
+        Planificacion planificacion = planificacionRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planificación no encontrada con id: " + id));
+
+        planificacion.setEstado(EstadoPlanificacion.PENDIENTE);
+        planificacion.setFecha(LocalDate.now());
+        Planificacion guardada = planificacionRepository.save(planificacion);
+
+        List<Clase> clases = claseRepository.findByPlanificacionId(id);
         Clase clase = clases.isEmpty() ? null : clases.get(0);
 
         return mapToDto(guardada, clase);

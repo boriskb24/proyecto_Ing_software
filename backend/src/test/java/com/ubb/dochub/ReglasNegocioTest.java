@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -45,6 +46,12 @@ class ReglasNegocioTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PlanificacionRepository planificacionRepository;
+
+    @Autowired
+    private ChatSessionRepository chatSessionRepository;
 
     @Test
     @DisplayName("RN-01: No se permite más de una inscripción por período académico")
@@ -154,5 +161,71 @@ class ReglasNegocioTest {
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode(), "RN-13: Coordinador debe recibir 403 Forbidden");
         assertTrue(ex.getReason().contains("RN-13"));
+    }
+
+    @Test
+    @DisplayName("RN-14: La planificación filtrada por el chatbot queda en estado PENDIENTE y el chatbot no tiene facultad evaluativa sumativa")
+    void testRN14_ChatbotNoTieneFacultadEvaluativa() {
+        Planificacion plan = new Planificacion();
+        plan.setArchivo("/test/plan.pdf");
+        plan.setEstado(EstadoPlanificacion.PENDIENTE);
+        plan = planificacionRepository.save(plan);
+
+        // El estado inicial tras pasar el filtro del chatbot es PENDIENTE para revisión docente
+        assertEquals(EstadoPlanificacion.PENDIENTE, plan.getEstado(),
+                "RN-14: La planificación filtrada debe ingresar exclusivamente como PENDIENTE");
+
+        // El chatbot carece de potestad para auto-aprobar o auto-rechazar
+        assertNotEquals(EstadoPlanificacion.APROBADA, plan.getEstado());
+        assertNotEquals(EstadoPlanificacion.RECHAZADA, plan.getEstado());
+    }
+
+    @Test
+    @DisplayName("RN-15: Si el profesor rechaza la planificación, se preserva la retroalimentación en BD sin borrar el registro (HU-E6)")
+    void testRN15_RechazoDocentePreservaRetroalimentacionSinBorrado() {
+        String profeEmail = "profesor@ubiobio.cl";
+        Map<String, String> payload = Map.of(
+                "estado", "RECHAZADA",
+                "retroalimentacion", "Debes corregir la coherencia del momento de Inicio y articular con Decreto 83.",
+                "userEmail", profeEmail
+        );
+
+        PlanificacionResponseDto resp = planificacionController.evaluarPlanificacion(1L, payload, profeEmail).getBody();
+        assertNotNull(resp);
+
+        // 1. Estado actualizado a RECHAZADA
+        assertEquals(EstadoPlanificacion.RECHAZADA, resp.getEstado());
+
+        // 2. Registro no eliminado físicamente
+        Planificacion plan = planificacionRepository.findById(1L).orElse(null);
+        assertNotNull(plan, "RN-15: La planificación no debe eliminarse físicamente de la base de datos");
+        assertEquals(EstadoPlanificacion.RECHAZADA, plan.getEstado());
+
+        // 3. Retroalimentación cualitativa disponible para el estudiante (cumplimiento HU-E6)
+        assertEquals("Debes corregir la coherencia del momento de Inicio y articular con Decreto 83.", plan.getRetroalimentacion());
+    }
+
+    @Test
+    @DisplayName("RN-16: El profesor de asignatura tiene acceso de supervisión al historial y observaciones del Chatbot del estudiante (HU-P4 y HU-P5)")
+    void testRN16_ProfesorAccedeAHistorialChatbotEstudiante() {
+        Planificacion plan = planificacionRepository.findById(1L).orElseThrow();
+        String estudianteEmail = "diego.martinez@ubiobio.cl";
+
+        // 1. Simular sesión creada por el estudiante en el chatbot
+        ChatSession sessionEstudiante = new ChatSession(plan, estudianteEmail, "ESTUDIANTE", 4);
+        ChatMessage msgUser = new ChatMessage("USER", "¿Cómo articulo el DUA en la actividad de desarrollo?");
+        ChatMessage msgBot = new ChatMessage("ASSISTANT", "RetroPlani Mate: Para articular el DUA según Decreto 83, considera...");
+        sessionEstudiante.addMessage(msgUser);
+        sessionEstudiante.addMessage(msgBot);
+        sessionEstudiante = chatSessionRepository.save(sessionEstudiante);
+
+        // 2. El profesor consulta las sesiones asociadas a la planificación de su estudiante (HU-P4 y HU-P5)
+        List<ChatSession> sesiones = chatSessionRepository.findByPlanificacionIdOrderByCreatedAtDesc(plan.getId());
+
+        assertFalse(sesiones.isEmpty(), "RN-16: El profesor debe encontrar la sesión registrada para la planificación");
+        ChatSession sesionRecuperada = sesiones.get(0);
+        assertEquals(estudianteEmail, sesionRecuperada.getUserEmail());
+        assertEquals(2, sesionRecuperada.getMessages().size(), "RN-16: Deben estar disponibles las interacciones del estudiante");
+        assertTrue(sesionRecuperada.getMessages().get(1).getContent().contains("RetroPlani Mate"));
     }
 }

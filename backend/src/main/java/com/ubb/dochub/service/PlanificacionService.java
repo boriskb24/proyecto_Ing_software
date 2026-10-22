@@ -25,5 +25,7 @@ public interface PlanificacionService {
 
     PlanificacionResponseDto evaluarPlanificacion(Long id, EstadoPlanificacion nuevoEstado, String retroalimentacion, String userEmail);
 
+    PlanificacionResponseDto formalizarEntrega(Long id, String estudianteEmail);
+
     ResponseEntity<Resource> verArchivoPlanificacion(Long id, String userEmail);
 }

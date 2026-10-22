@@ -147,8 +147,8 @@ public class DataInitializer implements CommandLineRunner {
         Asignacion asigBruno = crearAsignacion(inscBruno, evalEmpresa, "Colegio Santa María");
 
         // 9. Planificaciones y Clases (Independientes por cada estudiante)
-        Planificacion plan1 = crearPlanificacion("uploads/planificaciones/Planificacion_Diego_Martinez.pdf",
-                EstadoPlanificacion.APROBADA, "Planificación de clase de ecuaciones cuadráticas.");
+        // Planificacion plan1 = crearPlanificacion("uploads/planificaciones/Planificacion_Diego_Martinez.pdf",
+                // EstadoPlanificacion.APROBADA, "Planificación de clase de ecuaciones cuadráticas.");
         Planificacion plan2 = crearPlanificacion("uploads/planificaciones/Planificacion_Valentina_Rojas.pdf",
                 EstadoPlanificacion.PENDIENTE, null);
         Planificacion plan3 = crearPlanificacion("uploads/planificaciones/Planificacion_Sebastian_Fuentes.pdf",
@@ -158,8 +158,8 @@ public class DataInitializer implements CommandLineRunner {
         Planificacion planBruno = crearPlanificacion("uploads/planificaciones/Planificacion_Bruno_Munoz.pdf",
                 EstadoPlanificacion.APROBADA, "Aprobada.");
 
-        Clase clase1 = crearClase("Matemática", "Ecuaciones cuadráticas", plan1, inscDiego, LocalDate.of(2026, 9, 10),
-                LocalTime.of(10, 0), LocalTime.of(11, 30));
+        // Clase clase1 = crearClase("Matemática", "Ecuaciones cuadráticas", plan1, inscDiego, LocalDate.of(2026, 9, 10),
+                // LocalTime.of(10, 0), LocalTime.of(11, 30));
         Clase clase2 = crearClase("Matemática", "Funciones lineales", plan2, inscVal, LocalDate.of(2026, 9, 11),
                 LocalTime.of(10, 0), LocalTime.of(11, 30));
         Clase clase3 = crearClase("Orientación", "Convivencia escolar", plan3, inscSeb, LocalDate.of(2026, 9, 12),
@@ -173,7 +173,7 @@ public class DataInitializer implements CommandLineRunner {
                 LocalDate.of(2026, 9, 10), LocalTime.of(14, 0), LocalTime.of(15, 30));
 
         // 10. Evaluaciones de Clase y Semestrales
-        crearEvaluacionClase(clase1, evalCarlos);
+        // crearEvaluacionClase(clase1, evalCarlos);
         crearEvaluacionClase(clase2, evalCarlos);
         crearEvaluacionClase(clase3, evalMaria);
         crearEvaluacionClase(claseAna, evalEmpresa);
