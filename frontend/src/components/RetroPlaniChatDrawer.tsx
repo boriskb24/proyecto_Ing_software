@@ -478,44 +478,178 @@ export const RetroPlaniChatDrawer: React.FC<RetroPlaniChatDrawerProps> = ({
 
 /**
  * Componente liviano para renderizar el contenido pedagógico con formato
- * estructurado (títulos, negritas, listas ordenadas y desordenadas) sin librerías pesadas.
+ * estructurado (títulos, negritas, listas ordenadas, desordenadas y tablas Markdown) sin librerías pesadas.
  */
+
+type DrawerContentBlock =
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'bullet'; text: string }
+  | { type: 'numbered'; num: string; text: string }
+  | { type: 'quote'; text: string }
+  | { type: 'table'; headers: string[]; rows: string[][] }
+  | { type: 'paragraph'; text: string }
+  | { type: 'spacer' };
+
+function parseDrawerTableRow(line: string): string[] {
+  let cleaned = line.trim();
+  if (cleaned.startsWith('|')) cleaned = cleaned.substring(1);
+  if (cleaned.endsWith('|')) cleaned = cleaned.substring(0, cleaned.length - 1);
+  return cleaned.split('|').map((c) => c.trim());
+}
+
+function isDrawerTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('|')) return false;
+  return (trimmed.match(/\|/g) || []).length >= 2;
+}
+
+function isDrawerTableSeparator(line: string): boolean {
+  const cells = parseDrawerTableRow(line);
+  return cells.length > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c.trim()));
+}
+
+function parseDrawerContentToBlocks(content: string): DrawerContentBlock[] {
+  const rawLines = content.split(/\r?\n/);
+  const blocks: DrawerContentBlock[] = [];
+  let i = 0;
+
+  while (i < rawLines.length) {
+    const line = rawLines[i];
+    const trimmed = line.trim();
+
+    if (isDrawerTableRow(trimmed)) {
+      const tableLines: string[] = [trimmed];
+      let j = i + 1;
+
+      while (j < rawLines.length) {
+        const nextTrimmed = rawLines[j].trim();
+        if (isDrawerTableRow(nextTrimmed)) {
+          tableLines.push(nextTrimmed);
+          j++;
+        } else if (nextTrimmed === '') {
+          let k = j + 1;
+          while (k < rawLines.length && rawLines[k].trim() === '') k++;
+          if (k < rawLines.length && isDrawerTableRow(rawLines[k].trim())) {
+            j = k;
+          } else {
+            break;
+          }
+        } else {
+          break;
+        }
+      }
+
+      let headers: string[] = [];
+      const rows: string[][] = [];
+
+      if (tableLines.length >= 2 && isDrawerTableSeparator(tableLines[1])) {
+        headers = parseDrawerTableRow(tableLines[0]);
+        for (let r = 2; r < tableLines.length; r++) {
+          if (!isDrawerTableSeparator(tableLines[r])) {
+            rows.push(parseDrawerTableRow(tableLines[r]));
+          }
+        }
+      } else if (tableLines.length >= 1) {
+        const nonSep = tableLines.filter((l) => !isDrawerTableSeparator(l));
+        if (nonSep.length > 0) {
+          headers = parseDrawerTableRow(nonSep[0]);
+          for (let r = 1; r < nonSep.length; r++) {
+            rows.push(parseDrawerTableRow(nonSep[r]));
+          }
+        }
+      }
+
+      if (headers.length > 0 || rows.length > 0) {
+        blocks.push({ type: 'table', headers, rows });
+      }
+
+      i = j;
+      continue;
+    }
+
+    if (!trimmed) {
+      if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'spacer') {
+        blocks.push({ type: 'spacer' });
+      }
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('### ')) {
+      blocks.push({ type: 'heading', level: 3, text: trimmed.replace(/^###\s+/, '') });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('## ')) {
+      blocks.push({ type: 'heading', level: 2, text: trimmed.replace(/^##\s+/, '') });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('# ')) {
+      blocks.push({ type: 'heading', level: 1, text: trimmed.replace(/^#\s+/, '') });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      blocks.push({ type: 'bullet', text: trimmed.replace(/^[-*]\s+/, '') });
+      i++;
+      continue;
+    }
+
+    const matchNumbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (matchNumbered) {
+      blocks.push({ type: 'numbered', num: matchNumbered[1], text: matchNumbered[2] });
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('> ')) {
+      blocks.push({ type: 'quote', text: trimmed.replace(/^>\s+/, '') });
+      i++;
+      continue;
+    }
+
+    blocks.push({ type: 'paragraph', text: trimmed });
+    i++;
+  }
+
+  return blocks;
+}
+
 const FormattedContent: React.FC<{ content: string; isUser: boolean }> = ({ content, isUser }) => {
   if (isUser) {
     return <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{content}</div>;
   }
 
-  const lines = content.split('\n');
+  const blocks = parseDrawerContentToBlocks(content);
 
   return (
     <div style={{ lineHeight: '1.6', fontSize: '0.88rem' }}>
-      {lines.map((line, idx) => {
-        const trimmed = line.trim();
-
-        // Línea vacía
-        if (!trimmed) {
+      {blocks.map((block, idx) => {
+        if (block.type === 'spacer') {
           return <div key={idx} style={{ height: '8px' }} />;
         }
 
-        // Títulos de secciones pedagógicas: ### o ## o #
-        if (trimmed.startsWith('### ')) {
-          return (
-            <h4
-              key={idx}
-              style={{
-                fontSize: '0.96rem',
-                fontWeight: 700,
-                color: '#1e1b4b',
-                marginTop: '12px',
-                marginBottom: '4px',
-              }}
-            >
-              {renderFormattedText(trimmed.replace(/^###\s+/, ''))}
-            </h4>
-          );
-        }
-
-        if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+        if (block.type === 'heading') {
+          if (block.level === 3) {
+            return (
+              <h4
+                key={idx}
+                style={{
+                  fontSize: '0.96rem',
+                  fontWeight: 700,
+                  color: '#1e1b4b',
+                  marginTop: '12px',
+                  marginBottom: '4px',
+                }}
+              >
+                {renderFormattedText(block.text)}
+              </h4>
+            );
+          }
           return (
             <h3
               key={idx}
@@ -529,13 +663,12 @@ const FormattedContent: React.FC<{ content: string; isUser: boolean }> = ({ cont
                 paddingBottom: '4px',
               }}
             >
-              {renderFormattedText(trimmed.replace(/^#{1,2}\s+/, ''))}
+              {renderFormattedText(block.text)}
             </h3>
           );
         }
 
-        // Elementos de lista desordenada (- o *)
-        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        if (block.type === 'bullet') {
           return (
             <div
               key={idx}
@@ -547,16 +680,12 @@ const FormattedContent: React.FC<{ content: string; isUser: boolean }> = ({ cont
               }}
             >
               <span style={{ color: '#6366f1', fontSize: '0.9rem', lineHeight: '1.5' }}>•</span>
-              <span style={{ flex: 1 }}>
-                {renderFormattedText(trimmed.replace(/^[-*]\s+/, ''))}
-              </span>
+              <span style={{ flex: 1 }}>{renderFormattedText(block.text)}</span>
             </div>
           );
         }
 
-        // Elementos de lista numerada (1. 2. etc)
-        const matchNumbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
-        if (matchNumbered) {
+        if (block.type === 'numbered') {
           return (
             <div
               key={idx}
@@ -575,15 +704,14 @@ const FormattedContent: React.FC<{ content: string; isUser: boolean }> = ({ cont
                   lineHeight: '1.5',
                 }}
               >
-                {matchNumbered[1]}.
+                {block.num}.
               </span>
-              <span style={{ flex: 1 }}>{renderFormattedText(matchNumbered[2])}</span>
+              <span style={{ flex: 1 }}>{renderFormattedText(block.text)}</span>
             </div>
           );
         }
 
-        // Cita o bloque de reflexión (> )
-        if (trimmed.startsWith('> ')) {
+        if (block.type === 'quote') {
           return (
             <div
               key={idx}
@@ -598,15 +726,92 @@ const FormattedContent: React.FC<{ content: string; isUser: boolean }> = ({ cont
                 padding: '4px 8px',
               }}
             >
-              {renderFormattedText(trimmed.replace(/^>\s+/, ''))}
+              {renderFormattedText(block.text)}
             </div>
           );
         }
 
-        // Párrafo normal
+        if (block.type === 'table') {
+          const colCount = Math.max(block.headers.length, ...block.rows.map((r) => r.length));
+
+          return (
+            <div
+              key={idx}
+              style={{
+                margin: '12px 0',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                overflowX: 'auto',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
+                maxWidth: '100%',
+              }}
+            >
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  textAlign: 'left',
+                  fontSize: '0.84rem',
+                }}
+              >
+                {block.headers.length > 0 && (
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      {block.headers.map((h, hIdx) => (
+                        <th
+                          key={hIdx}
+                          style={{
+                            padding: '8px 12px',
+                            fontWeight: 650,
+                            color: '#1e293b',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {renderFormattedText(h)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                )}
+                <tbody>
+                  {block.rows.map((row, rIdx) => (
+                    <tr
+                      key={rIdx}
+                      style={{
+                        borderBottom: rIdx < block.rows.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        backgroundColor: rIdx % 2 === 1 ? '#f8fafc' : '#ffffff',
+                      }}
+                    >
+                      {Array.from({ length: colCount }).map((_, cIdx) => {
+                        const cell = row[cIdx] || '';
+                        const isOk = cell.includes('✔️') || cell.includes('Disponible') || cell.includes('Existe');
+                        const isFail = cell.includes('❌') || cell.includes('Falta') || cell.includes('Ausente');
+
+                        return (
+                          <td
+                            key={cIdx}
+                            style={{
+                              padding: '8px 12px',
+                              color: isFail ? '#b91c1c' : isOk ? '#15803d' : '#334155',
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            {renderFormattedText(cell)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+
         return (
           <p key={idx} style={{ margin: '4px 0', color: '#1e293b' }}>
-            {renderFormattedText(trimmed)}
+            {renderFormattedText(block.text)}
           </p>
         );
       })}
@@ -615,12 +820,80 @@ const FormattedContent: React.FC<{ content: string; isUser: boolean }> = ({ cont
 };
 
 /**
- * Resalta texto en negrita (**texto**) y código inline (`texto`).
+ * Resalta texto en negrita (**texto**), código inline (`texto`) y enlaces URL/Markdown.
  */
 function renderFormattedText(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  const regex = /(\[.*?\]\(https?:\/\/[^\s\)]+\)|https?:\/\/[^\s)\]<>"']+|\*\*.*?\*\*|`.*?`)/g;
+  const parts = text.split(regex);
 
   return parts.map((part, i) => {
+    if (!part) return null;
+
+    // Enlace Markdown [Texto](url)
+    const mdLinkMatch = part.match(/^\[(.*?)\]\((https?:\/\/[^\s\)]+)\)$/);
+    if (mdLinkMatch) {
+      return (
+        <a
+          key={i}
+          href={mdLinkMatch[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={mdLinkMatch[2]}
+          style={{
+            color: '#4f46e5',
+            textDecoration: 'underline',
+            fontWeight: 500,
+          }}
+        >
+          {mdLinkMatch[1]} ↗
+        </a>
+      );
+    }
+
+    // URL Directa
+    if (part.startsWith('http://') || part.startsWith('https://')) {
+      let label = part;
+      if (part.includes('docs.google.com/document')) {
+        label = '📄 Ver Google Doc';
+      } else if (part.includes('docs.google.com/spreadsheets')) {
+        label = '📊 Ver Hoja de Cálculo';
+      } else if (part.includes('docs.google.com/presentation')) {
+        label = '📽️ Ver Google Slides';
+      } else if (part.includes('drive.google.com')) {
+        label = '📁 Ver Archivo Drive';
+      } else if (part.length > 36) {
+        label = `${part.substring(0, 33)}...`;
+      }
+
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={part}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            backgroundColor: '#eef2ff',
+            border: '1px solid #c7d2fe',
+            color: '#4338ca',
+            fontSize: '11.5px',
+            fontWeight: 500,
+            textDecoration: 'none',
+            verticalAlign: 'middle',
+            margin: '1px 2px',
+          }}
+        >
+          <span>{label}</span>
+          <span style={{ fontSize: '9px' }}>↗</span>
+        </a>
+      );
+    }
+
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
         <strong key={i} style={{ color: '#0f172a', fontWeight: 650 }}>
@@ -645,7 +918,7 @@ function renderFormattedText(text: string): React.ReactNode {
         </code>
       );
     }
-    return part;
+    return <React.Fragment key={i}>{part}</React.Fragment>;
   });
 }
 
