@@ -9,7 +9,8 @@ import {
   evaluarPlanificacion,
   EstudianteDetalleDto, 
   InformeEntregaResponse,
-  Planificacion
+  Planificacion,
+  getAuthFileUrl
 } from '../services/api'
 import { getEvaluacionesProfesor } from '../services/practicaService'
 import { EvaluacionesResponse, EvaluacionCLA, EvaluacionSEM } from '../types/evaluacion'
@@ -1231,7 +1232,7 @@ export const EstudiantePerfilPracticaPage: React.FC = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   {/* Botón Ver PDF */}
                                   <a
-                                    href={item.archivoUrl || `/api/planificaciones/${item.id}/archivo`}
+                                    href={getAuthFileUrl(item.archivoUrl || `/api/planificaciones/${item.id}/archivo`)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     style={{
@@ -1501,12 +1502,12 @@ export const EstudiantePerfilPracticaPage: React.FC = () => {
                                 </div>
 
                                 <a
-                                  href={
+                                  href={getAuthFileUrl(
                                     ev.archivoUrl ||
                                     (isClase
                                       ? `/api/practicas/evaluaciones/clase/${ev.id}/archivo`
                                       : `/api/practicas/evaluaciones/semestral/${ev.id}/archivo`)
-                                  }
+                                  )}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   style={{
@@ -1638,7 +1639,7 @@ export const EstudiantePerfilPracticaPage: React.FC = () => {
                       </div>
                       <div style={{ marginTop: '12px' }}>
                         <a
-                          href={detalle.informeActual.archivoUrl || `/api/practicas/informes/${detalle.informeActual.id}/archivo`}
+                          href={getAuthFileUrl(detalle.informeActual.archivoUrl || `/api/practicas/informes/${detalle.informeActual.id}/archivo`)}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{

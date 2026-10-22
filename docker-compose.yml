@@ -1,9 +1,9 @@
 services:
   # ============================================================
-  # 1. Base de Datos: MySQL 8.0
+  # 1. Base de Datos: MySQL 8.4
   # ============================================================
   db:
-    image: mysql:8.0
+    image: docker.io/library/mysql:8.4
     container_name: ubb-dochub-db
     restart: always
     environment:
@@ -69,7 +69,7 @@ services:
   # 4. Administrador Web de Base de Datos: phpMyAdmin
   # ============================================================
   phpmyadmin:
-    image: phpmyadmin:latest
+    image: docker.io/library/phpmyadmin:latest
     container_name: ubb-dochub-phpmyadmin
     restart: always
     depends_on:

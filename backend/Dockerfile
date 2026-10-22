@@ -3,7 +3,7 @@
 # ============================================================
 
 # Stage 1: Build JAR with Maven
-FROM maven:3.9-eclipse-temurin-17-alpine AS builder
+FROM docker.io/library/maven:3.9-eclipse-temurin-17-alpine AS builder
 WORKDIR /build
 
 # Configure JVM limits for Maven build to prevent OOM crashes in container builds
@@ -18,7 +18,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Stage 2: Minimal Runtime JRE
-FROM eclipse-temurin:17-jre-alpine
+FROM docker.io/library/eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Install su-exec to drop privileges at runtime and allow chown

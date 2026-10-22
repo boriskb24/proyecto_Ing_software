@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Navbar } from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
-import { getPlanificaciones, Planificacion, getOfertasForProfesor, OfertaDto, getDetalleEstudianteByCorreo, getMiInforme } from '../services/api'
+import { getPlanificaciones, Planificacion, getOfertasForProfesor, OfertaDto, getDetalleEstudianteByCorreo, getMiInforme, getAuthFileUrl } from '../services/api'
 import {
   Search,
   FileText,
@@ -23,30 +23,6 @@ import {
   ExternalLink
 } from 'lucide-react'
 
-export interface PracticeStudent {
-  id: string
-  name: string
-  email?: string
-  avatar: string
-  avatarClass: string
-  status: string
-  statusClass: 'status-pending' | 'status-approved' | 'status-review'
-  professor: string
-  supervisor?: string
-  hoursCompleted?: number
-  totalHours?: number
-  planificacionesCount?: number
-}
-
-const INITIAL_PRACTICE_STUDENTS: PracticeStudent[] = [
-  { name: 'Mariana Tapia', id: '2021-4521', email: 'mtapia@alumnos.ubiobio.cl', avatar: 'MT', avatarClass: 'avatar-blue', status: 'Convenio Pendiente de Firma', statusClass: 'status-pending', professor: 'Prof. Ricardo Tapia', supervisor: 'Ing. Carlos Mendoza', hoursCompleted: 360, totalHours: 360, planificacionesCount: 2 },
-  { name: 'Marco Valantaz', id: '2020-3312', email: 'mvalantaz@alumnos.ubiobio.cl', avatar: 'MV', avatarClass: 'avatar-gold', status: 'Convenio Aprobado', statusClass: 'status-approved', professor: 'Prof. Sandra Muñoz', supervisor: 'Ing. Elena Gómez', hoursCompleted: 360, totalHours: 360, planificacionesCount: 4 },
-  { name: 'Carolina Riquelme', id: '2021-5589', email: 'criquelme@alumnos.ubiobio.cl', avatar: 'CR', avatarClass: 'avatar-teal', status: 'En Revisión Académica', statusClass: 'status-review', professor: 'Prof. Ricardo Tapia', supervisor: 'Ing. Roberto Silva', hoursCompleted: 180, totalHours: 360, planificacionesCount: 1 },
-  { name: 'Felipe Contreras', id: '2020-4103', email: 'fcontreras@alumnos.ubiobio.cl', avatar: 'FC', avatarClass: 'avatar-purple', status: 'Convenio Pendiente de Firma', statusClass: 'status-pending', professor: 'Prof. Juan Pérez', supervisor: 'Ing. Carlos Mendoza', hoursCompleted: 360, totalHours: 360, planificacionesCount: 3 },
-  { name: 'Daniela Muñoz', id: '2021-6672', email: 'dmunoz@alumnos.ubiobio.cl', avatar: 'DM', avatarClass: 'avatar-blue', status: 'Convenio Aprobado', statusClass: 'status-approved', professor: 'Prof. Sandra Muñoz', supervisor: 'Ing. Elena Gómez', hoursCompleted: 360, totalHours: 360, planificacionesCount: 3 },
-  { name: 'Matías González (Estudiante)', id: '2021-9988', email: 'estudiante@alumnos.ubiobio.cl', avatar: 'MG', avatarClass: 'avatar-gold', status: 'Convenio Aprobado', statusClass: 'status-approved', professor: 'Prof. Juan Pérez', supervisor: 'Ing. Carlos Mendoza', hoursCompleted: 360, totalHours: 360, planificacionesCount: 2 },
-]
-
 export const HomePage: React.FC = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -54,27 +30,7 @@ export const HomePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [userPlanificaciones, setUserPlanificaciones] = useState<Planificacion[]>([])
   const [informeEntregado, setInformeEntregado] = useState<{ id?: number; nombreArchivo: string; fechaEntrega?: string; archivoUrl?: string } | null>(null)
-
-  const [studentsList, setStudentsList] = useState<PracticeStudent[]>(() => {
-    const saved = localStorage.getItem('ubb_practice_students_list')
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {}
-    }
-    return INITIAL_PRACTICE_STUDENTS
-  })
-  const [activeTab, setActiveTab] = useState<'TODOS' | 'PENDIENTE' | 'APROBADO' | 'REVISION'>('TODOS')
-  const [selectedStudentForExpediente, setSelectedStudentForExpediente] = useState<PracticeStudent | null>(null)
-  const [isNewStudentModalOpen, setIsNewStudentModalOpen] = useState<boolean>(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  // Formulario de nuevo estudiante
-  const [newStudentName, setNewStudentName] = useState('')
-  const [newStudentID, setNewStudentID] = useState('')
-  const [newStudentEmail, setNewStudentEmail] = useState('')
-  const [newStudentProf, setNewStudentProf] = useState('Prof. Juan Pérez')
-  const [newStudentStatus, setNewStudentStatus] = useState('Convenio Pendiente de Firma')
 
   // Prácticas / Ofertas para Docente y Administrador
   const [ofertas, setOfertas] = useState<OfertaDto[]>([])
@@ -86,60 +42,6 @@ export const HomePage: React.FC = () => {
   const showFeedback = (msg: string) => {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(null), 4000)
-  }
-
-  const updateStudentStatus = (studentId: string, newStatus: string, newStatusClass: 'status-pending' | 'status-approved' | 'status-review') => {
-    const updated = studentsList.map(s => s.id === studentId ? { ...s, status: newStatus, statusClass: newStatusClass } : s)
-    setStudentsList(updated)
-    localStorage.setItem('ubb_practice_students_list', JSON.stringify(updated))
-    showFeedback(`Estado de convenio actualizado a: "${newStatus}"`)
-  }
-
-  const handleCreateStudent = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newStudentName.trim() || !newStudentID.trim()) {
-      showFeedback('Por favor complete todos los campos obligatorios.')
-      return
-    }
-
-    const initials = newStudentName
-      .split(' ')
-      .filter(Boolean)
-      .map(p => p[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || 'AL'
-
-    const statusClass: 'status-pending' | 'status-approved' | 'status-review' =
-      newStudentStatus === 'Convenio Aprobado'
-        ? 'status-approved'
-        : newStudentStatus === 'En Revisión Académica'
-        ? 'status-review'
-        : 'status-pending'
-
-    const newStudent: PracticeStudent = {
-      id: newStudentID.trim(),
-      name: newStudentName.trim(),
-      email: newStudentEmail.trim() || `${newStudentID.toLowerCase()}@alumnos.ubiobio.cl`,
-      avatar: initials,
-      avatarClass: 'avatar-blue',
-      status: newStudentStatus,
-      statusClass,
-      professor: newStudentProf,
-      supervisor: 'Ing. Carlos Mendoza',
-      hoursCompleted: 0,
-      totalHours: 360,
-      planificacionesCount: 0
-    }
-
-    const updated = [newStudent, ...studentsList]
-    setStudentsList(updated)
-    localStorage.setItem('ubb_practice_students_list', JSON.stringify(updated))
-    setIsNewStudentModalOpen(false)
-    setNewStudentName('')
-    setNewStudentID('')
-    setNewStudentEmail('')
-    showFeedback(`Estudiante "${newStudent.name}" inscrito exitosamente.`)
   }
 
   // Cargar datos
@@ -216,27 +118,7 @@ export const HomePage: React.FC = () => {
     fetchData()
   }, [user, isDocenteOrAdmin])
 
-  // Filtrado de estudiantes
-  const filteredStudents = studentsList.filter((s) => {
-    const matchSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.professor.toLowerCase().includes(searchQuery.toLowerCase())
-
-    if (!matchSearch) return false
-
-    if (activeTab === 'PENDIENTE') return s.statusClass === 'status-pending'
-    if (activeTab === 'APROBADO') return s.statusClass === 'status-approved'
-    if (activeTab === 'REVISION') return s.statusClass === 'status-review'
-    return true
-  })
-
   // KPIs
-  const conveniosPendientes = studentsList.filter(s => s.statusClass === 'status-pending').length
-  const conveniosAprobados = studentsList.filter(s => s.statusClass === 'status-approved').length
-  const conveniosRevision = studentsList.filter(s => s.statusClass === 'status-review').length
-
   const totalPlanificaciones = userPlanificaciones.length
   const planificacionesAprobadas = userPlanificaciones.filter(p => p.estado === 'APROBADA').length
   const planificacionesPendientes = userPlanificaciones.filter(p => p.estado === 'PENDIENTE' || !p.estado).length
@@ -567,7 +449,7 @@ export const HomePage: React.FC = () => {
                       {tieneInformeFinal && (
                         <div style={{ marginTop: '10px' }}>
                           <a
-                            href={informeEntregado?.archivoUrl || (informeEntregado?.id ? `/api/practicas/informes/${informeEntregado.id}/archivo` : '#')}
+                            href={getAuthFileUrl(informeEntregado?.archivoUrl || (informeEntregado?.id ? `/api/practicas/informes/${informeEntregado.id}/archivo` : '#'))}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
@@ -731,84 +613,7 @@ export const HomePage: React.FC = () => {
 
 
 
-      {/* Modal: Inscribir Alumno */}
-      {isNewStudentModalOpen && (
-        <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modalContent, maxWidth: '480px' }}>
-            <div style={styles.modalHeader}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <UserPlus size={22} color="#60a5fa" />
-                <h3 style={styles.modalTitle}>Inscribir Alumno en Práctica</h3>
-              </div>
-              <button onClick={() => setIsNewStudentModalOpen(false)} style={styles.modalCloseBtn}>
-                <X size={18} />
-              </button>
-            </div>
 
-            <form onSubmit={handleCreateStudent}>
-              <div style={styles.modalBody}>
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={styles.formLabel}>Nombre Completo del Estudiante *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newStudentName}
-                    onChange={(e) => setNewStudentName(e.target.value)}
-                    placeholder="Ej. Constanza Silva Morales"
-                    style={styles.formInput}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={styles.formLabel}>ID / Rol Estudiantil *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newStudentID}
-                    onChange={(e) => setNewStudentID(e.target.value)}
-                    placeholder="Ej. 2022-8812"
-                    style={styles.formInput}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={styles.formLabel}>Correo Institucional</label>
-                  <input
-                    type="email"
-                    value={newStudentEmail}
-                    onChange={(e) => setNewStudentEmail(e.target.value)}
-                    placeholder="Ej. csilva@alumnos.ubiobio.cl"
-                    style={styles.formInput}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={styles.formLabel}>Profesor Guía Asignado</label>
-                  <select
-                    value={newStudentProf}
-                    onChange={(e) => setNewStudentProf(e.target.value)}
-                    style={styles.formInput}
-                  >
-                    <option value="Prof. Juan Pérez">Prof. Juan Pérez</option>
-                    <option value="Prof. Ricardo Tapia">Prof. Ricardo Tapia</option>
-                    <option value="Prof. Sandra Muñoz">Prof. Sandra Muñoz</option>
-                    <option value="Prof. Boris Arenas">Prof. Boris Arenas</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={styles.modalFooter}>
-                <button type="button" onClick={() => setIsNewStudentModalOpen(false)} style={styles.modalSecondaryBtn}>
-                  Cancelar
-                </button>
-                <button type="submit" style={styles.modalPrimaryBtn}>
-                  Inscribir Alumno
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Floating Chatbot Assistant */}
       <div style={styles.chatbotWrapper}>

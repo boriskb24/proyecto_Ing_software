@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, FileText, ExternalLink, Calendar, UserCheck, Filter, Clock, CheckCircle2, Award } from 'lucide-react';
 import { getEvaluacionesProfesor } from '../services/practicaService';
+import { getAuthFileUrl } from '../services/api';
 import { EvaluacionesResponse, TipoFiltroEvaluacion, EvaluacionCLA, EvaluacionSEM } from '../types/evaluacion';
 
 interface Props {
@@ -391,7 +392,7 @@ export const EvaluacionesProfesor: React.FC<Props> = ({ rutProfesor, correoProfe
                             </td>
                             <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                               <a
-                                href={item.archivoUrl || `/api/practicas/evaluaciones/clase/${item.id}/archivo`}
+                                href={getAuthFileUrl(item.archivoUrl || `/api/practicas/evaluaciones/clase/${item.id}/archivo`)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
@@ -521,7 +522,7 @@ export const EvaluacionesProfesor: React.FC<Props> = ({ rutProfesor, correoProfe
                             </td>
                             <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                               <a
-                                href={item.archivoUrl || `/api/practicas/evaluaciones/semestral/${item.id}/archivo`}
+                                href={getAuthFileUrl(item.archivoUrl || `/api/practicas/evaluaciones/semestral/${item.id}/archivo`)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{

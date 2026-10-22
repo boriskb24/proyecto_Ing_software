@@ -330,4 +330,37 @@ export const evaluarPlanificacion = async (
   return response.data;
 };
 
+/**
+ * Genera una URL de acceso a un archivo adjuntando de forma segura los parámetros de autenticación
+ * para permitir la apertura en una nueva pestaña (target="_blank") sin que el navegador bloquee la petición por 403.
+ */
+export const getAuthFileUrl = (url?: string): string => {
+  if (!url || url === '#' || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url || '#';
+  }
+  const token = localStorage.getItem('token');
+  const userStr = localStorage.getItem('user');
+  let email = '';
+  if (userStr) {
+    try {
+      const u = JSON.parse(userStr);
+      email = u.email || '';
+    } catch (e) {
+      // Ignorar error de parsing
+    }
+  }
+
+  const separator = url.includes('?') ? '&' : '?';
+  const parts: string[] = [];
+  if (token && !url.includes('token=')) {
+    parts.push(`token=${encodeURIComponent(token)}`);
+  }
+  if (email && !url.includes('userEmail=')) {
+    parts.push(`userEmail=${encodeURIComponent(email)}`);
+  }
+
+  return parts.length > 0 ? `${url}${separator}${parts.join('&')}` : url;
+};
+
 export default API
+

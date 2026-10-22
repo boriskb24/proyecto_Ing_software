@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { uploadPlanificacion, getPlanificaciones, evaluarPlanificacion, Planificacion } from '../services/api';
+import { uploadPlanificacion, getPlanificaciones, evaluarPlanificacion, Planificacion, getAuthFileUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Search, Users, Filter, X, ExternalLink } from 'lucide-react';
 
@@ -509,7 +509,7 @@ export const PlanificacionesView: React.FC = () => {
                     <tr key={item.id} style={styles.tr}>
                       <td style={styles.tdPrimary}>
                         <a
-                          href={item.archivoUrl || `/api/planificaciones/${item.id}/archivo`}
+                          href={getAuthFileUrl(item.archivoUrl || `/api/planificaciones/${item.id}/archivo`)}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
@@ -686,7 +686,7 @@ export const PlanificacionesView: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Documento:</span>
                   <a
-                    href={planificacionAEvaluar.archivoUrl || `/api/planificaciones/${planificacionAEvaluar.id}/archivo`}
+                    href={getAuthFileUrl(planificacionAEvaluar.archivoUrl || `/api/planificaciones/${planificacionAEvaluar.id}/archivo`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{

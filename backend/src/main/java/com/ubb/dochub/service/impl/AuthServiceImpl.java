@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.ubb.dochub.security.TokenService;
 import java.util.UUID;
 
 @Service
@@ -26,12 +27,14 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
+    private final TokenService tokenService;
 
     public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
-            EntityManager entityManager) {
+            EntityManager entityManager, TokenService tokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.entityManager = entityManager;
+        this.tokenService = tokenService;
     }
 
     @Override
@@ -66,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         UserDto userDto = mapToUserDto(user);
-        String token = UUID.randomUUID().toString();
+        String token = tokenService.generateToken(user.getEmail(), userDto.getRole());
 
         return new AuthResponse(token, "Bearer", userDto);
     }

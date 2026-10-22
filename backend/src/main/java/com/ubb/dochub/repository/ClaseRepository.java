@@ -15,6 +15,8 @@ public interface ClaseRepository extends JpaRepository<Clase, Long> {
 
     List<Clase> findByInscripcionId(Long inscripcionId);
 
+    List<Clase> findByInscripcionIdAndFecha(Long inscripcionId, java.time.LocalDate fecha);
+
     @Query("SELECT c FROM Clase c " +
            "JOIN FETCH c.planificacion p " +
            "JOIN FETCH c.inscripcion i " +
